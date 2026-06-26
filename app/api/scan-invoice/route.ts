@@ -85,23 +85,65 @@ export async function POST(request: NextRequest) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType,
-                data: base64,
+    let response;
+    let modelUsed = GEMINI_MODEL;
+    try {
+      response = await ai.models.generateContent({
+        model: modelUsed,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64,
+                },
               },
-            },
-            { text: SYSTEM_PROMPT },
-          ],
-        },
-      ],
-    });
+              { text: SYSTEM_PROMPT },
+            ],
+          },
+        ],
+      });
+    } catch (firstError: any) {
+      const errMsg = firstError?.message || "";
+      const isQuota = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("Quota exceeded");
+      
+      if (isQuota) {
+        console.warn("Gemini 2.0 Flash quota exceeded, trying fallback gemini-1.5-flash...");
+        try {
+          modelUsed = "gemini-1.5-flash";
+          response = await ai.models.generateContent({
+            model: modelUsed,
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType,
+                      data: base64,
+                    },
+                  },
+                  { text: SYSTEM_PROMPT },
+                ],
+              },
+            ],
+          });
+        } catch (fallbackError: any) {
+          const fbMsg = fallbackError?.message || "";
+          if (fbMsg.includes("429") || fbMsg.includes("RESOURCE_EXHAUSTED") || fbMsg.includes("Quota exceeded")) {
+            return NextResponse.json(
+              { error: "Límite de cuota gratuito de Gemini excedido. Por favor, espera un minuto e intenta de nuevo." },
+              { status: 429 }
+            );
+          }
+          throw fallbackError;
+        }
+      } else {
+        throw firstError;
+      }
+    }
 
     const text = response.text?.trim() ?? "";
 
@@ -143,11 +185,20 @@ export async function POST(request: NextRequest) {
       items,
       total: typeof parsed.total === "number" ? parsed.total : null,
       rawText: text,
+      modelUsed,
     });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Error desconocido";
+  } catch (error: any) {
+    const message = error?.message || "Error desconocido";
     console.error("Gemini scan error:", message, error);
+    
+    // Check if the final error is a quota issue
+    if (message.includes("429") || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded")) {
+      return NextResponse.json(
+        { error: "Límite de cuota gratuito de Gemini excedido. Por favor, espera un minuto e intenta de nuevo." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
       { error: `Error al procesar: ${message}` },
       { status: 500 },
