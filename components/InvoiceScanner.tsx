@@ -7,6 +7,8 @@ import {
   CheckCircleIcon,
   SpinnerIcon,
   WarningCircleIcon,
+  StorefrontIcon,
+  CalendarIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useCallback, useRef, useState } from "react";
 import Button from "@/components/public/Button";
@@ -20,6 +22,14 @@ type InvoiceScannerProps = {
   onOpenChange: (open: boolean) => void;
   onScanComplete: (data: InvoiceData) => void;
 };
+
+function formatCurrency(n: number): string {
+  return new Intl.NumberFormat("es-CR", {
+    style: "currency",
+    currency: "CRC",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
 
 export default function InvoiceScanner({
   open,
@@ -55,7 +65,6 @@ export default function InvoiceScanner({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Show preview
       const url = URL.createObjectURL(file);
       setPreview(url);
       setStatus("processing");
@@ -67,7 +76,7 @@ export default function InvoiceScanner({
         setResult(data);
         setStatus("done");
       } catch (err) {
-        console.error("OCR error:", err);
+        console.error("Scan error:", err);
         setError(
           "No se pudo procesar la imagen. Intenta con otra foto más clara.",
         );
@@ -120,7 +129,7 @@ export default function InvoiceScanner({
                 Tomar foto o seleccionar imagen
               </p>
               <p className="mt-0.5 text-xs text-grayscale-9">
-                JPG, PNG — Se extraerán los datos automáticamente
+                JPG, PNG — La IA extraerá cada ítem automáticamente
               </p>
             </div>
           </button>
@@ -142,9 +151,8 @@ export default function InvoiceScanner({
                   className="animate-spin text-accent-9"
                 />
                 <p className="mt-2 text-sm font-medium text-grayscale-12">
-                  Procesando imagen…
+                  Analizando factura con IA…
                 </p>
-                {/* Progress bar */}
                 <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-grayscale-4 dark:bg-grayscale-5">
                   <div
                     className="h-full rounded-full bg-accent-9 transition-all duration-300 ease-out"
@@ -160,45 +168,68 @@ export default function InvoiceScanner({
         {/* Results */}
         {status === "done" && result && (
           <div className="flex flex-col gap-3">
-            {/* Extracted data */}
+            {/* Header info */}
             <div className="rounded-lg border border-green-6 bg-green-2 p-3 dark:border-green-7 dark:bg-green-3">
-              <div className="mb-2 flex items-center gap-1.5">
+              <div className="mb-2.5 flex items-center gap-1.5">
                 <CheckCircleIcon
                   size={16}
                   weight="fill"
                   className="text-green-9"
                 />
                 <p className="text-xs font-semibold text-green-11">
-                  Datos extraídos
+                  {result.items.length === 1
+                    ? "1 ítem detectado"
+                    : `${result.items.length} ítems detectados`}
                 </p>
               </div>
-              <div className="space-y-1.5">
-                <DataRow
-                  label="Concepto"
-                  value={result.concept || "—"}
-                />
-                <DataRow
-                  label="Monto"
-                  value={
-                    result.amount
-                      ? new Intl.NumberFormat("es-CR", {
-                          style: "currency",
-                          currency: "CRC",
-                          maximumFractionDigits: 0,
-                        }).format(result.amount)
-                      : "No detectado"
-                  }
-                  missing={!result.amount}
-                />
-                <DataRow
-                  label="Fecha"
-                  value={result.date ?? "No detectada"}
-                  missing={!result.date}
-                />
+
+              {/* Vendor & Date */}
+              <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {result.vendor && (
+                  <span className="flex items-center gap-1 text-xs text-green-11">
+                    <StorefrontIcon size={12} weight="bold" />
+                    {result.vendor}
+                  </span>
+                )}
+                {result.date && (
+                  <span className="flex items-center gap-1 text-xs text-green-11">
+                    <CalendarIcon size={12} weight="bold" />
+                    {result.date}
+                  </span>
+                )}
               </div>
+
+              {/* Items list */}
+              <div className="space-y-1.5">
+                {result.items.map((item, i) => (
+                  <div
+                    key={`${item.description}-${i}`}
+                    className="flex items-center justify-between gap-2 rounded-md bg-green-3/50 px-2.5 py-1.5 dark:bg-green-4/30"
+                  >
+                    <span className="min-w-0 truncate text-xs text-green-12 dark:text-green-11">
+                      {item.description}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-green-12 dark:text-green-11">
+                      {formatCurrency(item.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              {result.total != null && result.items.length > 1 && (
+                <div className="mt-2 flex items-center justify-between border-t border-green-6 pt-2 dark:border-green-7">
+                  <span className="text-xs font-mono uppercase font-semibold text-green-10">
+                    Total
+                  </span>
+                  <span className="text-sm font-bold text-green-12 dark:text-green-11">
+                    {formatCurrency(result.total)}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Raw text toggle (collapsible) */}
+            {/* Raw text toggle */}
             <details className="group">
               <summary className="cursor-pointer text-xs font-medium text-grayscale-9 transition-colors hover:text-grayscale-11">
                 <ScanIcon
@@ -206,10 +237,10 @@ export default function InvoiceScanner({
                   weight="bold"
                   className="mr-1 inline-block"
                 />
-                Ver texto extraído
+                Ver respuesta de IA
               </summary>
               <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-grayscale-2 p-3 text-xs text-grayscale-10 dark:bg-grayscale-3">
-                {result.rawText || "Sin texto detectado"}
+                {result.rawText || "Sin datos"}
               </pre>
             </details>
 
@@ -231,7 +262,9 @@ export default function InvoiceScanner({
                 onClick={handleConfirm}
               >
                 <CheckCircleIcon size={14} weight="bold" />
-                Usar datos
+                {result.items.length > 1
+                  ? `Crear ${result.items.length} movimientos`
+                  : "Usar datos"}
               </Button>
             </div>
           </div>
@@ -263,36 +296,5 @@ export default function InvoiceScanner({
         )}
       </div>
     </Modal>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Internal — data row for results display
-// ---------------------------------------------------------------------------
-
-function DataRow({
-  label,
-  value,
-  missing = false,
-}: {
-  label: string;
-  value: string;
-  missing?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-xs font-mono uppercase text-green-10 dark:text-green-9">
-        {label}
-      </span>
-      <span
-        className={`text-sm font-medium ${
-          missing
-            ? "italic text-grayscale-8"
-            : "text-green-12 dark:text-green-11"
-        }`}
-      >
-        {value}
-      </span>
-    </div>
   );
 }

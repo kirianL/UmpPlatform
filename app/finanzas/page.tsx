@@ -119,16 +119,39 @@ export default function FinanzasPage() {
   }
 
   function handleScanComplete(data: InvoiceData) {
-    setEditingId(null);
-    setForm({
-      ...EMPTY_TRANSACTION,
-      type: "expense",
-      concept: data.concept || "",
-      amount: data.amount ?? 0,
-      date: data.date ?? new Date().toISOString().slice(0, 10),
-    });
+    const date = data.date ?? new Date().toISOString().slice(0, 10);
+    const type = data.type ?? "expense";
+    const vendor = data.vendor ? `${data.vendor} — ` : "";
+
+    if (data.items.length <= 1) {
+      // Single item → open the form pre-filled so user can review
+      const item = data.items[0];
+      setEditingId(null);
+      setForm({
+        ...EMPTY_TRANSACTION,
+        type,
+        concept: item ? `${vendor}${item.description}` : "",
+        amount: item?.amount ?? data.total ?? 0,
+        date,
+      });
+      setScanModalOpen(false);
+      setModalOpen(true);
+      return;
+    }
+
+    // Multiple items → batch create all transactions at once
+    const newTransactions: Transaction[] = data.items.map((item, i) => ({
+      id: String(Date.now() + i),
+      concept: `${vendor}${item.description}`,
+      amount: item.amount,
+      date,
+      category: "Otro",
+      type,
+      status: "pending" as const,
+    }));
+
+    setTransactions((prev) => [...newTransactions, ...prev]);
     setScanModalOpen(false);
-    setModalOpen(true);
   }
 
   const statusBadge = (status: Transaction["status"]) => {

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@google/genai": "^2.10.0",
     "@instantdb/react": "^1.0.35",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/colors": "^3.0.0",
@@ -24,8 +25,7 @@
     "posthog-js": "^1.373.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwind-merge": "^3.6.0",
-    "tesseract.js": "^7.0.0"
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
