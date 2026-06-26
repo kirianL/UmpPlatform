@@ -33,6 +33,14 @@ function formatCurrency(n: number): string {
   }).format(n);
 }
 
+function formatWithCurrency(n: number, currency: string): string {
+  return new Intl.NumberFormat(currency === "CRC" ? "es-CR" : "en-US", {
+    style: "currency",
+    currency: currency,
+    maximumFractionDigits: currency === "CRC" ? 0 : 2,
+  }).format(n);
+}
+
 export default function InvoiceScanner({
   open,
   onOpenChange,
@@ -237,33 +245,61 @@ export default function InvoiceScanner({
         {/* Results */}
         {status === "done" && result && (
           <div className="flex flex-col gap-3">
-            <div className="rounded-lg border border-green-6 bg-green-2 p-3 dark:border-green-7 dark:bg-green-3">
-              <div className="mb-2.5 flex items-center gap-1.5">
-                <CheckCircleIcon
-                  size={16}
-                  weight="fill"
-                  className="text-green-9"
+            <div className="relative overflow-hidden rounded-lg border border-grayscale-4 dark:border-grayscale-5">
+              {preview && !isPdf ? (
+                <img
+                  src={preview}
+                  alt="Vista previa de factura"
+                  className="max-h-44 w-full object-contain bg-grayscale-2 dark:bg-grayscale-3"
                 />
-                <p className="text-xs font-semibold text-green-11">
+              ) : isPdf ? (
+                <div className="flex h-32 flex-col items-center justify-center gap-2 bg-grayscale-2 dark:bg-grayscale-3">
+                  <FileIcon
+                    size={32}
+                    weight="duotone"
+                    className="text-grayscale-8"
+                  />
+                  {fileName && (
+                    <p className="max-w-[200px] truncate text-xs text-grayscale-9">
+                      {fileName}
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Results card */}
+            <div className="rounded-xl border border-green-5 bg-green-2/30 p-4 dark:border-green-8/40 dark:bg-green-11/5">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-green-10">
+                  <CheckCircleIcon size={14} weight="bold" />
+                  Lectura Exitosa
+                </span>
+                <p className="text-[10px] text-green-11 font-medium">
                   {result.items.length === 1
                     ? "1 ítem detectado"
                     : `${result.items.length} ítems detectados`}
                 </p>
               </div>
 
-              {/* Vendor & Date */}
-              {(result.vendor || result.date) && (
-                <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+              {/* Vendor, Date & Exchange Rate */}
+              {(result.vendor || result.date || result.currency !== "CRC") && (
+                <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                   {result.vendor && (
-                    <span className="flex items-center gap-1 text-xs text-green-11">
+                    <span className="flex items-center gap-1 text-xs font-medium text-green-11">
                       <StorefrontIcon size={12} weight="bold" />
                       {result.vendor}
                     </span>
                   )}
                   {result.date && (
-                    <span className="flex items-center gap-1 text-xs text-green-11">
+                    <span className="flex items-center gap-1 text-xs font-medium text-green-11">
                       <CalendarIcon size={12} weight="bold" />
                       {result.date}
+                    </span>
+                  )}
+                  {result.currency && result.currency !== "CRC" && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/30">
+                      {result.currency} @ ₡{result.exchangeRate.toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -279,9 +315,18 @@ export default function InvoiceScanner({
                     <span className="min-w-0 truncate text-xs text-green-12 dark:text-green-11">
                       {item.description}
                     </span>
-                    <span className="shrink-0 text-xs font-semibold text-green-12 dark:text-green-11">
-                      {formatCurrency(item.amount)}
-                    </span>
+                    <div className="shrink-0 text-right flex flex-col">
+                      <span className="text-xs font-semibold text-green-12 dark:text-green-11 font-mono">
+                        {result.currency !== "CRC" 
+                          ? formatWithCurrency(item.amount, result.currency)
+                          : formatCurrency(item.amount)}
+                      </span>
+                      {result.currency !== "CRC" && (
+                        <span className="text-[10px] text-green-11 font-medium font-mono">
+                          ({formatCurrency(item.convertedAmount)})
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -292,9 +337,18 @@ export default function InvoiceScanner({
                   <span className="text-xs font-mono uppercase font-semibold text-green-10">
                     Total
                   </span>
-                  <span className="text-sm font-bold text-green-12 dark:text-green-11">
-                    {formatCurrency(result.total)}
-                  </span>
+                  <div className="text-right flex flex-col">
+                    <span className="text-sm font-bold text-green-12 dark:text-green-11 font-mono">
+                      {result.currency !== "CRC"
+                        ? formatWithCurrency(result.total, result.currency)
+                        : formatCurrency(result.total)}
+                    </span>
+                    {result.currency !== "CRC" && result.convertedTotal != null && (
+                      <span className="text-xs font-semibold text-green-11 font-mono">
+                        ({formatCurrency(result.convertedTotal)})
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

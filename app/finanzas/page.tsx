@@ -122,16 +122,28 @@ export default function FinanzasPage() {
     const date = data.date ?? new Date().toISOString().slice(0, 10);
     const type = data.type ?? "expense";
     const vendor = data.vendor ? `${data.vendor} — ` : "";
+    const isForeign = data.currency !== "CRC";
 
     if (data.items.length <= 1) {
       // Single item → open the form pre-filled so user can review
       const item = data.items[0];
+      const amount = item 
+        ? (isForeign ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate)) : item.amount)
+        : (data.total ? (isForeign ? (data.convertedTotal ?? Math.round(data.total * data.exchangeRate)) : data.total) : 0);
+      
+      const conceptPrefix = isForeign && item 
+        ? `[${data.currency} ${item.amount.toFixed(2)} @ T.C. ₡${data.exchangeRate}] `
+        : (isForeign && data.total 
+            ? `[${data.currency} ${data.total.toFixed(2)} @ T.C. ₡${data.exchangeRate}] `
+            : ""
+          );
+
       setEditingId(null);
       setForm({
         ...EMPTY_TRANSACTION,
         type,
-        concept: item ? `${vendor}${item.description}` : "",
-        amount: item?.amount ?? data.total ?? 0,
+        concept: item ? `${conceptPrefix}${vendor}${item.description}` : (data.total ? `${conceptPrefix}${vendor}Compra` : ""),
+        amount,
         date,
       });
       setScanModalOpen(false);
@@ -140,15 +152,25 @@ export default function FinanzasPage() {
     }
 
     // Multiple items → batch create all transactions at once
-    const newTransactions: Transaction[] = data.items.map((item, i) => ({
-      id: String(Date.now() + i),
-      concept: `${vendor}${item.description}`,
-      amount: item.amount,
-      date,
-      category: "Otro",
-      type,
-      status: "pending" as const,
-    }));
+    const newTransactions: Transaction[] = data.items.map((item, i) => {
+      const amount = isForeign 
+        ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate)) 
+        : item.amount;
+      
+      const conceptPrefix = isForeign 
+        ? `[${data.currency} ${item.amount.toFixed(2)} @ T.C. ₡${data.exchangeRate}] ` 
+        : "";
+
+      return {
+        id: String(Date.now() + i),
+        concept: `${conceptPrefix}${vendor}${item.description}`,
+        amount,
+        date,
+        category: "Otro",
+        type,
+        status: "pending" as const,
+      };
+    });
 
     setTransactions((prev) => [...newTransactions, ...prev]);
     setScanModalOpen(false);

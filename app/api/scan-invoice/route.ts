@@ -5,6 +5,7 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `Eres un asistente que extrae datos de facturas e imágenes de comprobantes de pago.
 Analiza la imagen y extrae CADA LÍNEA/ÍTEM de la factura por separado, además del resumen general.
+Determina la moneda de la factura (colones CRC, dólares USD o euros EUR). Si es USD o EUR, investiga o estima el tipo de cambio oficial al colón costarricense (CRC) para la fecha de la factura.
 
 Responde con el siguiente formato JSON:
 
@@ -12,23 +13,37 @@ Responde con el siguiente formato JSON:
   "vendor": "Nombre del proveedor/negocio (máximo 40 caracteres)",
   "date": "YYYY-MM-DD",
   "type": "expense",
+  "currency": "USD", 
+  "exchangeRate": 515.0,
   "items": [
-    { "description": "Descripción del producto/servicio", "amount": 1500 },
-    { "description": "Otro producto/servicio", "amount": 2300 }
+    { 
+      "description": "Descripción del producto/servicio", 
+      "amount": 15.0,
+      "convertedAmount": 7725
+    },
+    { 
+      "description": "Otro producto/servicio", 
+      "amount": 20.0,
+      "convertedAmount": 10300
+    }
   ],
-  "total": 3800
+  "total": 35.0,
+  "convertedTotal": 18025
 }
 
 Reglas:
 - "vendor": nombre del comercio, proveedor o empresa que emite la factura. Si no se detecta, usa "".
 - "date": fecha de la factura en formato ISO (YYYY-MM-DD). Si no la encuentras, usa null.
 - "type": "expense" si es un gasto/compra, "income" si es un ingreso/venta/cobro.
+- "currency": la moneda detectada de la factura: "CRC", "USD" o "EUR".
+- "exchangeRate": el tipo de cambio de la moneda detectada a colones (CRC) para la fecha de la factura. Si la moneda es CRC, el tipo de cambio es obligatoriamente 1. Si es USD o EUR, estima el tipo de cambio histórico para esa fecha específica (por ejemplo, aprox. 515 para USD, aprox. 550 para EUR si es reciente). Debe ser un número.
 - "items": array con CADA producto o servicio individual. Cada ítem tiene:
   - "description": nombre/descripción corta del ítem (máximo 60 caracteres).
-  - "amount": precio/monto del ítem como número entero sin decimales. Si un ítem tiene cantidad (ej: "3x Tornillo"), incluye el subtotal, no el precio unitario.
-- "total": monto total de la factura como número entero. Si hay un campo "Total" en la factura, usa ese valor.
+  - "amount": precio/monto del ítem en la moneda original (puede incluir decimales).
+  - "convertedAmount": el monto del ítem convertido a colones (CRC) redondeado a número entero (amount * exchangeRate).
+- "total": monto total de la factura en la moneda original.
+- "convertedTotal": total convertido a colones (CRC) redondeado a número entero (total * exchangeRate).
 - Si la factura tiene un solo ítem, el array "items" tendrá un solo elemento.
-- Si hay varias monedas, prefiere la moneda local (CRC/colones).
 - Si no puedes detectar ítems individuales, crea un solo ítem con la descripción general y el total.
 
 Responde SOLO con el JSON, sin markdown, sin explicación.`;
@@ -126,22 +141,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const currency = typeof parsed.currency === "string" ? parsed.currency.toUpperCase() : "CRC";
+    const exchangeRate = typeof parsed.exchangeRate === "number" ? parsed.exchangeRate : 1.0;
+
     // Normalise items
     const items = Array.isArray(parsed.items)
-      ? (parsed.items as { description?: string; amount?: number }[]).map(
-          (item) => ({
-            description: item.description ?? "",
-            amount: typeof item.amount === "number" ? item.amount : 0,
-          }),
+      ? (parsed.items as { description?: string; amount?: number; convertedAmount?: number }[]).map(
+          (item) => {
+            const amount = typeof item.amount === "number" ? item.amount : 0;
+            const convertedAmount = typeof item.convertedAmount === "number" 
+              ? item.convertedAmount 
+              : Math.round(amount * exchangeRate);
+            return {
+              description: item.description ?? "",
+              amount,
+              convertedAmount,
+            };
+          }
         )
       : [];
+
+    const total = typeof parsed.total === "number" ? parsed.total : null;
+    const convertedTotal = typeof parsed.convertedTotal === "number" 
+      ? parsed.convertedTotal 
+      : (total !== null ? Math.round(total * exchangeRate) : null);
 
     return NextResponse.json({
       vendor: parsed.vendor ?? "",
       date: parsed.date ?? null,
       type: parsed.type ?? "expense",
+      currency,
+      exchangeRate,
       items,
-      total: typeof parsed.total === "number" ? parsed.total : null,
+      total,
+      convertedTotal,
       rawText: text,
     });
   } catch (error: any) {

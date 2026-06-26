@@ -5,14 +5,18 @@
 export type InvoiceItem = {
   description: string;
   amount: number;
+  convertedAmount: number;
 };
 
 export type InvoiceData = {
   vendor: string;
   date: string | null; // ISO YYYY-MM-DD
   type: "income" | "expense";
+  currency: string;
+  exchangeRate: number;
   items: InvoiceItem[];
   total: number | null;
+  convertedTotal: number | null;
   rawText: string;
 };
 
@@ -46,8 +50,11 @@ export async function recogniseInvoice(
     vendor: data.vendor ?? "",
     date: data.date ?? null,
     type: data.type === "income" ? "income" : "expense",
+    currency: data.currency ?? "CRC",
+    exchangeRate: typeof data.exchangeRate === "number" ? data.exchangeRate : 1.0,
     items: Array.isArray(data.items) ? data.items : [],
     total: typeof data.total === "number" ? data.total : null,
+    convertedTotal: typeof data.convertedTotal === "number" ? data.convertedTotal : null,
     rawText: data.rawText ?? "",
   };
 }
