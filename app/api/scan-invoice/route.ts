@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { type NextRequest, NextResponse } from "next/server";
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `Eres un asistente que extrae datos de facturas e imágenes de comprobantes de pago.
 Analiza la imagen y extrae CADA LÍNEA/ÍTEM de la factura por separado, además del resumen general.
