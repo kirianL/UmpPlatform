@@ -16,7 +16,7 @@ type ButtonProps =
 export default function Button(props: ButtonProps) {
   const { variant = "primary", className } = props;
   const baseClasses =
-    "cursor-pointer flex flex-row px-2 gap-1.5 py-1 text-sm font-medium rounded-lg transition-colors border border-b-2 text-grayscale-11";
+    "cursor-pointer flex flex-row px-2 gap-1.5 py-1 text-sm font-medium rounded-lg transition-all duration-150 ease-out border border-b-2 text-grayscale-11 active:scale-[0.97] hover:shadow-sm transform-gpu";
 
   const variantClasses = {
     primary:

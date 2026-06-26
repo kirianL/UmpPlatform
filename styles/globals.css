@@ -3,6 +3,12 @@
 
 body {
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Faster touch response for interactive elements */
+button, a, [role="button"], input, select, textarea {
+  touch-action: manipulation;
 }
 
 .root {
@@ -19,4 +25,208 @@ body {
   box-shadow:
     0 4px 16px 0 rgba(0, 0, 0, 0.06),
     0 1.5px 6px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* ---------------------------------------------------------------------------
+   UMP Platform Custom Micro-Animations & Easing
+   --------------------------------------------------------------------------- */
+
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Grow bar graph animation */
+@keyframes growUp {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.animate-grow-up {
+  transform-origin: bottom;
+  animation: growUp 0.8s var(--ease-spring) forwards;
+}
+
+/* Fade in up animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s var(--ease-spring) forwards;
+}
+
+/* Pulsing highlight for moved kanban cards */
+@keyframes cardHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-9), 0.4);
+    border-color: var(--accent-9);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(var(--accent-9), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-9), 0);
+  }
+}
+
+.animate-card-move {
+  animation: cardHighlight 0.6s ease-out;
+}
+
+/* Slide in from left (demographics bars) */
+@keyframes slideInLeft {
+  from {
+    width: 0%;
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.8s var(--ease-spring) forwards;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Modal and Backdrop Transitions */
+.animate-backdrop {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, backdrop-filter;
+}
+.animate-backdrop[data-state="open"] {
+  opacity: 1;
+  backdrop-filter: blur(4px);
+}
+.animate-backdrop[data-state="closed"] {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-modal {
+  opacity: 0;
+  transform: translate(-50%, -47%) scale(0.95);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.28s ease-out;
+  will-change: transform, opacity;
+}
+.animate-modal[data-state="open"] {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.animate-modal[data-state="closed"] {
+  opacity: 0;
+  transform: translate(-50%, -47%) scale(0.95);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   View Transitions — Page Navigation
+   --------------------------------------------------------------------------- */
+
+/* Page enter: fade in + subtle slide up */
+::view-transition-new(.page-enter) {
+  animation: vt-page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Page exit: fade out quickly */
+::view-transition-old(.page-exit) {
+  animation: vt-page-out 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes vt-page-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+/* Anchor sidebar and header — don't animate them */
+::view-transition-group(sidebar) {
+  animation: none;
+  z-index: 50;
+}
+::view-transition-old(sidebar) {
+  display: none;
+}
+::view-transition-new(sidebar) {
+  animation: none;
+}
+
+::view-transition-group(mobile-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(mobile-header) {
+  display: none;
+}
+::view-transition-new(mobile-header) {
+  animation: none;
+}
+
+/* Support for prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: scroll !important;
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+  
+  .animate-grow-up,
+  .animate-fade-in-up,
+  .animate-card-move,
+  .animate-slide-in-left,
+  .animate-backdrop,
+  .animate-modal {
+    animation: none !important;
+    transform: none !important;
+    backdrop-filter: none !important;
+    width: auto;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

@@ -19,7 +19,7 @@ const List = ({
   ...props
 }: React.ComponentProps<typeof BaseTabs.List>) => (
   <BaseTabs.List
-    className={cn("flex flex-row gap-0.5 relative", className)}
+    className={cn("flex flex-row gap-0.5 relative overflow-x-auto no-scrollbar", className)}
     {...props}
   />
 );

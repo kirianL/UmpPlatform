@@ -13,8 +13,8 @@ export default function MobileHeader() {
 
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => setOpen(nextOpen)}>
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-100 flex h-14 md:hidden">
-        <div className="pointer-events-auto relative mx-auto flex h-full w-full items-center justify-between border-x border-grayscale-3 bg-grayscale-1/95 p-2 px-6 backdrop-blur dark:border-grayscale-2 md:px-10 lg:px-18">
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-100 flex h-14 xl:hidden">
+        <div className="pointer-events-auto relative mx-auto flex h-full w-full items-center justify-between border-b border-grayscale-3 bg-grayscale-1/95 px-4 backdrop-blur dark:border-grayscale-2">
           <Dialog.Trigger
             aria-label="Open navigation"
             title="Open navigation"
@@ -24,9 +24,10 @@ export default function MobileHeader() {
           </Dialog.Trigger>
           <Link
             href="/"
-            className="-translate-x-1/2 absolute left-1/2 font-mono text-sm font-bold uppercase text-grayscale-12"
+            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
           >
-            Base
+            <Logo iconSize={14} className="w-5" />
+            UmpPlatform
           </Link>
           <div className="flex items-center gap-2 text-grayscale-10">
             <MoonStarsIcon
@@ -41,13 +42,13 @@ export default function MobileHeader() {
       </header>
 
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-100 bg-grayscale-1/75 md:hidden" />
-        <Dialog.Popup className="fixed inset-y-0 left-0 z-100 flex h-dvh w-80 max-w-[calc(100vw-2rem)] flex-col gap-px border-r border-grayscale-3 bg-grayscale-1 px-4 py-4 shadow-xl outline-none md:hidden dark:border-grayscale-2">
+        <Dialog.Backdrop className="fixed inset-0 z-100 bg-grayscale-1/75 backdrop-blur-sm transition-all duration-300 ease-out data-[state=closed]:opacity-0 data-[state=open]:opacity-100 xl:hidden" />
+        <Dialog.Popup className="fixed inset-y-0 left-0 z-100 flex h-dvh w-72 max-w-[calc(100vw-2rem)] flex-col gap-px border-r border-grayscale-3 bg-grayscale-1 px-3 py-4 shadow-xl outline-none transition-all duration-300 ease-out data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0 xl:hidden dark:border-grayscale-2">
           <div className="mb-4 flex items-center justify-between px-2">
             <Dialog.Title className="sr-only">Navigation</Dialog.Title>
-            <div className="flex items-center gap-2 font-mono text-sm font-bold uppercase text-grayscale-12">
-              <Logo />
-              Base
+            <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase text-grayscale-12">
+              <Logo iconSize={16} className="w-6" />
+              UmpPlatform
             </div>
             <Dialog.Close
               aria-label="Close navigation"
