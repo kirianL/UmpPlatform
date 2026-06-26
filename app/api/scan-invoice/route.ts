@@ -39,12 +39,12 @@ Reglas:
 - "exchangeRate": el tipo de cambio de la moneda detectada a colones (CRC) para la fecha de la factura. Si la moneda es CRC, el tipo de cambio es obligatoriamente 1. Si es USD o EUR, estima el tipo de cambio histórico para esa fecha específica (por ejemplo, aprox. 515 para USD, aprox. 550 para EUR si es reciente). Debe ser un número.
 - "items": array con CADA producto o servicio individual. Cada ítem tiene:
   - "description": nombre/descripción corta del ítem (máximo 60 caracteres).
-  - "amount": precio/monto del ítem en la moneda original (puede incluir decimales).
+  - "amount": precio/monto FINAL del ítem en la moneda original (incluyendo IVA/impuestos y descuentos). IMPORTANTE: Escoge siempre el precio final cobrado con IVA incluido, nunca el precio antes de impuestos.
   - "convertedAmount": el monto del ítem convertido a colones (CRC) redondeado a número entero (amount * exchangeRate).
-- "total": monto total de la factura en la moneda original.
+- "total": monto total neto final de la factura en la moneda original (incluyendo IVA y todos los cargos finales).
 - "convertedTotal": total convertido a colones (CRC) redondeado a número entero (total * exchangeRate).
 - Si la factura tiene un solo ítem, el array "items" tendrá un solo elemento.
-- Si no puedes detectar ítems individuales, crea un solo ítem con la descripción general y el total.
+- Si no puedes detectar ítems individuales, crea un solo ítem con la descripción general y el total final de la factura.
 
 Responde SOLO con el JSON, sin markdown, sin explicación.`;
 
