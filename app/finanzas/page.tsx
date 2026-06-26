@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CameraIcon,
   CurrencyDollarIcon,
   PencilSimpleIcon,
   PlusIcon,
@@ -19,6 +20,8 @@ import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
 import { Tabs } from "@/components/public/Tabs";
 import { type Transaction, MOCK_TRANSACTIONS } from "@/lib/mock-data";
+import type { InvoiceData } from "@/lib/invoice-ocr";
+import InvoiceScanner from "@/components/InvoiceScanner";
 import PageContainer from "@/components/public/PageContainer";
 
 function formatCurrency(n: number): string {
@@ -61,6 +64,7 @@ export default function FinanzasPage() {
   const [transactions, setTransactions] =
     useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [modalOpen, setModalOpen] = useState(false);
+  const [scanModalOpen, setScanModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_TRANSACTION);
 
@@ -112,6 +116,19 @@ export default function FinanzasPage() {
 
   function handleDelete(id: string) {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleScanComplete(data: InvoiceData) {
+    setEditingId(null);
+    setForm({
+      ...EMPTY_TRANSACTION,
+      type: "expense",
+      concept: data.concept || "",
+      amount: data.amount ?? 0,
+      date: data.date ?? new Date().toISOString().slice(0, 10),
+    });
+    setScanModalOpen(false);
+    setModalOpen(true);
   }
 
   const statusBadge = (status: Transaction["status"]) => {
@@ -253,7 +270,11 @@ export default function FinanzasPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="secondary" className="text-xs" onClick={() => setScanModalOpen(true)}>
+          <CameraIcon size={16} weight="bold" />
+          Escanear Factura
+        </Button>
         <Button variant="primary" className="text-xs" onClick={() => openCreate()}>
           <PlusIcon size={16} weight="bold" />
           Registrar Movimiento
@@ -375,6 +396,13 @@ export default function FinanzasPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Scan Modal */}
+      <InvoiceScanner
+        open={scanModalOpen}
+        onOpenChange={setScanModalOpen}
+        onScanComplete={handleScanComplete}
+      />
       </div>
     </PageContainer>
   );

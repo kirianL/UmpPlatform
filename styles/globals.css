@@ -111,11 +111,11 @@ button, a, [role="button"], input, select, textarea {
   transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, backdrop-filter;
 }
-.animate-backdrop[data-state="open"] {
+.animate-backdrop[data-open] {
   opacity: 1;
   backdrop-filter: blur(4px);
 }
-.animate-backdrop[data-state="closed"] {
+.animate-backdrop[data-closed] {
   opacity: 0;
   backdrop-filter: blur(0px);
   transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -127,11 +127,11 @@ button, a, [role="button"], input, select, textarea {
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.28s ease-out;
   will-change: transform, opacity;
 }
-.animate-modal[data-state="open"] {
+.animate-modal[data-open] {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
-.animate-modal[data-state="closed"] {
+.animate-modal[data-closed] {
   opacity: 0;
   transform: translate(-50%, -47%) scale(0.95);
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
