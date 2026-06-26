@@ -35,8 +35,8 @@ export async function recogniseInvoice(
   onProgress?.(90);
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? "Error al procesar la imagen");
+    const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(body.error ?? `Error del servidor (${res.status})`);
   }
 
   const data = await res.json();

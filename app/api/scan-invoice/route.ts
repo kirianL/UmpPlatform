@@ -33,11 +33,21 @@ Reglas:
 
 Responde SOLO con el JSON, sin markdown, sin explicación.`;
 
+// Supported MIME types for Gemini vision
+const SUPPORTED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+]);
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "GEMINI_API_KEY no configurada" },
+      { error: "GEMINI_API_KEY no configurada en .env.local" },
       { status: 500 },
     );
   }
@@ -48,7 +58,23 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: "No se recibió imagen" },
+        { error: "No se recibió archivo" },
+        { status: 400 },
+      );
+    }
+
+    // Determine MIME type
+    let mimeType = file.type || "image/jpeg";
+
+    // Normalise common mobile MIME types
+    if (mimeType === "image/jpg") mimeType = "image/jpeg";
+
+    // Validate MIME type
+    if (!SUPPORTED_MIME_TYPES.has(mimeType)) {
+      return NextResponse.json(
+        {
+          error: `Formato no soportado: ${mimeType}. Usa JPG, PNG, WebP, HEIC o PDF.`,
+        },
         { status: 400 },
       );
     }
@@ -56,7 +82,6 @@ export async function POST(request: NextRequest) {
     // Convert file to base64
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const mimeType = file.type || "image/jpeg";
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -66,14 +91,13 @@ export async function POST(request: NextRequest) {
         {
           role: "user",
           parts: [
-            { text: SYSTEM_PROMPT },
             {
               inlineData: {
                 mimeType,
                 data: base64,
               },
             },
-            { text: "Extrae los datos de esta factura/recibo." },
+            { text: SYSTEM_PROMPT },
           ],
         },
       ],
@@ -81,16 +105,35 @@ export async function POST(request: NextRequest) {
 
     const text = response.text?.trim() ?? "";
 
+    if (!text) {
+      return NextResponse.json(
+        { error: "La IA no pudo leer contenido en la imagen." },
+        { status: 422 },
+      );
+    }
+
     // Parse JSON — strip markdown fences if present
     const jsonStr = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
-    const parsed = JSON.parse(jsonStr);
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      console.error("Failed to parse Gemini response as JSON:", text);
+      return NextResponse.json(
+        { error: "La IA no devolvió un formato válido. Intenta de nuevo." },
+        { status: 422 },
+      );
+    }
 
     // Normalise items
     const items = Array.isArray(parsed.items)
-      ? parsed.items.map((item: { description?: string; amount?: number }) => ({
-          description: item.description ?? "",
-          amount: typeof item.amount === "number" ? item.amount : 0,
-        }))
+      ? (parsed.items as { description?: string; amount?: number }[]).map(
+          (item) => ({
+            description: item.description ?? "",
+            amount: typeof item.amount === "number" ? item.amount : 0,
+          }),
+        )
       : [];
 
     return NextResponse.json({
@@ -101,12 +144,13 @@ export async function POST(request: NextRequest) {
       total: typeof parsed.total === "number" ? parsed.total : null,
       rawText: text,
     });
-  } catch (error) {
-    console.error("Gemini scan error:", error);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Error desconocido";
+    console.error("Gemini scan error:", message, error);
     return NextResponse.json(
-      { error: "Error al procesar la imagen con IA" },
+      { error: `Error al procesar: ${message}` },
       { status: 500 },
     );
   }
 }
-

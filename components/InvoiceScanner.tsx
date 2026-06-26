@@ -9,6 +9,8 @@ import {
   WarningCircleIcon,
   StorefrontIcon,
   CalendarIcon,
+  FileIcon,
+  ImageIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useCallback, useRef, useState } from "react";
 import Button from "@/components/public/Button";
@@ -36,8 +38,11 @@ export default function InvoiceScanner({
   onOpenChange,
   onScanComplete,
 }: InvoiceScannerProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isPdf, setIsPdf] = useState(false);
   const [status, setStatus] = useState<ScanStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<InvoiceData | null>(null);
@@ -45,11 +50,14 @@ export default function InvoiceScanner({
 
   const reset = useCallback(() => {
     setPreview(null);
+    setFileName(null);
+    setIsPdf(false);
     setStatus("idle");
     setProgress(0);
     setResult(null);
     setError(null);
-    if (inputRef.current) inputRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
+    if (fileRef.current) fileRef.current.value = "";
   }, []);
 
   const handleClose = useCallback(
@@ -60,32 +68,41 @@ export default function InvoiceScanner({
     [onOpenChange, reset],
   );
 
-  const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+  const processFile = useCallback(async (file: File) => {
+    const isFilePdf = file.type === "application/pdf";
+    setIsPdf(isFilePdf);
+    setFileName(file.name);
 
+    if (!isFilePdf) {
       const url = URL.createObjectURL(file);
       setPreview(url);
-      setStatus("processing");
-      setProgress(0);
-      setError(null);
+    } else {
+      setPreview(null);
+    }
 
-      try {
-        const data = await recogniseInvoice(file, (p) => setProgress(p));
-        setResult(data);
-        setStatus("done");
-      } catch (err) {
-        console.error("Scan error:", err);
-        setError(
-          "No se pudo procesar la imagen. Intenta con otra foto más clara.",
-        );
-        setStatus("error");
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+    setStatus("processing");
+    setProgress(0);
+    setError(null);
+
+    try {
+      const data = await recogniseInvoice(file, (p) => setProgress(p));
+      setResult(data);
+      setStatus("done");
+    } catch (err) {
+      console.error("Scan error:", err);
+      const message =
+        err instanceof Error ? err.message : "Error al procesar";
+      setError(message);
+      setStatus("error");
+    }
+  }, []);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) processFile(file);
     },
-    [],
+    [processFile],
   );
 
   const handleConfirm = useCallback(() => {
@@ -103,63 +120,115 @@ export default function InvoiceScanner({
       className="max-w-md"
     >
       <div className="flex flex-col gap-4">
-        {/* Hidden file input */}
+        {/* Hidden file inputs */}
         <input
-          ref={inputRef}
+          ref={cameraRef}
           type="file"
           accept="image/*"
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
-          id="invoice-scan-input"
+          id="invoice-camera-input"
+        />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,.pdf,application/pdf"
+          onChange={handleFileChange}
+          className="hidden"
+          id="invoice-file-input"
         />
 
-        {/* Idle state — prompt to capture */}
+        {/* Idle state — two options */}
         {status === "idle" && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-grayscale-4 bg-grayscale-2 px-6 py-10 transition-all duration-200 hover:border-accent-8 hover:bg-accent-2 dark:border-grayscale-5 dark:bg-grayscale-3 dark:hover:border-accent-8 dark:hover:bg-accent-3"
-          >
-            <div className="flex size-14 items-center justify-center rounded-full bg-accent-3 text-accent-11 transition-transform duration-200 group-hover:scale-110 dark:bg-accent-4">
-              <CameraIcon size={28} weight="duotone" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-grayscale-12">
-                Tomar foto o seleccionar imagen
-              </p>
-              <p className="mt-0.5 text-xs text-grayscale-9">
-                JPG, PNG — La IA extraerá cada ítem automáticamente
-              </p>
-            </div>
-          </button>
+          <div className="flex flex-col gap-2.5">
+            {/* Camera button — primary action on mobile */}
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="group flex cursor-pointer items-center gap-3.5 rounded-xl border-2 border-dashed border-grayscale-4 bg-grayscale-2 px-5 py-5 transition-all duration-200 hover:border-accent-8 hover:bg-accent-2 active:scale-[0.98] dark:border-grayscale-5 dark:bg-grayscale-3 dark:hover:border-accent-8 dark:hover:bg-accent-3"
+            >
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-3 text-accent-11 transition-transform duration-200 group-hover:scale-110 dark:bg-accent-4">
+                <CameraIcon size={22} weight="duotone" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-grayscale-12">
+                  Tomar foto
+                </p>
+                <p className="text-xs text-grayscale-9">
+                  Abre la cámara del teléfono
+                </p>
+              </div>
+            </button>
+
+            {/* Upload button — secondary */}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="group flex cursor-pointer items-center gap-3.5 rounded-xl border border-grayscale-3 bg-grayscale-1 px-5 py-4 transition-all duration-200 hover:border-grayscale-5 hover:bg-grayscale-2 active:scale-[0.98] dark:border-grayscale-4 dark:bg-grayscale-2 dark:hover:border-grayscale-5 dark:hover:bg-grayscale-3"
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-grayscale-3 text-grayscale-10 transition-transform duration-200 group-hover:scale-105 dark:bg-grayscale-4">
+                <FileIcon size={18} weight="duotone" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-grayscale-12">
+                  Subir archivo
+                </p>
+                <p className="text-xs text-grayscale-9">
+                  Imagen o PDF desde el dispositivo
+                </p>
+              </div>
+            </button>
+          </div>
         )}
 
-        {/* Preview + Processing */}
-        {preview && status === "processing" && (
+        {/* Processing */}
+        {status === "processing" && (
           <div className="flex flex-col gap-3">
             <div className="relative overflow-hidden rounded-lg border border-grayscale-4 dark:border-grayscale-5">
-              <img
-                src={preview}
-                alt="Factura capturada"
-                className="max-h-48 w-full object-contain bg-grayscale-2 dark:bg-grayscale-3"
-              />
+              {preview && !isPdf ? (
+                <img
+                  src={preview}
+                  alt="Factura capturada"
+                  className="max-h-44 w-full object-contain bg-grayscale-2 dark:bg-grayscale-3"
+                />
+              ) : (
+                <div className="flex h-32 flex-col items-center justify-center gap-2 bg-grayscale-2 dark:bg-grayscale-3">
+                  {isPdf ? (
+                    <FileIcon
+                      size={32}
+                      weight="duotone"
+                      className="text-grayscale-8"
+                    />
+                  ) : (
+                    <ImageIcon
+                      size={32}
+                      weight="duotone"
+                      className="text-grayscale-8"
+                    />
+                  )}
+                  {fileName && (
+                    <p className="max-w-[200px] truncate text-xs text-grayscale-9">
+                      {fileName}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-grayscale-1/70 backdrop-blur-sm dark:bg-grayscale-2/70">
                 <SpinnerIcon
-                  size={32}
+                  size={28}
                   weight="bold"
                   className="animate-spin text-accent-9"
                 />
                 <p className="mt-2 text-sm font-medium text-grayscale-12">
-                  Analizando factura con IA…
+                  Analizando con IA…
                 </p>
-                <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-grayscale-4 dark:bg-grayscale-5">
+                <div className="mt-2 h-1.5 w-36 overflow-hidden rounded-full bg-grayscale-4 dark:bg-grayscale-5">
                   <div
                     className="h-full rounded-full bg-accent-9 transition-all duration-300 ease-out"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="mt-1 text-xs text-grayscale-9">{progress}%</p>
               </div>
             </div>
           </div>
@@ -168,7 +237,6 @@ export default function InvoiceScanner({
         {/* Results */}
         {status === "done" && result && (
           <div className="flex flex-col gap-3">
-            {/* Header info */}
             <div className="rounded-lg border border-green-6 bg-green-2 p-3 dark:border-green-7 dark:bg-green-3">
               <div className="mb-2.5 flex items-center gap-1.5">
                 <CheckCircleIcon
@@ -184,23 +252,25 @@ export default function InvoiceScanner({
               </div>
 
               {/* Vendor & Date */}
-              <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                {result.vendor && (
-                  <span className="flex items-center gap-1 text-xs text-green-11">
-                    <StorefrontIcon size={12} weight="bold" />
-                    {result.vendor}
-                  </span>
-                )}
-                {result.date && (
-                  <span className="flex items-center gap-1 text-xs text-green-11">
-                    <CalendarIcon size={12} weight="bold" />
-                    {result.date}
-                  </span>
-                )}
-              </div>
+              {(result.vendor || result.date) && (
+                <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  {result.vendor && (
+                    <span className="flex items-center gap-1 text-xs text-green-11">
+                      <StorefrontIcon size={12} weight="bold" />
+                      {result.vendor}
+                    </span>
+                  )}
+                  {result.date && (
+                    <span className="flex items-center gap-1 text-xs text-green-11">
+                      <CalendarIcon size={12} weight="bold" />
+                      {result.date}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Items list */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {result.items.map((item, i) => (
                   <div
                     key={`${item.description}-${i}`}
@@ -239,7 +309,7 @@ export default function InvoiceScanner({
                 />
                 Ver respuesta de IA
               </summary>
-              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-grayscale-2 p-3 text-xs text-grayscale-10 dark:bg-grayscale-3">
+              <pre className="mt-2 max-h-28 overflow-auto rounded-lg bg-grayscale-2 p-3 text-xs text-grayscale-10 dark:bg-grayscale-3">
                 {result.rawText || "Sin datos"}
               </pre>
             </details>
@@ -274,24 +344,26 @@ export default function InvoiceScanner({
         {status === "error" && (
           <div className="flex flex-col gap-3">
             <div className="rounded-lg border border-red-6 bg-red-2 p-4 dark:border-red-7 dark:bg-red-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-start gap-2">
                 <WarningCircleIcon
                   size={18}
                   weight="fill"
-                  className="text-red-9"
+                  className="mt-0.5 shrink-0 text-red-9"
                 />
-                <p className="text-sm font-medium text-red-11">{error}</p>
+                <p className="text-sm text-red-11">{error}</p>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              className="justify-center text-xs"
-              type="button"
-              onClick={reset}
-            >
-              <ArrowCounterClockwiseIcon size={14} weight="bold" />
-              Intentar de nuevo
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1 justify-center text-xs"
+                type="button"
+                onClick={reset}
+              >
+                <ArrowCounterClockwiseIcon size={14} weight="bold" />
+                Reintentar
+              </Button>
+            </div>
           </div>
         )}
       </div>
