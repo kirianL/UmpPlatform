@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
       }
       const data = await res.json();
       
-      const currentStats = [...dbStats];
+      const currentStats: any[] = [...dbStats];
       const ytIndex = currentStats.findIndex((s) => s.platform === "youtube");
       const newYtStat = {
         platform: "youtube" as const,
