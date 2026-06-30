@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
     new URLSearchParams({
-      client_id: clientId,
+      client_id: clientId || "",
       redirect_uri: redirectUri,
       response_type: "code",
       scope: scopes,
