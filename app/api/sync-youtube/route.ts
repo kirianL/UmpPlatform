@@ -6,8 +6,8 @@ export async function GET() {
   const channelIdentifier = process.env.YOUTUBE_CHANNEL_ID || "@UltimateMediaProduction";
   
   // OAuth credentials
-  const clientId = process.env.YOUTUBE_CLIENT_ID || "1057093144266-3dvtlp0687o42qfephk3ql3rbca8vu3d.apps.googleusercontent.com";
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET || "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";
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
   const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
 
   // Si existe Refresh Token, hacemos autenticación OAuth privada (Datos reales avanzados)

@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No se recibió código de autorización" }, { status: 400 });
   }
 
-  const clientId = process.env.YOUTUBE_CLIENT_ID || "1057093144266-3dvtlp0687o42qfephk3ql3rbca8vu3d.apps.googleusercontent.com";
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET || "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";
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
   
   // Determinar la base URL de forma dinámica
   const { origin } = new URL(request.url);
