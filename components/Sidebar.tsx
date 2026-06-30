@@ -9,6 +9,7 @@ import {
   FunnelIcon,
   SquaresFourIcon,
   UsersIcon,
+  SignOutIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -82,12 +83,31 @@ function SidebarNavContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="mt-auto flex flex-col gap-3 px-2 pt-6">
-        <div className="border-t border-grayscale-3 pt-4 dark:border-grayscale-2">
-          <div className="flex flex-row items-center gap-2">
-            <span className="text-xs font-mono text-grayscale-9 font-medium uppercase">
-              Dark Mode
-            </span>
-            <ThemeToggle />
+        <div className="border-t border-grayscale-3 pt-4 dark:border-grayscale-4/60">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row items-center justify-between px-1">
+              <span className="text-[10px] font-mono text-grayscale-9 font-bold uppercase tracking-wider">
+                Tema Oscuro
+              </span>
+              <ThemeToggle />
+            </div>
+            
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/auth/logout", { method: "POST" });
+                  if (res.ok) {
+                    window.location.href = "/login";
+                  }
+                } catch (err) {
+                  console.error("Error al cerrar sesión:", err);
+                }
+              }}
+              className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 font-mono text-[10px] font-bold uppercase text-red-9 hover:bg-red-2/30 hover:text-red-11 dark:hover:bg-red-9/10 transition-colors mt-1"
+            >
+              <SignOutIcon size={14} weight="bold" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
       </div>

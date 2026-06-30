@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ViewTransition } from "react";
 import { Inter, JetBrains_Mono, Pirata_One, Geist } from "next/font/google";
+import { headers } from "next/headers";
 import "../styles/globals.css";
 import MobileHeader from "@/components/MobileHeader";
 import Sidebar from "@/components/Sidebar";
@@ -41,11 +42,15 @@ export const metadata: Metadata = {
     "Plataforma de gestión para productora audiovisual — personal, finanzas, clientes, inventario y calendario.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isLoginPage = pathname === "/login";
+
   return (
     <html
       lang="es"
@@ -55,15 +60,19 @@ export default function RootLayout({
       <body className="min-h-full bg-grayscale-1 text-grayscale-12">
         <ThemeProvider>
           <ConvexClientProvider>
-            <div className="root">
-              <Sidebar />
-              <MobileHeader />
-              <main className="min-h-screen xl:pl-56">
-                <ViewTransition enter="page-enter" exit="page-exit">
-                  {children}
-                </ViewTransition>
-              </main>
-            </div>
+            {isLoginPage ? (
+              children
+            ) : (
+              <div className="root">
+                <Sidebar />
+                <MobileHeader />
+                <main className="min-h-screen xl:pl-56">
+                  <ViewTransition enter="page-enter" exit="page-exit">
+                    {children}
+                  </ViewTransition>
+                </main>
+              </div>
+            )}
           </ConvexClientProvider>
         </ThemeProvider>
       </body>
