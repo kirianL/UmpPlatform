@@ -10,21 +10,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Prevent default zoom & elastic scroll on iOS devices (PWA feel)
-  useEffect(() => {
-    const preventScroll = (e: TouchEvent) => {
-      if ((e.target as HTMLElement).closest(".scrollable") === null) {
-        e.preventDefault();
-      }
-    };
-    document.addEventListener("touchmove", preventScroll, { passive: false });
-    return () => {
-      document.removeEventListener("touchmove", preventScroll);
-    };
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault();
     if (!username || !password) return;
 
     setLoading(true);
@@ -51,7 +38,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex h-dvh w-screen flex-col justify-between overflow-hidden bg-grayscale-1 text-grayscale-12 p-6 select-none font-sans">
+    <div className="relative flex h-dvh w-screen flex-col justify-between overflow-hidden bg-grayscale-1 text-grayscale-12 p-6 font-sans">
       
       {/* Top Header Row */}
       <div className="flex items-center justify-between w-full animate-fade-in">
@@ -124,6 +111,7 @@ export default function LoginPage() {
           {/* Submit Button */}
           <button
             type="submit"
+            onClick={handleSubmit}
             disabled={loading || !username || !password}
             className="w-full mt-2 py-3 rounded-xl bg-grayscale-12 text-grayscale-1 font-mono text-xs font-bold uppercase tracking-wider transition-all hover:bg-grayscale-11 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer flex items-center justify-center gap-2 dark:bg-grayscale-12 dark:text-grayscale-1 dark:hover:bg-grayscale-11"
           >

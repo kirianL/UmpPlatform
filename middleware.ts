@@ -33,23 +33,34 @@ async function signSession(username: string, expiresAt: number): Promise<string>
   return arrayBufferToBase64Url(signature);
 }
 
-async function verifySession(token: string): Promise<boolean> {
-  if (!token) return false;
+async function verifySession(token: string): Promise<{ valid: boolean; reason?: string }> {
+  if (!token) return { valid: false, reason: "Token vacío" };
   const parts = token.split(".");
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) return { valid: false, reason: "Formato de token inválido (no tiene 3 partes)" };
 
   const [username, expiresAtStr, signature] = parts;
   const expiresAt = parseInt(expiresAtStr, 10);
 
-  if (isNaN(expiresAt) || expiresAt < Date.now()) {
-    return false;
+  if (isNaN(expiresAt)) {
+    return { valid: false, reason: "Fecha de expiración no es un número" };
+  }
+  
+  if (expiresAt < Date.now()) {
+    return { valid: false, reason: `Token expirado (expiró el: ${new Date(expiresAt).toISOString()})` };
   }
 
   const expectedSignature = await signSession(username, expiresAt);
-  return expectedSignature === signature;
+  if (expectedSignature !== signature) {
+    return { 
+      valid: false, 
+      reason: `Firma inválida. ¿Secret de sesión coincide? Usando secret de longitud: ${SESSION_SECRET.length}` 
+    };
+  }
+
+  return { valid: true };
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow next assets, favicon, icon, and public auth APIs to pass through
@@ -64,11 +75,23 @@ export async function proxy(request: NextRequest) {
   }
 
   const sessionToken = request.cookies.get("session_token")?.value;
-  const isSessionValid = sessionToken ? await verifySession(sessionToken) : false;
+  console.log(`[Proxy Auth Check] sessionToken value read from cookie: "${sessionToken}"`);
+  
+  let isSessionValid = false;
+  if (sessionToken) {
+    const result = await verifySession(sessionToken);
+    isSessionValid = result.valid;
+    if (!result.valid) {
+      console.warn(`[Proxy Auth Check] Acceso denegado en "${pathname}": ${result.reason}`);
+    }
+  } else {
+    console.warn(`[Proxy Auth Check] Acceso denegado en "${pathname}": No se encontró cookie session_token`);
+  }
 
   // If path is /login and session is valid, redirect to analytics/dashboard
   if (pathname === "/login") {
     if (isSessionValid) {
+      console.log(`[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo a /analytics.`);
       return NextResponse.redirect(new URL("/analytics", request.url));
     }
     const requestHeaders = new Headers(request.headers);
