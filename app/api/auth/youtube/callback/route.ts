@@ -19,18 +19,18 @@ export async function GET(request: NextRequest) {
   // La URI redirigida debe coincidir con la configurada en Google Cloud
   const redirectUri = `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL ? "https://ump-platform.vercel.app" : "http://localhost:3000"}/api/auth/youtube/callback`;
 
-  try {
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId || "",
-        client_secret: clientSecret || "",
-        code,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code",
-      }),
-    });
+    try {
+      const res = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId || "",
+          client_secret: clientSecret || "",
+          code,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }).toString(),
+      });
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
