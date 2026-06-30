@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { ViewTransition } from "react";
-import { Inter, JetBrains_Mono, Pirata_One } from "next/font/google";
+import { Inter, JetBrains_Mono, Pirata_One, Geist } from "next/font/google";
 import "../styles/globals.css";
 import MobileHeader from "@/components/MobileHeader";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -46,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${pirataOne.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", inter.variable, jetbrainsMono.variable, pirataOne.variable, "font-sans", geist.variable)}
       suppressHydrationWarning
     >
       <body className="min-h-full bg-grayscale-1 text-grayscale-12">

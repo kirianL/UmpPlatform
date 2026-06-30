@@ -67,8 +67,27 @@ export default defineSchema({
     sharesGrowth: v.string(),
     watchTime: v.string(),
     avgRetention: v.string(),
+    monthlyViews: v.optional(v.array(v.object({
+      month: v.string(),
+      views: v.number(),
+    }))),
+    demographics: v.optional(v.object({
+      age: v.array(v.object({ label: v.string(), value: v.number() })),
+      location: v.array(v.object({ label: v.string(), value: v.number() })),
+      gender: v.array(v.object({ label: v.string(), value: v.number(), color: v.string() })),
+    })),
+    retentionCurve: v.optional(v.array(v.object({
+      ratio: v.number(),
+      retention: v.number(),
+    }))),
+    insights: v.optional(v.array(v.object({
+      title: v.string(),
+      description: v.string(),
+      type: v.union(v.literal("warning"), v.literal("tip"), v.literal("info")),
+    }))),
   }),
   topContent: defineTable({
+    id: v.optional(v.string()),
     title: v.string(),
     platform: v.union(v.literal("youtube"), v.literal("instagram"), v.literal("tiktok"), v.literal("facebook")),
     views: v.number(),
@@ -77,5 +96,6 @@ export default defineSchema({
     retention: v.string(),
     duration: v.string(),
     date: v.string(),
+    thumbnailUrl: v.optional(v.string()),
   }),
 });

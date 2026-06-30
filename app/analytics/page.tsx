@@ -19,6 +19,10 @@ import StatCard from "@/components/public/StatCard";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Button from "@/components/public/Button";
+import { AreaChart, Area } from "@/components/charts/area-chart";
+import { Grid } from "@/components/charts/grid";
+import { XAxis } from "@/components/charts/x-axis";
+import { ChartTooltip } from "@/components/charts/tooltip";
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -36,6 +40,23 @@ const MOCK_PLATFORM_STATS = {
     sharesGrowth: "+17.2%",
     watchTime: "52,400 h",
     avgRetention: "58.4%",
+    insights: [
+      {
+        title: "Crecimiento Multiplataforma Sólido",
+        description: "El alcance consolidado ha subido un 26.8%. Prioriza contenido cruzado (Cross-posting) entre TikTok e Instagram.",
+        type: "info" as const,
+      },
+      {
+        title: "Optimización del Gancho Inicial",
+        description: "La retención de video decae rápido en los primeros 10s. Comienza tus videos directamente con la acción principal.",
+        type: "warning" as const,
+      },
+      {
+        title: "Llamado a la Acción (CTA)",
+        description: "El engagement creció un 1.5%. Agrega un recordatorio interactivo para suscribirse a la mitad de tus videos largos.",
+        type: "tip" as const,
+      },
+    ],
   },
   youtube: {
     followers: 120000,
@@ -48,6 +69,23 @@ const MOCK_PLATFORM_STATS = {
     sharesGrowth: "+10.2%",
     watchTime: "31,200 h",
     avgRetention: "64.2%",
+    insights: [
+      {
+        title: "Optimización de Retención Temprana",
+        description: "Tus videos promedian una retención del 64.2%. Considera acortar la introducción a menos de 10 segundos.",
+        type: "warning" as const,
+      },
+      {
+        title: "Oportunidad de Audiencia",
+        description: "Tus principales vistas provienen de Costa Rica. Incentiva la interacción preguntando sobre temas de interés regional.",
+        type: "tip" as const,
+      },
+      {
+        title: "Fidelización del Público",
+        description: "El grupo de edad de 25-34 años representa el 45% de tu audiencia. Ajusta el ritmo y duración de tus videos.",
+        type: "info" as const,
+      },
+    ],
   },
   instagram: {
     followers: 85000,
@@ -60,6 +98,18 @@ const MOCK_PLATFORM_STATS = {
     sharesGrowth: "+22.5%",
     watchTime: "8,500 h",
     avgRetention: "48.5%",
+    insights: [
+      {
+        title: "Potencial de Compartidos en Reels",
+        description: "Los compartidos subieron un 22.5%. Publica Reels cortos de tipo tutorial con plantillas para incentivar el guardado.",
+        type: "tip" as const,
+      },
+      {
+        title: "Retención de Stories Baja",
+        description: "El abandono de historias ocurre tras la segunda diapositiva. Usa encuestas o stickers interactivos en la primera.",
+        type: "warning" as const,
+      },
+    ],
   },
   tiktok: {
     followers: 40300,
@@ -72,6 +122,18 @@ const MOCK_PLATFORM_STATS = {
     sharesGrowth: "+38.4%",
     watchTime: "6,200 h",
     avgRetention: "42.1%",
+    insights: [
+      {
+        title: "Crecimiento Viral Acelerado",
+        description: "El volumen de visualizaciones creció un 45.2%. Mantén la frecuencia de subida de 3 a 5 publicaciones por semana.",
+        type: "info" as const,
+      },
+      {
+        title: "Abandono de Pantalla Crítico",
+        description: "La retención de video decae un 50% al segundo 3. Elige portadas con títulos más llamativos o textos de impacto inicial.",
+        type: "warning" as const,
+      },
+    ],
   },
   facebook: {
     followers: 80000,
@@ -84,6 +146,18 @@ const MOCK_PLATFORM_STATS = {
     sharesGrowth: "+12.1%",
     watchTime: "6,500 h",
     avgRetention: "51.8%",
+    insights: [
+      {
+        title: "Frecuencia de Publicación Recomendada",
+        description: "Publicar en horarios de la tarde (2 PM - 5 PM) aumenta el engagement en un 12%. Configura un planificador.",
+        type: "tip" as const,
+      },
+      {
+        title: "Alcance Orgánico Estable",
+        description: "Las vistas mensuales subieron un 14.8%. Responde a los comentarios más populares para subir la interacción.",
+        type: "info" as const,
+      },
+    ],
   },
 };
 
@@ -208,6 +282,27 @@ const DEMOGRAPHICS = {
   ],
 };
 
+const MOCK_YOUTUBE_DEMOGRAPHICS = {
+  age: [
+    { label: "18-24 años", value: 28 },
+    { label: "25-34 años", value: 45 },
+    { label: "35-44 años", value: 18 },
+    { label: "45+ años", value: 9 },
+  ],
+  location: [
+    { label: "Costa Rica", value: 65 },
+    { label: "México", value: 15 },
+    { label: "Estados Unidos", value: 8 },
+    { label: "España", value: 7 },
+    { label: "Otros países", value: 5 },
+  ],
+  gender: [
+    { label: "Femenino", value: 48, color: "bg-accent-9" },
+    { label: "Masculino", value: 50, color: "bg-grayscale-10" },
+    { label: "Otro", value: 2, color: "bg-grayscale-6" },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -215,6 +310,7 @@ const DEMOGRAPHICS = {
 export default function AnalyticsPage() {
   const [platform, setPlatform] = useState<"all" | "youtube" | "instagram" | "tiktok" | "facebook">("all");
   const [timeframe, setTimeframe] = useState("30");
+  const [hoveredPoint, setHoveredPoint] = useState<{ ratio: number; retention: number } | null>(null);
 
   const dbStats = useQuery(api.analytics.getStats) ?? [];
   const dbTopContent = useQuery(api.analytics.getTopContent) ?? [];
@@ -230,6 +326,80 @@ export default function AnalyticsPage() {
       (item) => platform === "all" || item.platform === platform
     );
   }, [dbTopContent, platform]);
+
+  const monthlyViewsToShow = useMemo(() => {
+    const ytStats = dbStats.find((s) => s.platform === "youtube");
+    if (ytStats?.monthlyViews && ytStats.monthlyViews.length > 0) {
+      return MOCK_MONTHLY_VIEWS.map((m) => {
+        const realMonth = ytStats.monthlyViews?.find(
+          (rm) => rm.month.toLowerCase() === m.month.toLowerCase()
+        );
+        return {
+          ...m,
+          youtube: realMonth ? realMonth.views : m.youtube,
+        };
+      });
+    }
+    return MOCK_MONTHLY_VIEWS;
+  }, [dbStats]);
+
+  const demographicsToShow = useMemo(() => {
+    if (platform === "youtube") {
+      const ytStats = dbStats.find((s) => s.platform === "youtube");
+      if (ytStats?.demographics) {
+        return {
+          age: ytStats.demographics.age && ytStats.demographics.age.length > 0 ? ytStats.demographics.age : MOCK_YOUTUBE_DEMOGRAPHICS.age,
+          location: ytStats.demographics.location && ytStats.demographics.location.length > 0 ? ytStats.demographics.location : MOCK_YOUTUBE_DEMOGRAPHICS.location,
+          gender: ytStats.demographics.gender && ytStats.demographics.gender.length > 0 ? ytStats.demographics.gender : MOCK_YOUTUBE_DEMOGRAPHICS.gender,
+        };
+      }
+      return MOCK_YOUTUBE_DEMOGRAPHICS;
+    }
+    return DEMOGRAPHICS;
+  }, [dbStats, platform]);
+
+  const retentionPath = useMemo(() => {
+    const ytStats = dbStats.find((s) => s.platform === "youtube");
+    const hasRealData = platform === "youtube" && ytStats?.retentionCurve && ytStats.retentionCurve.length > 0;
+    
+    const points = hasRealData 
+      ? [...(ytStats.retentionCurve || [])].sort((a, b) => a.ratio - b.ratio)
+      : [
+          { ratio: 0.0, retention: 100 },
+          { ratio: 0.1, retention: 70 },
+          { ratio: 0.2, retention: 60 },
+          { ratio: 0.3, retention: 54 },
+          { ratio: 0.4, retention: 50 },
+          { ratio: 0.5, retention: 47 },
+          { ratio: 0.6, retention: 44 },
+          { ratio: 0.7, retention: 41 },
+          { ratio: 0.8, retention: 38 },
+          { ratio: 0.9, retention: 35 },
+          { ratio: 1.0, retention: 32 },
+        ];
+
+    const svgPoints = points.map((p) => {
+      const x = p.ratio * 100;
+      const y = 35 - (p.retention / 100) * 35;
+      return `${x},${y}`;
+    });
+
+    return {
+      line: `M ${svgPoints.join(" L ")}`,
+      area: `M 0,35 L ${svgPoints.join(" L ")} L 100,35 Z`,
+      points,
+    };
+  }, [dbStats, platform]);
+
+  const chartData = useMemo(() => {
+    return retentionPath.points.map((p) => {
+      const date = new Date(2025, 0, Math.floor(p.ratio * 28) + 1);
+      return {
+        date,
+        retention: p.retention,
+      };
+    });
+  }, [retentionPath.points]);
 
   const [syncing, setSyncing] = useState(false);
   const saveStatsMutation = useMutation(api.analytics.saveStats);
@@ -312,14 +482,25 @@ export default function AnalyticsPage() {
           </div>
           <div className="mt-3 flex items-center gap-2 sm:mt-0">
             {platform === "youtube" && (
-              <Button
-                variant="primary"
-                onClick={handleSyncYoutube}
-                disabled={syncing}
-                className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
-              >
-                {syncing ? "Sincronizando..." : "Sincronizar YouTube"}
-              </Button>
+              <>
+                {stats.watchTime === "Requiere OAuth" && (
+                  <Button
+                    variant="secondary"
+                    href="/api/auth/youtube"
+                    className="text-xs flex items-center gap-1.5 border-red-9/50 text-red-6 hover:bg-red-2/30 dark:text-red-9 dark:hover:bg-red-9/10"
+                  >
+                    Vincular YouTube (OAuth)
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={handleSyncYoutube}
+                  disabled={syncing}
+                  className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
+                >
+                  {syncing ? "Sincronizando..." : "Sincronizar YouTube"}
+                </Button>
+              </>
             )}
             <select
               value={timeframe}
@@ -396,6 +577,53 @@ export default function AnalyticsPage() {
           </button>
         </div>
 
+        {/* AI Insights Section */}
+        {stats.insights && stats.insights.length > 0 && (
+          <div className="flex flex-col gap-4 rounded-xl border border-grayscale-3 bg-grayscale-2/30 p-5 dark:border-grayscale-3 dark:bg-grayscale-2/10 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-grayscale-3 dark:border-grayscale-4/40 pb-2">
+              <h2 className="font-mono text-xs font-semibold uppercase text-grayscale-12 tracking-wider flex items-center gap-2">
+                AI Insights
+                <span className="text-[9px] font-mono text-grayscale-9 lowercase font-normal">
+                  (gemini assistant)
+                </span>
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {stats.insights.map((insight: any, idx: number) => {
+                const label = 
+                  insight.type === "warning" ? "WARN" : insight.type === "tip" ? "TIP" : "INFO";
+
+                const badgeColor = 
+                  insight.type === "warning" 
+                    ? "border border-red-9/20 text-red-9 bg-red-9/5" 
+                    : insight.type === "tip" 
+                      ? "border border-green-9/20 text-green-9 bg-green-9/5"
+                      : "border border-blue-9/20 text-blue-9 bg-blue-9/5";
+
+                return (
+                  <div 
+                    key={idx}
+                    className="flex flex-col gap-2 rounded-lg border border-grayscale-3 bg-grayscale-2/30 p-4 transition-all hover:translate-y-[-2px] hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3/10"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-mono text-xs font-bold text-grayscale-12 leading-snug">
+                        {insight.title}
+                      </span>
+                      <span className={`text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeColor}`}>
+                        {label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-grayscale-10 leading-normal">
+                      {insight.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -437,7 +665,7 @@ export default function AnalyticsPage() {
             
             {/* Custom CSS Bar Chart */}
             <div className="flex h-56 items-end justify-between gap-2 pt-6 pb-2 border-b border-grayscale-3 dark:border-grayscale-4">
-              {MOCK_MONTHLY_VIEWS.map((data, mIdx) => {
+              {monthlyViewsToShow.map((data, mIdx) => {
                 const max = 500000;
                 const ytHeight = (data.youtube / max) * 100;
                 const igHeight = (data.instagram / max) * 100;
@@ -514,58 +742,39 @@ export default function AnalyticsPage() {
 
         {/* Audience Retention & Demographics Section */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Audience Retention Chart (Simulated sparkline retention curve) */}
-          <div className="lg:col-span-1 flex flex-col gap-4 rounded-xl border border-grayscale-3 bg-grayscale-2/30 p-5 dark:border-grayscale-3 dark:bg-grayscale-2/10">
-            <h2 className="font-mono text-xs font-semibold uppercase text-grayscale-12">
-              Curva de Retención de Video
-            </h2>
-            <p className="text-xs text-grayscale-10 leading-relaxed">
-              Retención promedio a lo largo de la duración de reproducción (benchmark de videos de 10-15 min).
-            </p>
+          {/* Audience Retention Chart (Bklit UI AreaChart) */}
+          <div className="lg:col-span-2 flex flex-col gap-4 rounded-xl border border-grayscale-3 bg-grayscale-2/30 p-5 dark:border-grayscale-3 dark:bg-grayscale-2/10">
+            <div className="flex flex-col gap-1">
+              <h2 className="font-mono text-xs font-semibold uppercase text-grayscale-12">
+                Curva de Retención de Video
+              </h2>
+              <p className="text-[10px] text-grayscale-10 leading-tight">
+                Retención promedio a lo largo de la duración de reproducción (video popular)
+              </p>
+            </div>
 
-            {/* SVG Sparkline Graph */}
-            <div className="relative flex flex-col items-center justify-center flex-1 py-4">
-              <svg viewBox="0 0 100 35" className="w-full h-32 text-accent-9 overflow-visible" fill="none">
-                {/* Grid guidelines */}
-                <line x1="0" y1="0" x2="100" y2="0" stroke="currentColor" strokeWidth="0.1" strokeDasharray="1" className="text-grayscale-5" />
-                <line x1="0" y1="17.5" x2="100" y2="17.5" stroke="currentColor" strokeWidth="0.1" strokeDasharray="1" className="text-grayscale-5" />
-                <line x1="0" y1="35" x2="100" y2="35" stroke="currentColor" strokeWidth="0.2" className="text-grayscale-6" />
-
-                {/* Curved line */}
-                <path
-                  d="M 0,0 C 15,2 25,8 40,14 C 55,20 70,22 100,24"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
+            {/* Bklit AreaChart */}
+            <div className="relative flex flex-col items-center justify-center flex-1 py-1 w-full min-h-[200px]">
+              <AreaChart data={chartData} xDataKey="date" aspectRatio="2.5 / 1" className="w-full">
+                <Grid horizontal stroke="var(--chart-grid)" strokeDasharray="3,3" />
+                <Area 
+                  dataKey="retention" 
+                  fill="#ef4444" 
+                  stroke="#ef4444" 
+                  fillOpacity={0.18} 
+                  strokeWidth={2}
                 />
-                
-                {/* Area under curve gradient fill */}
-                <path
-                  d="M 0,0 C 15,2 25,8 40,14 C 55,20 70,22 100,24 L 100,35 L 0,35 Z"
-                  fill="url(#grad)"
-                  opacity="0.15"
+                <XAxis numTicks={5} />
+                <ChartTooltip 
+                  rows={(point) => [
+                    {
+                      label: "Retención",
+                      value: `${Math.round(point.retention as number)}%`,
+                      color: "#ef4444",
+                    },
+                  ]}
                 />
-
-                {/* Markers */}
-                <circle cx="0" cy="0" r="1" fill="currentColor" />
-                <circle cx="50" cy="18.5" r="1" fill="currentColor" />
-                <circle cx="100" cy="24" r="1" fill="currentColor" />
-
-                {/* Gradients */}
-                <defs>
-                  <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="currentColor" />
-                    <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-
-              {/* Axis labels */}
-              <div className="flex w-full justify-between text-[8px] font-mono text-grayscale-9 mt-1">
-                <span>0:00 (Inicio - 100%)</span>
-                <span>5:00 (50%)</span>
-                <span>10:00+ (Fin - 32%)</span>
-              </div>
+              </AreaChart>
             </div>
 
             <div className="rounded-lg bg-grayscale-2 p-3 dark:bg-grayscale-4/30">
@@ -577,7 +786,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Demographics Panel */}
-          <div className="lg:col-span-2 flex flex-col gap-5 rounded-xl border border-grayscale-3 bg-grayscale-2/30 p-5 dark:border-grayscale-3 dark:bg-grayscale-2/10">
+          <div className="lg:col-span-1 flex flex-col gap-5 rounded-xl border border-grayscale-3 bg-grayscale-2/30 p-5 dark:border-grayscale-3 dark:bg-grayscale-2/10">
             <h2 className="font-mono text-xs font-semibold uppercase text-grayscale-12">
               Distribución Demográfica de la Audiencia
             </h2>
@@ -589,7 +798,7 @@ export default function AnalyticsPage() {
                   Grupos de Edad
                 </h3>
                 <div className="flex flex-col gap-2.5">
-                  {DEMOGRAPHICS.age.map((item, idx) => (
+                  {demographicsToShow.age.map((item, idx) => (
                     <div key={item.label} className="flex flex-col gap-1">
                       <div className="flex justify-between text-xs text-grayscale-11">
                         <span>{item.label}</span>
@@ -597,8 +806,8 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-grayscale-3 dark:bg-grayscale-4 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-accent-9 animate-slide-in-left origin-left"
-                          style={{ width: `${item.value}%`, animationDelay: `${idx * 100}ms` }}
+                           className="h-full rounded-full bg-accent-9 animate-slide-in-left origin-left"
+                           style={{ width: `${item.value}%`, animationDelay: `${idx * 100}ms` }}
                         />
                       </div>
                     </div>
@@ -609,10 +818,10 @@ export default function AnalyticsPage() {
               {/* Location groups */}
               <div className="flex flex-col gap-3">
                 <h3 className="font-mono text-[10px] font-bold uppercase text-grayscale-9 tracking-wide">
-                  Ubicaciones Principales (Costa Rica)
+                  Ubicaciones Principales {platform === "youtube" ? "(Países)" : "(Costa Rica)"}
                 </h3>
                 <div className="flex flex-col gap-2.5">
-                  {DEMOGRAPHICS.location.map((item, idx) => (
+                  {demographicsToShow.location.map((item, idx) => (
                     <div key={item.label} className="flex flex-col gap-1">
                       <div className="flex justify-between text-xs text-grayscale-11">
                         <span>{item.label}</span>
@@ -620,8 +829,8 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-grayscale-3 dark:bg-grayscale-4 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-green-9 animate-slide-in-left origin-left"
-                          style={{ width: `${item.value}%`, animationDelay: `${idx * 100}ms` }}
+                           className="h-full rounded-full bg-green-9 animate-slide-in-left origin-left"
+                           style={{ width: `${item.value}%`, animationDelay: `${idx * 100}ms` }}
                         />
                       </div>
                     </div>
@@ -638,7 +847,7 @@ export default function AnalyticsPage() {
               
               {/* Segmented bar chart */}
               <div className="h-3 w-full rounded-full bg-grayscale-3 dark:bg-grayscale-4 flex overflow-hidden">
-                {DEMOGRAPHICS.gender.map((item, idx) => (
+                {demographicsToShow.gender.map((item, idx) => (
                   <div
                     key={item.label}
                     className={`h-full ${item.color} first:rounded-l-full last:rounded-r-full animate-slide-in-left origin-left`}
@@ -650,7 +859,7 @@ export default function AnalyticsPage() {
 
               {/* Legend with percentages */}
               <div className="flex items-center gap-6 mt-3">
-                {DEMOGRAPHICS.gender.map((item) => (
+                {demographicsToShow.gender.map((item) => (
                   <div key={item.label} className="flex items-center gap-1.5">
                     <span className={`size-2 rounded-full ${item.color}`} />
                     <span className="text-xs text-grayscale-11">{item.label}</span>
@@ -690,22 +899,44 @@ export default function AnalyticsPage() {
               return (
                 <div
                   key={(item as any)._id || (item as any).id || item.title}
-                  className="small-shadow flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3"
+                  className="small-shadow flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3 overflow-hidden"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Platform Brand Badge */}
-                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${platformColor}`}>
-                      <Icon size={18} weight={item.platform === "youtube" || item.platform === "facebook" ? "fill" : "regular"} />
+                  {/* Thumbnail / Portada Container */}
+                  <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-grayscale-2 dark:bg-grayscale-4 flex items-center justify-center group-hover:scale-102 transition-transform">
+                    {item.thumbnailUrl ? (
+                      <img
+                        src={item.thumbnailUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-grayscale-2 to-grayscale-3 dark:from-grayscale-4 dark:to-grayscale-5`}>
+                        <Icon size={32} className={`opacity-40 ${item.platform === "youtube" ? "text-red-9" : item.platform === "instagram" ? "text-violet-9" : item.platform === "tiktok" ? "text-cyan-9" : "text-blue-9"}`} weight={item.platform === "youtube" || item.platform === "facebook" ? "fill" : "regular"} />
+                      </div>
+                    )}
+                    {/* Duration Badge */}
+                    {item.duration && (
+                      <span className="absolute bottom-2 right-2 rounded bg-black/85 px-1.5 py-0.5 text-[9px] font-mono font-bold text-white tracking-wider">
+                        {item.duration}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Header Row: Platform Icon and Date */}
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className={`flex size-6 items-center justify-center rounded-md ${platformColor}`}>
+                        <Icon size={14} weight={item.platform === "youtube" || item.platform === "facebook" ? "fill" : "regular"} />
+                      </div>
+                      <span className="font-mono text-[10px] text-grayscale-10 uppercase tracking-wide font-semibold">
+                        {item.platform}
+                      </span>
                     </div>
-                    {/* Duration / Timestamp */}
-                    <div className="flex flex-col items-end text-[10px] font-mono text-grayscale-9">
-                      <span>{item.duration}</span>
-                      <span>{item.date}</span>
-                    </div>
+                    <span className="font-mono text-[9px] text-grayscale-9">{item.date}</span>
                   </div>
 
                   {/* Title */}
-                  <p className="text-sm font-semibold text-grayscale-12 leading-snug line-clamp-2">
+                  <p className="text-sm font-semibold text-grayscale-12 leading-snug line-clamp-2 min-h-[40px]">
                     {item.title}
                   </p>
 
@@ -717,7 +948,11 @@ export default function AnalyticsPage() {
                     <div className="flex flex-col gap-0.5">
                       <span className="text-[9px] font-mono text-grayscale-9 uppercase">Vistas</span>
                       <span className="text-xs font-bold font-mono text-grayscale-12">
-                        {item.views >= 1000 ? `${(item.views / 1000).toFixed(0)}k` : item.views}
+                        {item.views >= 1000000 
+                          ? `${(item.views / 1000000).toFixed(1)}M` 
+                          : item.views >= 1000 
+                            ? `${(item.views / 1000).toFixed(0)}k` 
+                            : item.views}
                       </span>
                     </div>
                     <div className="flex flex-col gap-0.5">

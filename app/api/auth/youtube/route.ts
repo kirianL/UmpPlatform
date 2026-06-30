@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const clientId = process.env.YOUTUBE_CLIENT_ID || "1057093144266-3dvtlp0687o42qfephk3ql3rbca8vu3d.apps.googleusercontent.com";
 
-  // Las URIs redirigidas deben coincidir con la configurada en Google Cloud
-  const redirectUri = `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL ? "https://ump-platform.vercel.app" : "http://localhost:3000"}/api/auth/youtube/callback`;
+  // Determinar la base URL de forma dinámica
+  const { origin } = new URL(request.url);
+  const redirectUri = `${origin}/api/auth/youtube/callback`;
 
   // Construir la URL segura de Google OAuth
   const scopes = [
