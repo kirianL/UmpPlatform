@@ -13,16 +13,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No se recibió código de autorización" }, { status: 400 });
   }
 
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    return NextResponse.json({
-      error: "Las variables YOUTUBE_CLIENT_ID o YOUTUBE_CLIENT_SECRET están vacías en el servidor. Revisa si guardaste .env.local y reiniciaste el servidor.",
-      clientId: clientId ? "Configurado (Largo: " + clientId.length + ")" : "Vacío",
-      clientSecret: clientSecret ? "Configurado (Largo: " + clientSecret.length + ")" : "Vacío"
-    }, { status: 400 });
-  }
+  const clientId = process.env.YOUTUBE_CLIENT_ID || "1057093144266-3dvtlp0687o42qfephk3ql3rbca8vu3d.apps.googleusercontent.com";
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET || "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";
   
   // La URI redirigida debe coincidir con la configurada en Google Cloud
   const redirectUri = `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL ? "https://ump-platform.vercel.app" : "http://localhost:3000"}/api/auth/youtube/callback`;

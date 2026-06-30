@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  
-  if (!clientId) {
-    return NextResponse.json(
-      { error: "Falta YOUTUBE_CLIENT_ID en .env.local para iniciar la autenticación." },
-      { status: 400 }
-    );
-  }
+  const clientId = process.env.YOUTUBE_CLIENT_ID || "1057093144266-3dvtlp0687o42qfephk3ql3rbca8vu3d.apps.googleusercontent.com";
 
   // Las URIs redirigidas deben coincidir con la configurada en Google Cloud
   const redirectUri = `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL ? "https://ump-platform.vercel.app" : "http://localhost:3000"}/api/auth/youtube/callback`;
