@@ -290,7 +290,6 @@ export default function AnalyticsPage() {
       const newContent = [...otherContent, ...data.topContent];
       await saveTopContentMutation({ content: newContent.map(({ _id, _creationTime, ...rest }: any) => rest) });
       
-      alert(`¡Sincronización exitosa con el canal ${data.channelName}!`);
     } catch (err: any) {
       alert("Error de conexión: " + err.message);
     } finally {
