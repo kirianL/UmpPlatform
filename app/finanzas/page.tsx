@@ -57,7 +57,7 @@ const EMPTY_TRANSACTION = {
   amount: 0,
   date: new Date().toISOString().slice(0, 10),
   category: "Producción",
-  type: "income" as const,
+  type: "income" as "income" | "expense",
   status: "pending" as const,
 };
 
