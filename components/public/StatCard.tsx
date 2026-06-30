@@ -7,6 +7,7 @@ type StatCardProps = {
   className?: string;
   detail?: string;
   style?: React.CSSProperties;
+  index?: number;
 };
 
 export default function StatCard({

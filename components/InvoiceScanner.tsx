@@ -229,7 +229,7 @@ export default function InvoiceScanner({
                   className="animate-spin text-accent-9"
                 />
                 <p className="mt-2 text-sm font-medium text-grayscale-12">
-                  Analizando con IA…
+                  Analizando factura…
                 </p>
                 <div className="mt-2 h-1.5 w-36 overflow-hidden rounded-full bg-grayscale-4 dark:bg-grayscale-5">
                   <div

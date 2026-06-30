@@ -312,12 +312,12 @@ export default function FinanzasPage() {
           </div>
 
           <Button
-            variant="secondary"
-            className="text-xs border-accent-7 text-accent-11 bg-accent-2/20 hover:bg-accent-3/30"
+            variant="primary"
+            className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
             onClick={() => setScanModalOpen(true)}
           >
             <CameraIcon size={16} weight="bold" />
-            Escanear Factura (IA)
+            Escanear Factura
           </Button>
         </div>
 
@@ -491,14 +491,12 @@ export default function FinanzasPage() {
           </form>
         </Modal>
 
-        {/* Modal: OCR Scanner */}
-        <Modal
+        {/* OCR Scanner */}
+        <InvoiceScanner
           open={scanModalOpen}
           onOpenChange={setScanModalOpen}
-          title="Escanear Factura con IA"
-        >
-          <InvoiceScanner onScanComplete={handleScanComplete} />
-        </Modal>
+          onScanComplete={handleScanComplete}
+        />
       </div>
     </PageContainer>
   );
