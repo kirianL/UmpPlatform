@@ -690,7 +690,7 @@ export default function AnalyticsPage() {
 
               return (
                 <div
-                  key={item.id}
+                  key={(item as any)._id || (item as any).id || item.title}
                   className="small-shadow flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3"
                 >
                   <div className="flex items-start justify-between gap-3">
