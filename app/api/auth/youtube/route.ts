@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const clientId = process.env.YOUTUBE_CLIENT_ID || "1057093144266-3dvtlp0687o42qfephk3ql3rbca8vu3d.apps.googleusercontent.com";
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
 
   // Determinar la base URL de forma dinámica
   const { origin } = new URL(request.url);
