@@ -71,6 +71,30 @@ export const run = mutation({
       await ctx.db.insert("events", ev);
     }
 
+    // Seed analyticsStats
+    const analyticsStats = [
+      { platform: "all" as const, followers: 325300, followersGrowth: "+9.1%", views: 1485000, viewsGrowth: "+26.8%", engagement: "8.2%", engagementGrowth: "+1.5%", shares: 61400, sharesGrowth: "+17.2%", watchTime: "52,400 h", avgRetention: "58.4%" },
+      { platform: "youtube" as const, followers: 120000, followersGrowth: "+6.1%", views: 450000, viewsGrowth: "+18.5%", engagement: "9.2%", engagementGrowth: "+0.8%", shares: 12500, sharesGrowth: "+10.2%", watchTime: "31,200 h", avgRetention: "64.2%" },
+      { platform: "instagram" as const, followers: 85000, followersGrowth: "+12.4%", views: 380000, viewsGrowth: "+35.1%", engagement: "6.8%", engagementGrowth: "+2.1%", shares: 18400, sharesGrowth: "+22.5%", watchTime: "8,500 h", avgRetention: "48.5%" },
+      { platform: "tiktok" as const, followers: 40300, followersGrowth: "+22.8%", views: 375000, viewsGrowth: "+45.2%", engagement: "14.2%", engagementGrowth: "+4.5%", shares: 18000, sharesGrowth: "+38.4%", watchTime: "6,200 h", avgRetention: "42.1%" },
+      { platform: "facebook" as const, followers: 80000, followersGrowth: "+5.3%", views: 280000, viewsGrowth: "+14.8%", engagement: "5.4%", engagementGrowth: "+0.5%", shares: 12500, sharesGrowth: "+12.1%", watchTime: "6,500 h", avgRetention: "51.8%" }
+    ];
+    for (const stat of analyticsStats) {
+      await ctx.db.insert("analyticsStats", stat);
+    }
+
+    // Seed topContent
+    const topContent = [
+      { title: "Detrás de Cámaras: Serie 'Horizontes' — Ep. 5", platform: "youtube" as const, views: 185000, likes: 15400, watchTime: "12,400 h", retention: "64.2%", duration: "14:20", date: "Hace 5 días" },
+      { title: "Sony FX6 vs Red Komodo: Comparativa Real", platform: "youtube" as const, views: 142000, likes: 12100, watchTime: "9,800 h", retention: "58.4%", duration: "18:45", date: "Hace 12 días" },
+      { title: "Reel: Iluminación de Cine en Espacios Pequeños", platform: "instagram" as const, views: 245000, likes: 28400, watchTime: "4,200 h", retention: "72.5%", duration: "0:58", date: "Hace 3 días" },
+      { title: "Cómo grabar audio limpio en exteriores", platform: "tiktok" as const, views: 310000, likes: 35200, watchTime: "3,800 h", retention: "68.2%", duration: "0:45", date: "Hace 2 días" },
+      { title: "Anuncio de Estreno: Documental 'Voces'", platform: "facebook" as const, views: 98000, likes: 6200, watchTime: "2,100 h", retention: "45.8%", duration: "2:15", date: "Hace 8 días" }
+    ];
+    for (const item of topContent) {
+      await ctx.db.insert("topContent", item);
+    }
+
     return "Database seeded successfully";
   },
 });

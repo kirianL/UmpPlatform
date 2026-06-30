@@ -12,10 +12,13 @@ import {
   TrendUpIcon,
   YoutubeLogo,
 } from "@phosphor-icons/react/dist/ssr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Badge from "@/components/public/Badge";
 import PageContainer from "@/components/public/PageContainer";
 import StatCard from "@/components/public/StatCard";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import Button from "@/components/public/Button";
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -213,11 +216,87 @@ export default function AnalyticsPage() {
   const [platform, setPlatform] = useState<"all" | "youtube" | "instagram" | "tiktok" | "facebook">("all");
   const [timeframe, setTimeframe] = useState("30");
 
-  const stats = MOCK_PLATFORM_STATS[platform];
+  const dbStats = useQuery(api.analytics.getStats) ?? [];
+  const dbTopContent = useQuery(api.analytics.getTopContent) ?? [];
 
-  const filteredContent = MOCK_TOP_CONTENT.filter(
-    (item) => platform === "all" || item.platform === platform
-  );
+  const stats = useMemo(() => {
+    const found = dbStats.find((s) => s.platform === platform);
+    return found || MOCK_PLATFORM_STATS[platform];
+  }, [dbStats, platform]);
+
+  const filteredContent = useMemo(() => {
+    const contentList = dbTopContent.length > 0 ? dbTopContent : MOCK_TOP_CONTENT;
+    return contentList.filter(
+      (item) => platform === "all" || item.platform === platform
+    );
+  }, [dbTopContent, platform]);
+
+  const [syncing, setSyncing] = useState(false);
+  const saveStatsMutation = useMutation(api.analytics.saveStats);
+  const saveTopContentMutation = useMutation(api.analytics.saveTopContent);
+
+  const handleSyncYoutube = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/sync-youtube");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error || "Error al sincronizar con YouTube");
+        return;
+      }
+      const data = await res.json();
+      
+      const currentStats = [...dbStats];
+      const ytIndex = currentStats.findIndex((s) => s.platform === "youtube");
+      const newYtStat = {
+        platform: "youtube" as const,
+        ...data.stats,
+      };
+      
+      if (ytIndex >= 0) {
+        currentStats[ytIndex] = newYtStat;
+      } else {
+        currentStats.push(newYtStat);
+      }
+      
+      const allIndex = currentStats.findIndex((s) => s.platform === "all");
+      const otherPlatforms = currentStats.filter((s) => s.platform !== "all" && s.platform !== "youtube");
+      const totalFollowers = newYtStat.followers + otherPlatforms.reduce((sum: number, s: any) => sum + s.followers, 0);
+      const totalViews = newYtStat.views + otherPlatforms.reduce((sum: number, s: any) => sum + s.views, 0);
+      
+      const newAllStat = {
+        platform: "all" as const,
+        followers: totalFollowers || 325300,
+        followersGrowth: "+9.1%",
+        views: totalViews || 1485000,
+        viewsGrowth: "+26.8%",
+        engagement: "8.2%",
+        engagementGrowth: "+1.5%",
+        shares: 61400,
+        sharesGrowth: "+17.2%",
+        watchTime: "52,400 h",
+        avgRetention: "58.4%",
+      };
+      
+      if (allIndex >= 0) {
+        currentStats[allIndex] = newAllStat;
+      } else {
+        currentStats.push(newAllStat);
+      }
+      
+      await saveStatsMutation({ stats: currentStats.map(({ _id, _creationTime, ...rest }: any) => rest) });
+      
+      const otherContent = dbTopContent.filter((c) => c.platform !== "youtube");
+      const newContent = [...otherContent, ...data.topContent];
+      await saveTopContentMutation({ content: newContent.map(({ _id, _creationTime, ...rest }: any) => rest) });
+      
+      alert(`¡Sincronización exitosa con el canal ${data.channelName}!`);
+    } catch (err: any) {
+      alert("Error de conexión: " + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <PageContainer size="wide">
@@ -232,7 +311,17 @@ export default function AnalyticsPage() {
               Rendimiento y alcance del contenido audiovisual en redes sociales
             </p>
           </div>
-          <div className="mt-3 sm:mt-0">
+          <div className="mt-3 flex items-center gap-2 sm:mt-0">
+            {platform === "youtube" && (
+              <Button
+                variant="primary"
+                onClick={handleSyncYoutube}
+                disabled={syncing}
+                className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
+              >
+                {syncing ? "Sincronizando..." : "Sincronizar YouTube"}
+              </Button>
+            )}
             <select
               value={timeframe}
               onChange={(e) => setTimeframe(e.target.value)}
