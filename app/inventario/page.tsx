@@ -17,14 +17,10 @@ import Input from "@/components/public/Input";
 import Modal from "@/components/public/Modal";
 import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
-import {
-  type Equipment,
-  type EquipmentCategory,
-  type EquipmentStatus,
-  EQUIPMENT_CATEGORY_LABELS,
-  MOCK_EQUIPMENT,
-} from "@/lib/mock-data";
+import { EQUIPMENT_CATEGORY_LABELS } from "@/lib/mock-data";
 import PageContainer from "@/components/public/PageContainer";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 function formatDate(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("es-MX", {
@@ -34,26 +30,27 @@ function formatDate(iso: string): string {
   });
 }
 
-const STATUS_CONFIG: Record<
-  EquipmentStatus,
-  { label: string; variant: "green" | "accent" | "orange" }
-> = {
-  available: { label: "Disponible", variant: "green" },
-  "in-use": { label: "En Uso", variant: "accent" },
-  maintenance: { label: "Mantenimiento", variant: "orange" },
+const STATUS_CONFIG = {
+  available: { label: "Disponible", variant: "green" as const },
+  "in-use": { label: "En Uso", variant: "accent" as const },
+  maintenance: { label: "Mantenimiento", variant: "orange" as const },
 };
 
-const EMPTY_EQUIPMENT: Omit<Equipment, "id"> = {
+const EMPTY_EQUIPMENT = {
   name: "",
   serialNumber: "",
   category: "camera",
-  status: "available",
+  status: "available" as const,
   location: "",
   acquisitionDate: new Date().toISOString().slice(0, 10),
 };
 
 export default function InventarioPage() {
-  const [equipment, setEquipment] = useState<Equipment[]>(MOCK_EQUIPMENT);
+  const equipment = useQuery(api.equipment.get) ?? [];
+  const createEquipment = useMutation(api.equipment.create);
+  const updateEquipment = useMutation(api.equipment.update);
+  const removeEquipment = useMutation(api.equipment.remove);
+
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -63,7 +60,7 @@ export default function InventarioPage() {
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
       e.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
-      EQUIPMENT_CATEGORY_LABELS[e.category]
+      (EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category)
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -80,15 +77,15 @@ export default function InventarioPage() {
     setModalOpen(true);
   }
 
-  function openEdit(eq: Equipment) {
-    setEditingId(eq.id);
+  function openEdit(e: any) {
+    setEditingId(e._id);
     setForm({
-      name: eq.name,
-      serialNumber: eq.serialNumber,
-      category: eq.category,
-      status: eq.status,
-      location: eq.location,
-      acquisitionDate: eq.acquisitionDate,
+      name: e.name,
+      serialNumber: e.serialNumber,
+      category: e.category,
+      status: e.status,
+      location: e.location,
+      acquisitionDate: e.acquisitionDate,
     });
     setModalOpen(true);
   }
@@ -97,20 +94,21 @@ export default function InventarioPage() {
     if (!form.name.trim()) return;
 
     if (editingId) {
-      setEquipment((prev) =>
-        prev.map((e) => (e.id === editingId ? { ...e, ...form } : e)),
-      );
+      updateEquipment({
+        id: editingId as any,
+        ...form,
+      });
     } else {
-      setEquipment((prev) => [{ id: String(Date.now()), ...form }, ...prev]);
+      createEquipment(form);
     }
     setModalOpen(false);
   }
 
   function handleDelete(id: string) {
-    setEquipment((prev) => prev.filter((e) => e.id !== id));
+    removeEquipment({ id: id as any });
   }
 
-  const columns: Column<Equipment>[] = [
+  const columns: Column<any>[] = [
     {
       key: "name",
       header: "Equipo",
@@ -127,9 +125,19 @@ export default function InventarioPage() {
       key: "category",
       header: "Categoría",
       className: "hidden sm:table-cell",
+      filterOptions: [
+        { label: "Cámara", value: "camera" },
+        { label: "Lentes / Óptica", value: "lens" },
+        { label: "Audio", value: "audio" },
+        { label: "Iluminación", value: "lighting" },
+        { label: "Grip / Soporte", value: "grip" },
+        { label: "Almacenamiento", value: "storage" },
+        { label: "Accesorios", value: "accessory" },
+      ],
+      getFilterValue: (e) => e.category,
       render: (e) => (
         <span className="text-sm text-grayscale-11">
-          {EQUIPMENT_CATEGORY_LABELS[e.category]}
+          {EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category}
         </span>
       ),
     },
@@ -146,8 +154,14 @@ export default function InventarioPage() {
     {
       key: "status",
       header: "Estado",
+      filterOptions: [
+        { label: "Disponible", value: "available" },
+        { label: "En uso", value: "in-use" },
+        { label: "Mantenimiento", value: "maintenance" },
+      ],
+      getFilterValue: (e) => e.status,
       render: (e) => {
-        const cfg = STATUS_CONFIG[e.status];
+        const cfg = STATUS_CONFIG[e.status as "available"] || STATUS_CONFIG.available;
         return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
       },
     },
@@ -176,7 +190,7 @@ export default function InventarioPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleDelete(e.id)}
+            onClick={() => handleDelete(e._id)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
           >
             <TrashIcon size={14} />
@@ -189,166 +203,172 @@ export default function InventarioPage() {
   return (
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-          Inventario
-        </h1>
-        <p className="text-sm text-grayscale-10">
-          Equipo de producción audiovisual
-        </p>
-      </div>
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+            Inventario
+          </h1>
+          <p className="text-sm text-grayscale-10">
+            Control de equipos, cámaras, óptica y accesorios
+          </p>
+        </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <StatCard
-          label="Total"
-          value={equipment.length}
-          icon={<FilmSlateIcon size={18} weight="fill" />}
-        />
-        <StatCard
-          label="Disponible"
-          value={available}
-          icon={<FilmSlateIcon size={18} weight="fill" className="text-green-9" />}
-        />
-        <StatCard
-          label="En Uso"
-          value={inUse}
-          icon={<FilmSlateIcon size={18} weight="fill" className="text-accent-9" />}
-        />
-        <StatCard
-          label="Mantenimiento"
-          value={maintenance}
-          icon={<WrenchIcon size={18} weight="fill" className="text-orange-9" />}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <MagnifyingGlassIcon
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+        {/* Stats */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Disponibles"
+            value={available}
+            detail={`${equipment.length} total de unidades`}
+            icon={<FilmSlateIcon size={18} weight="fill" />}
+            index={0}
           />
-          <input
-            type="text"
-            placeholder="Buscar equipo, serie o categoría..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+          <StatCard
+            label="En Uso / Rodaje"
+            value={inUse}
+            detail="Operando actualmente"
+            icon={<FilmSlateIcon size={18} weight="fill" className="text-accent-9" />}
+            index={1}
+          />
+          <StatCard
+            label="Mantenimiento"
+            value={maintenance}
+            detail="En revisión técnica"
+            icon={<WrenchIcon size={18} weight="bold" className="text-orange-9" />}
+            index={2}
           />
         </div>
-        <Button variant="primary" className="text-xs" onClick={openCreate}>
-          <PlusIcon size={16} weight="bold" />
-          Agregar Equipo
-        </Button>
-      </div>
 
-      {/* Table */}
-      <DataTable
-        columns={columns}
-        data={filtered}
-        keyExtractor={(e) => e.id}
-        emptyState={
-          <EmptyState
-            icon={<FilmSlateIcon size={40} weight="duotone" />}
-            title="Sin resultados"
-            description={
-              search
-                ? "No se encontró equipo con esa búsqueda."
-                : "Aún no hay equipo registrado."
-            }
-            action={
-              !search && (
-                <Button
-                  variant="primary"
-                  className="text-xs"
-                  onClick={openCreate}
-                >
-                  <PlusIcon size={16} weight="bold" />
-                  Agregar Equipo
-                </Button>
-              )
-            }
-          />
-        }
-      />
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative">
+            <MagnifyingGlassIcon
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o serie..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+            />
+          </div>
+          <Button variant="primary" className="text-xs" onClick={openCreate}>
+            <PlusIcon size={16} weight="bold" />
+            Agregar Equipo
+          </Button>
+        </div>
 
-      {/* Modal */}
-      <Modal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        title={editingId ? "Editar Equipo" : "Nuevo Equipo"}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSave();
-          }}
-          className="flex flex-col gap-4"
+        {/* Table */}
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(e) => e._id}
+          emptyState={
+            <EmptyState
+              icon={<FilmSlateIcon size={40} weight="duotone" />}
+              title="Sin resultados"
+              description={
+                search
+                  ? "No se encontraron equipos con esa búsqueda."
+                  : "Aún no hay equipos registrados."
+              }
+              action={
+                !search && (
+                  <Button
+                    variant="primary"
+                    className="text-xs"
+                    onClick={openCreate}
+                  >
+                    <PlusIcon size={16} weight="bold" />
+                    Agregar Equipo
+                  </Button>
+                )
+              }
+            />
+          }
+        />
+
+        {/* Modal */}
+        <Modal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          title={editingId ? "Editar Equipo" : "Agregar Equipo"}
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+            className="flex flex-col gap-4"
+          >
             <Input
-              label="Nombre"
+              label="Nombre del Equipo"
               id="eq-name"
               value={form.name}
               onChange={(e) =>
                 setForm((f) => ({ ...f, name: e.target.value }))
               }
-              placeholder="Ej: Sony FX6"
+              placeholder="Ej: Sony FX3 Cinema Line"
               required
             />
-            <Input
-              label="Número de Serie"
-              id="eq-serial"
-              value={form.serialNumber}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, serialNumber: e.target.value }))
-              }
-              placeholder="SN-XXX-000"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
-              label="Categoría"
-              id="eq-category"
-              value={form.category}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  category: e.target.value as EquipmentCategory,
-                }))
-              }
-              options={Object.entries(EQUIPMENT_CATEGORY_LABELS).map(
-                ([v, l]) => ({ value: v, label: l }),
-              )}
-            />
-            <Select
-              label="Estado"
-              id="eq-status"
-              value={form.status}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  status: e.target.value as EquipmentStatus,
-                }))
-              }
-              options={Object.entries(STATUS_CONFIG).map(([v, cfg]) => ({
-                value: v,
-                label: cfg.label,
-              }))}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="Ubicación"
-              id="eq-location"
-              value={form.location}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, location: e.target.value }))
-              }
-              placeholder="Ej: Bodega Central"
-            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Número de Serie"
+                id="eq-serial"
+                value={form.serialNumber}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, serialNumber: e.target.value }))
+                }
+                placeholder="Ej: S/N 198227"
+                required
+              />
+              <Select
+                label="Categoría"
+                id="eq-cat"
+                value={form.category}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, category: e.target.value }))
+                }
+                options={[
+                  { value: "camera", label: "Cámara" },
+                  { value: "lens", label: "Lentes / Óptica" },
+                  { value: "audio", label: "Audio" },
+                  { value: "lighting", label: "Iluminación" },
+                  { value: "grip", label: "Grip / Soporte" },
+                  { value: "storage", label: "Almacenamiento" },
+                  { value: "accessory", label: "Accesorios" },
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Estado"
+                id="eq-status"
+                value={form.status}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    status: e.target.value as any,
+                  }))
+                }
+                options={[
+                  { value: "available", label: "Disponible" },
+                  { value: "in-use", label: "En Uso / Rodaje" },
+                  { value: "maintenance", label: "Mantenimiento" },
+                ]}
+              />
+              <Input
+                label="Ubicación / Casillero"
+                id="eq-loc"
+                value={form.location}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, location: e.target.value }))
+                }
+                placeholder="Ej: Casillero A3"
+                required
+              />
+            </div>
             <Input
               label="Fecha de Adquisición"
               id="eq-date"
@@ -357,23 +377,23 @@ export default function InventarioPage() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, acquisitionDate: e.target.value }))
               }
+              required
             />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              className="text-xs"
-              type="button"
-              onClick={() => setModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button variant="primary" className="text-xs" type="submit">
-              {editingId ? "Guardar Cambios" : "Agregar Equipo"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button variant="primary" className="text-xs" type="submit">
+                {editingId ? "Guardar Cambios" : "Agregar Equipo"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </PageContainer>
   );

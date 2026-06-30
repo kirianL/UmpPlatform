@@ -9,7 +9,7 @@ type PageContainerProps = {
 export default function PageContainer({
   children,
   className,
-  size = "default",
+  size = "wide",
 }: PageContainerProps) {
   return (
     <div

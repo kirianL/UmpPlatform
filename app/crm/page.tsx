@@ -8,7 +8,7 @@ import {
   TrashIcon,
   TrendUpIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 import Input from "@/components/public/Input";
@@ -18,13 +18,12 @@ import StatCard from "@/components/public/StatCard";
 import PageContainer from "@/components/public/PageContainer";
 import { cn } from "@/helpers/classname-helper";
 import {
-  type Deal,
-  type DealPriority,
   type DealStage,
   DEAL_STAGE_LABELS,
   DEAL_STAGE_ORDER,
-  MOCK_DEALS,
 } from "@/lib/mock-data";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,38 +44,34 @@ function formatDate(iso: string): string {
   });
 }
 
-const STAGE_DOT_COLORS: Record<DealStage, string> = {
-  lead: "bg-grayscale-8",
-  proposal: "bg-accent-9",
-  negotiation: "bg-orange-9",
-  won: "bg-green-9",
-  lost: "bg-red-9",
+type SimplifiedStage = "contact" | "negotiating" | "closed";
+
+const SIMPLIFIED_STAGE_LABELS: Record<SimplifiedStage, string> = {
+  contact: "Contacto / Leads",
+  negotiating: "Propuesta / Negociación",
+  closed: "Cerrado (Ganado / Perdido)",
 };
 
-const PRIORITY_BORDER: Record<DealPriority, string> = {
-  low: "border-l-[3px] border-l-green-9 dark:border-l-green-8",
-  medium: "border-l-[3px] border-l-orange-9 dark:border-l-orange-8",
-  high: "border-l-[3px] border-l-red-9 dark:border-l-red-8",
+const SIMPLIFIED_STAGE_ORDER: SimplifiedStage[] = ["contact", "negotiating", "closed"];
+
+const COLUMN_COLORS: Record<SimplifiedStage, string> = {
+  contact: "bg-grayscale-8",
+  negotiating: "bg-accent-9",
+  closed: "bg-green-9",
 };
 
-const PRIORITY_LABEL: Record<DealPriority, string> = {
+const PRIORITY_LABEL = {
   low: "Baja",
   medium: "Media",
   high: "Alta",
 };
 
-const PRIORITY_BADGE_VARIANT: Record<DealPriority, "green" | "orange" | "red"> = {
-  low: "green",
-  medium: "orange",
-  high: "red",
-};
-
-const EMPTY_DEAL: Omit<Deal, "id"> = {
+const EMPTY_DEAL = {
   title: "",
   client: "",
   value: 0,
-  stage: "lead",
-  priority: "medium",
+  stage: "lead" as DealStage,
+  priority: "medium" as const,
   createdAt: new Date().toISOString().slice(0, 10),
   expectedClose: "",
   description: "",
@@ -88,28 +83,42 @@ const EMPTY_DEAL: Omit<Deal, "id"> = {
 // ---------------------------------------------------------------------------
 
 export default function CRMPage() {
-  const [deals, setDeals] = useState<Deal[]>(MOCK_DEALS);
+  const deals = useQuery(api.deals.get) ?? [];
+  const createDeal = useMutation(api.deals.create);
+  const updateDeal = useMutation(api.deals.update);
+  const removeDeal = useMutation(api.deals.remove);
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
+  const [editingDeal, setEditingDeal] = useState<any | null>(null);
   const [form, setForm] = useState(EMPTY_DEAL);
   
-  // Mobile stage view state to prevent horizontal scroll on small screens
-  const [activeMobileStage, setActiveMobileStage] = useState<DealStage>("lead");
+  // Mobile stage view state
+  const [activeMobileStage, setActiveMobileStage] = useState<SimplifiedStage>("contact");
   
   // Track recently moved card to apply pulse animation
   const [lastMovedId, setLastMovedId] = useState<string | null>(null);
 
-  // Group deals by stage
+  // Pointer-event drag-and-drop state
+  const [draggedDeal, setDraggedDeal] = useState<any | null>(null);
+  const [pointerOffset, setPointerOffset] = useState({ x: 0, y: 0 });
+  const [pointerPos, setPointerPos] = useState({ x: 0, y: 0 });
+  const [hoveredCol, setHoveredCol] = useState<SimplifiedStage | null>(null);
+
+  // Group deals by simplified stage
   const dealsByStage = useMemo(() => {
-    const map: Record<DealStage, Deal[]> = {
-      lead: [],
-      proposal: [],
-      negotiation: [],
-      won: [],
-      lost: [],
+    const map: Record<SimplifiedStage, any[]> = {
+      contact: [],
+      negotiating: [],
+      closed: [],
     };
     for (const deal of deals) {
-      map[deal.stage].push(deal);
+      if (deal.stage === "lead") {
+        map.contact.push(deal);
+      } else if (deal.stage === "proposal" || deal.stage === "negotiation") {
+        map.negotiating.push(deal);
+      } else {
+        map.closed.push(deal);
+      }
     }
     return map;
   }, [deals]);
@@ -131,7 +140,7 @@ export default function CRMPage() {
     setModalOpen(true);
   }
 
-  function openEdit(deal: Deal) {
+  function openEdit(deal: any) {
     setEditingDeal(deal);
     setForm({
       title: deal.title,
@@ -151,33 +160,126 @@ export default function CRMPage() {
     if (!form.title.trim()) return;
 
     if (editingDeal) {
-      setDeals((prev) =>
-        prev.map((d) => (d.id === editingDeal.id ? { ...d, ...form } : d)),
-      );
+      updateDeal({
+        id: editingDeal._id,
+        ...form,
+      });
     } else {
-      setDeals((prev) => [{ id: String(Date.now()), ...form }, ...prev]);
+      createDeal(form);
     }
     setModalOpen(false);
   }
 
   function handleDelete(id: string) {
-    setDeals((prev) => prev.filter((d) => d.id !== id));
+    removeDeal({ id: id as any });
   }
 
   function moveStage(dealId: string, newStage: DealStage) {
-    setDeals((prev) =>
-      prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)),
-    );
-    setLastMovedId(dealId);
-    // Clear animation after duration (600ms)
-    setTimeout(() => {
-      setLastMovedId((current) => (current === dealId ? null : current));
-    }, 600);
+    const deal = deals.find(d => d._id === dealId);
+    if (!deal) return;
+
+    const update = () => {
+      updateDeal({
+        id: dealId as any,
+        title: deal.title,
+        client: deal.client,
+        value: deal.value,
+        stage: newStage,
+        priority: deal.priority as any,
+        createdAt: deal.createdAt,
+        expectedClose: deal.expectedClose,
+        description: deal.description,
+        contactEmail: deal.contactEmail,
+      });
+      setLastMovedId(dealId);
+      // Clear animation after duration (600ms)
+      setTimeout(() => {
+        setLastMovedId((current) => (current === dealId ? null : current));
+      }, 600);
+    };
+
+    if (typeof document !== "undefined" && "startViewTransition" in document) {
+      (document as any).startViewTransition(update);
+    } else {
+      update();
+    }
   }
+
+  // Pointer event handlers for starting the drag
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, deal: any) => {
+    if (e.button !== 0) return; // Only primary button
+    const target = e.target as HTMLElement;
+    // Don't drag if clicking buttons, links, inputs, or edit buttons
+    if (target.closest("button") || target.closest("a") || target.closest("input")) {
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPointerOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    setPointerPos({
+      x: e.clientX,
+      y: e.clientY,
+    });
+    setDraggedDeal(deal);
+  };
+
+  // Global window listeners for drag move and drop
+  useEffect(() => {
+    if (!draggedDeal) return;
+
+    const handleWindowPointerMove = (e: PointerEvent) => {
+      setPointerPos({
+        x: e.clientX,
+        y: e.clientY,
+      });
+
+      // Find the column elements under the cursor
+      const element = document.elementFromPoint(e.clientX, e.clientY);
+      const columnEl = element?.closest("[data-column]");
+      if (columnEl) {
+        const stage = columnEl.getAttribute("data-column") as SimplifiedStage;
+        setHoveredCol(stage);
+      } else {
+        setHoveredCol(null);
+      }
+    };
+
+    const handleWindowPointerUp = () => {
+      if (hoveredCol) {
+        let newStage: DealStage = "lead";
+        if (hoveredCol === "contact") {
+          newStage = "lead";
+        } else if (hoveredCol === "negotiating") {
+          newStage = (draggedDeal.stage === "proposal" || draggedDeal.stage === "negotiation")
+            ? draggedDeal.stage
+            : "negotiation";
+        } else if (hoveredCol === "closed") {
+          newStage = (draggedDeal.stage === "won" || draggedDeal.stage === "lost")
+            ? draggedDeal.stage
+            : "won";
+        }
+        moveStage(draggedDeal._id, newStage);
+      }
+
+      setDraggedDeal(null);
+      setHoveredCol(null);
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerup", handleWindowPointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+    };
+  }, [draggedDeal, hoveredCol, deals]);
 
   return (
     <PageContainer size="wide">
-      <div className="flex flex-col gap-6">
+      <div className={cn("flex flex-col gap-8", draggedDeal && "select-none")}>
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
@@ -189,32 +291,35 @@ export default function CRMPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard
             label="Pipeline Activo"
             value={formatCurrency(pipelineValue)}
             detail={`${activeDeals} oportunidades`}
             icon={<FunnelIcon size={18} weight="fill" />}
+            index={0}
           />
           <StatCard
             label="Ganados"
             value={formatCurrency(wonValue)}
-            detail={`${dealsByStage.won.length} cerrados`}
+            detail={`${dealsByStage.closed.filter(d => d.stage === "won").length} cerrados`}
             icon={<TrendUpIcon size={18} weight="bold" className="text-green-9" />}
+            index={1}
           />
           <StatCard
             label="Total Deals"
             value={deals.length}
-            detail={`${dealsByStage.lost.length} perdidos`}
+            detail={`${dealsByStage.closed.filter(d => d.stage === "lost").length} perdidos`}
             icon={<CurrencyDollarIcon size={18} weight="fill" />}
+            index={2}
           />
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           {/* Mobile stage switcher tabs */}
           <div className="flex gap-1 overflow-x-auto no-scrollbar rounded-lg bg-grayscale-2 p-1 dark:bg-grayscale-2 md:hidden max-w-[calc(100vw-8rem)]">
-            {DEAL_STAGE_ORDER.map((stage) => {
+            {SIMPLIFIED_STAGE_ORDER.map((stage) => {
               const count = dealsByStage[stage].length;
               const isSelected = activeMobileStage === stage;
               return (
@@ -223,28 +328,28 @@ export default function CRMPage() {
                   type="button"
                   onClick={() => setActiveMobileStage(stage)}
                   className={cn(
-                    "flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[9px] font-bold uppercase transition-all whitespace-nowrap cursor-pointer",
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[10px] font-bold uppercase transition-all whitespace-nowrap cursor-pointer",
                     isSelected
                       ? "bg-grayscale-1 text-grayscale-12 shadow-sm dark:bg-grayscale-3"
                       : "text-grayscale-9 hover:text-grayscale-11"
                   )}
                 >
-                  <span>{DEAL_STAGE_LABELS[stage]}</span>
-                  <span className="opacity-70 font-sans font-normal text-[8px]">({count})</span>
+                  <span>{SIMPLIFIED_STAGE_LABELS[stage].split(" ")[0]}</span>
+                  <span className="opacity-70 font-sans font-normal text-[9px]">({count})</span>
                 </button>
               );
             })}
           </div>
           
-          <Button variant="primary" className="text-xs ml-auto" onClick={openCreate}>
+          <Button variant="primary" className="text-xs ml-auto py-2.5 px-4" onClick={openCreate}>
             <PlusIcon size={16} weight="bold" />
             Nuevo Deal
           </Button>
         </div>
 
         {/* Kanban Board Container */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {DEAL_STAGE_ORDER.map((stage) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {SIMPLIFIED_STAGE_ORDER.map((stage) => {
             const stageDeals = dealsByStage[stage];
             const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
             const isVisibleMobile = activeMobileStage === stage;
@@ -252,146 +357,141 @@ export default function CRMPage() {
             return (
               <div
                 key={stage}
+                data-column={stage}
                 className={cn(
-                  "flex flex-col gap-2.5",
+                  "flex flex-col gap-4 rounded-xl p-4 transition-all duration-300 min-h-[500px]",
+                  hoveredCol === stage
+                    ? "bg-grayscale-3/50 border border-dashed border-accent-9/70 shadow-inner"
+                    : "bg-grayscale-2/20 border border-grayscale-3/40 dark:border-grayscale-4/30",
                   isVisibleMobile ? "flex" : "hidden md:flex"
                 )}
               >
                 {/* Column Header */}
-                <div className="flex flex-col gap-1 pb-2 border-b border-grayscale-3 dark:border-grayscale-4">
+                <div className="flex flex-col gap-1.5 pb-3 border-b border-grayscale-3 dark:border-grayscale-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn("size-2 rounded-full", STAGE_DOT_COLORS[stage])} />
-                      <span className="font-mono text-xs font-bold uppercase text-grayscale-12 tracking-wide">
-                        {DEAL_STAGE_LABELS[stage]}
+                    <div className="flex items-center gap-2">
+                      <span className={cn("size-2.5 rounded-full", COLUMN_COLORS[stage])} />
+                      <span className="font-mono text-sm font-bold uppercase text-grayscale-12 tracking-wide">
+                        {SIMPLIFIED_STAGE_LABELS[stage]}
                       </span>
                     </div>
-                    <span className="rounded-md bg-grayscale-2 px-1.5 py-0.5 text-[9px] font-bold font-mono text-grayscale-9 dark:bg-grayscale-3">
+                    <span className="rounded-md bg-grayscale-2 px-2.5 py-0.5 text-xs font-bold font-mono text-grayscale-9 dark:bg-grayscale-3">
                       {stageDeals.length}
                     </span>
                   </div>
-                  <p className="text-[11px] font-mono text-grayscale-9 font-semibold">
+                  <p className="text-xs font-mono text-grayscale-9 font-semibold">
                     {formatCurrency(stageTotal)}
                   </p>
                 </div>
 
                 {/* Cards Column */}
-                <div className="flex flex-col gap-2 min-h-[300px]">
+                <div className="flex flex-col gap-4 min-h-[400px]">
                   {stageDeals.map((deal) => {
-                    const currentIdx = DEAL_STAGE_ORDER.indexOf(deal.stage);
+                    const isDragged = draggedDeal?._id === deal._id;
 
                     return (
                       <div
-                        key={deal.id}
+                        key={deal._id}
+                        onPointerDown={(e) => handlePointerDown(e, deal)}
+                        style={{
+                          viewTransitionName: lastMovedId === deal._id ? `card-${deal._id}` : undefined,
+                        }}
                         className={cn(
-                          "group relative flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent-6 hover:shadow-md active:scale-[0.98] transform-gpu dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:border-accent-7",
-                          lastMovedId === deal.id && "animate-card-move"
+                          "group relative flex flex-col gap-4 rounded-xl border border-grayscale-3 bg-grayscale-1 p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent-6 hover:shadow-md cursor-grab active:cursor-grabbing transform-gpu dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:border-accent-7 touch-none select-none",
+                          isDragged && "opacity-30 border-dashed",
+                          lastMovedId === deal._id && "animate-card-move"
                         )}
                       >
-                        {/* Top Row: Client Info and Priority dot */}
+                        {/* Top Row: Client Info and Stage/Priority Status */}
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-grayscale-3 text-[8px] font-mono font-bold text-grayscale-11 dark:bg-grayscale-4">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-grayscale-3 text-[10px] font-mono font-bold text-grayscale-11 dark:bg-grayscale-4">
                               {deal.client.slice(0, 2).toUpperCase()}
                             </span>
-                            <span className="truncate font-mono text-[9px] font-bold uppercase tracking-wider text-grayscale-10">
+                            <span className="truncate font-mono text-xs font-bold uppercase tracking-wider text-grayscale-10">
                               {deal.client}
                             </span>
                           </div>
                           
                           {/* Priority dot indicator */}
-                          <div className="flex items-center gap-1">
-                            <span className={cn("size-1.5 rounded-full", 
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn("size-2 rounded-full", 
                               deal.priority === "high" ? "bg-red-9" : deal.priority === "medium" ? "bg-orange-9" : "bg-green-9"
                             )} />
-                            <span className="text-[9px] font-mono text-grayscale-9 uppercase">
-                              {PRIORITY_LABEL[deal.priority]}
+                            <span className="text-[10px] font-mono text-grayscale-9 uppercase">
+                              {PRIORITY_LABEL[deal.priority as "medium"]}
                             </span>
                           </div>
                         </div>
 
-                        {/* Middle Row: Title */}
-                        <button
-                          type="button"
-                          onClick={() => openEdit(deal)}
-                          className="cursor-pointer text-left focus:outline-none"
-                        >
-                          <h4 className="text-xs font-bold text-grayscale-12 leading-tight group-hover:text-accent-9 transition-colors tracking-tight line-clamp-2">
-                            {deal.title}
-                          </h4>
-                        </button>
+                        {/* Title */}
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(deal)}
+                            className="cursor-pointer text-left focus:outline-none"
+                          >
+                            <h4 className="text-sm font-bold text-grayscale-12 leading-snug group-hover:text-accent-9 transition-colors tracking-tight line-clamp-2">
+                              {deal.title}
+                            </h4>
+                          </button>
+                        </div>
 
                         {/* Description */}
                         {deal.description && (
-                          <p className="text-[10px] text-grayscale-9 line-clamp-1 leading-normal">
+                          <p className="text-xs text-grayscale-9 leading-relaxed">
                             {deal.description}
                           </p>
                         )}
 
                         {/* Budget Highlight Block */}
-                        <div className="flex items-center justify-between rounded-lg bg-grayscale-2 px-2 py-1.5 dark:bg-grayscale-4/30">
-                          <span className="text-[9px] font-mono text-grayscale-9 uppercase font-medium">Valor</span>
-                          <span className="font-mono text-xs font-bold text-grayscale-12">
+                        <div className="flex items-center justify-between rounded-lg bg-grayscale-2 px-3 py-2 dark:bg-grayscale-4/30">
+                          <span className="text-[10px] font-mono text-grayscale-9 uppercase font-medium">Valor</span>
+                          <span className="font-mono text-sm font-bold text-grayscale-12">
                             {formatCurrency(deal.value)}
                           </span>
                         </div>
 
                         {/* Expected Close Date and Stage Actions */}
-                        <div className="mt-1 flex items-center justify-between text-[10px]">
+                        <div className="mt-1 flex items-center justify-between text-xs border-t border-grayscale-2 dark:border-grayscale-4/50 pt-3">
                           <div className="flex flex-col">
                             {deal.expectedClose ? (
                               <>
-                                <span className="text-[8px] font-mono text-grayscale-9 uppercase">Cierre</span>
+                                <span className="text-[9px] font-mono text-grayscale-9 uppercase">Cierre</span>
                                 <span className="font-mono font-semibold text-grayscale-11">
                                   {formatDate(deal.expectedClose)}
                                 </span>
                               </>
                             ) : (
-                              <span className="text-[8px] font-mono text-grayscale-8 uppercase">Cierre —</span>
+                              <span className="text-[9px] font-mono text-grayscale-8 uppercase">Cierre —</span>
                             )}
                           </div>
 
-                          {/* Quick Stage Actions & Edit/Delete Panel */}
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex items-center border border-grayscale-3 dark:border-grayscale-4 rounded bg-grayscale-2 dark:bg-grayscale-4/60 overflow-hidden">
-                              {currentIdx > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => moveStage(deal.id, DEAL_STAGE_ORDER[currentIdx - 1])}
-                                  className="flex size-5 items-center justify-center text-[10px] font-bold text-grayscale-10 hover:bg-grayscale-3 hover:text-grayscale-12 dark:hover:bg-grayscale-5 transition-colors cursor-pointer border-r border-grayscale-3 dark:border-grayscale-4"
-                                  title={`Mover a ${DEAL_STAGE_LABELS[DEAL_STAGE_ORDER[currentIdx - 1]]}`}
-                                >
-                                  ‹
-                                </button>
-                              )}
-                              {currentIdx < 4 && (
-                                <button
-                                  type="button"
-                                  onClick={() => moveStage(deal.id, DEAL_STAGE_ORDER[currentIdx + 1])}
-                                  className="flex size-5 items-center justify-center text-[10px] font-bold text-grayscale-10 hover:bg-grayscale-3 hover:text-grayscale-12 dark:hover:bg-grayscale-5 transition-colors cursor-pointer"
-                                  title={`Mover a ${DEAL_STAGE_LABELS[DEAL_STAGE_ORDER[currentIdx + 1]]}`}
-                                >
-                                  ›
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-0.5 border-l border-grayscale-3 dark:border-grayscale-4 pl-1.5">
+                          {/* Close status indicator inside closed column or edit actions */}
+                          <div className="flex items-center gap-2">
+                            {deal.stage === "won" && (
+                              <Badge variant="green" className="text-[9px]">Ganado</Badge>
+                            )}
+                            {deal.stage === "lost" && (
+                              <Badge variant="red" className="text-[9px]">Perdido</Badge>
+                            )}
+                            
+                            <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 onClick={() => openEdit(deal)}
-                                className="flex size-5 cursor-pointer items-center justify-center rounded text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11 dark:hover:bg-grayscale-4"
+                                className="flex size-6 cursor-pointer items-center justify-center rounded text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11 dark:hover:bg-grayscale-4"
                                 title="Editar"
                               >
-                                <PencilSimpleIcon size={12} />
+                                <PencilSimpleIcon size={14} />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDelete(deal.id)}
-                                className="flex size-5 cursor-pointer items-center justify-center rounded text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
+                                onClick={() => handleDelete(deal._id)}
+                                className="flex size-6 cursor-pointer items-center justify-center rounded text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
                                 title="Eliminar"
                               >
-                                <TrashIcon size={12} />
+                                <TrashIcon size={14} />
                               </button>
                             </div>
                           </div>
@@ -401,8 +501,8 @@ export default function CRMPage() {
                   })}
 
                   {stageDeals.length === 0 && (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-grayscale-3 py-10 dark:border-grayscale-4 bg-grayscale-2/10">
-                      <p className="text-[10px] font-mono uppercase font-bold text-grayscale-8">Sin deals</p>
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-grayscale-3 py-14 dark:border-grayscale-4 bg-grayscale-2/10">
+                      <p className="text-xs font-mono uppercase font-bold text-grayscale-8">Sin deals</p>
                     </div>
                   )}
                 </div>
@@ -490,7 +590,7 @@ export default function CRMPage() {
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    priority: e.target.value as DealPriority,
+                    priority: e.target.value as any,
                   }))
                 }
                 options={[
@@ -545,6 +645,30 @@ export default function CRMPage() {
           </form>
         </Modal>
       </div>
+
+      {/* Custom GPU-accelerated Pointer Drag Floating Card */}
+      {draggedDeal && (
+        <div
+          className="pointer-events-none fixed z-[999] opacity-90 border-2 border-accent-9 shadow-2xl rounded-xl bg-grayscale-1 p-5 w-72 dark:bg-grayscale-3 dark:border-accent-8 select-none will-change-transform"
+          style={{
+            transform: `translate3d(${pointerPos.x - pointerOffset.x}px, ${pointerPos.y - pointerOffset.y}px, 0) rotate(2.5deg) scale(1.035)`,
+            left: 0,
+            top: 0,
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-mono text-[10px] font-bold uppercase text-grayscale-10">{draggedDeal.client}</span>
+            <span className={cn("size-2 rounded-full", 
+              draggedDeal.priority === "high" ? "bg-red-9" : draggedDeal.priority === "medium" ? "bg-orange-9" : "bg-green-9"
+            )} />
+          </div>
+          <h4 className="text-sm font-bold text-grayscale-12 line-clamp-2">{draggedDeal.title}</h4>
+          <div className="mt-3 flex items-center justify-between rounded bg-grayscale-2 px-2.5 py-1.5 dark:bg-grayscale-4/30">
+            <span className="text-[10px] font-mono text-grayscale-9 uppercase">Valor</span>
+            <span className="font-mono text-sm font-bold text-grayscale-12">{formatCurrency(draggedDeal.value)}</span>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

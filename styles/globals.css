@@ -47,7 +47,7 @@ button, a, [role="button"], input, select, textarea {
 
 .animate-grow-up {
   transform-origin: bottom;
-  animation: growUp 0.8s var(--ease-spring) forwards;
+  animation: growUp 0.8s var(--ease-spring) both;
 }
 
 /* Fade in up animation */

@@ -77,7 +77,7 @@ export const Tabs = {
         <Indicator />
       </List>
       {items.map((item) => (
-        <Panel key={item.value} value={item.value}>
+        <Panel key={item.value} value={item.value} className="mt-4">
           {item.content}
         </Panel>
       ))}

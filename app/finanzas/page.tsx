@@ -19,10 +19,11 @@ import Modal from "@/components/public/Modal";
 import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
 import { Tabs } from "@/components/public/Tabs";
-import { type Transaction, MOCK_TRANSACTIONS } from "@/lib/mock-data";
 import type { InvoiceData } from "@/lib/invoice-ocr";
 import InvoiceScanner from "@/components/InvoiceScanner";
 import PageContainer from "@/components/public/PageContainer";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("es-CR", {
@@ -51,18 +52,21 @@ const CATEGORIES = [
   "Otro",
 ];
 
-const EMPTY_TRANSACTION: Omit<Transaction, "id"> = {
+const EMPTY_TRANSACTION = {
   concept: "",
   amount: 0,
   date: new Date().toISOString().slice(0, 10),
   category: "Producción",
-  type: "income",
-  status: "pending",
+  type: "income" as const,
+  status: "pending" as const,
 };
 
 export default function FinanzasPage() {
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const transactions = useQuery(api.transactions.get) ?? [];
+  const createTransaction = useMutation(api.transactions.create);
+  const updateTransaction = useMutation(api.transactions.update);
+  const removeTransaction = useMutation(api.transactions.remove);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -85,8 +89,8 @@ export default function FinanzasPage() {
     setModalOpen(true);
   }
 
-  function openEdit(t: Transaction) {
-    setEditingId(t.id);
+  function openEdit(t: any) {
+    setEditingId(t._id);
     setForm({
       concept: t.concept,
       amount: t.amount,
@@ -102,30 +106,27 @@ export default function FinanzasPage() {
     if (!form.concept.trim()) return;
 
     if (editingId) {
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === editingId ? { ...t, ...form } : t)),
-      );
+      updateTransaction({
+        id: editingId as any,
+        ...form,
+      });
     } else {
-      setTransactions((prev) => [
-        { id: String(Date.now()), ...form },
-        ...prev,
-      ]);
+      createTransaction(form);
     }
     setModalOpen(false);
   }
 
   function handleDelete(id: string) {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    removeTransaction({ id: id as any });
   }
 
-  function handleScanComplete(data: InvoiceData) {
+  async function handleScanComplete(data: InvoiceData) {
     const date = data.date ?? new Date().toISOString().slice(0, 10);
     const type = data.type ?? "expense";
     const vendor = data.vendor ? `${data.vendor} — ` : "";
     const isForeign = data.currency !== "CRC";
 
     if (data.items.length <= 1) {
-      // Single item → open the form pre-filled so user can review
       const item = data.items[0];
       const amount = item 
         ? (isForeign ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate)) : item.amount)
@@ -152,7 +153,7 @@ export default function FinanzasPage() {
     }
 
     // Multiple items → batch create all transactions at once
-    const newTransactions: Transaction[] = data.items.map((item, i) => {
+    const newTransactions = data.items.map((item) => {
       const amount = isForeign 
         ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate)) 
         : item.amount;
@@ -162,7 +163,6 @@ export default function FinanzasPage() {
         : "";
 
       return {
-        id: String(Date.now() + i),
         concept: `${conceptPrefix}${vendor}${item.description}`,
         amount,
         date,
@@ -172,21 +172,23 @@ export default function FinanzasPage() {
       };
     });
 
-    setTransactions((prev) => [...newTransactions, ...prev]);
+    const promises = newTransactions.map((tx) => createTransaction(tx));
+    await Promise.all(promises);
+
     setScanModalOpen(false);
   }
 
-  const statusBadge = (status: Transaction["status"]) => {
+  const statusBadge = (status: any) => {
     const map = {
       paid: { variant: "green" as const, label: "Pagado" },
       pending: { variant: "orange" as const, label: "Pendiente" },
       cancelled: { variant: "red" as const, label: "Cancelado" },
     };
-    const { variant, label } = map[status];
+    const { variant, label } = map[status as "paid" | "pending" | "cancelled"] || map.pending;
     return <Badge variant={variant}>{label}</Badge>;
   };
 
-  const makeColumns = (): Column<Transaction>[] => [
+  const makeColumns = (): Column<any>[] => [
     {
       key: "concept",
       header: "Concepto",
@@ -225,6 +227,12 @@ export default function FinanzasPage() {
       key: "status",
       header: "Estado",
       className: "hidden md:table-cell",
+      filterOptions: [
+        { label: "Pagados", value: "paid" },
+        { label: "Pendientes", value: "pending" },
+        { label: "Cancelados", value: "cancelled" },
+      ],
+      getFilterValue: (t) => t.status,
       render: (t) => statusBadge(t.status),
     },
     {
@@ -242,7 +250,7 @@ export default function FinanzasPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleDelete(t.id)}
+            onClick={() => handleDelete(t._id)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
           >
             <TrashIcon size={14} />
@@ -252,202 +260,245 @@ export default function FinanzasPage() {
     },
   ];
 
-  const tabContent = (data: Transaction[]) => (
-    <div className="mt-4">
-      <DataTable
-        columns={makeColumns()}
-        data={data.sort((a, b) => b.date.localeCompare(a.date))}
-        keyExtractor={(t) => t.id}
-        emptyState={
-          <EmptyState
-            icon={<CurrencyDollarIcon size={40} weight="duotone" />}
-            title="Sin movimientos"
-            description="No hay transacciones registradas en esta categoría."
-            action={
-              <Button
-                variant="primary"
-                className="text-xs"
-                onClick={() => openCreate()}
-              >
-                <PlusIcon size={16} weight="bold" />
-                Registrar Movimiento
-              </Button>
-            }
-          />
-        }
-      />
-    </div>
-  );
-
   return (
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-          Finanzas
-        </h1>
-        <p className="text-sm text-grayscale-10">
-          Control de ingresos y gastos
-        </p>
-      </div>
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+            Finanzas
+          </h1>
+          <p className="text-sm text-grayscale-10">
+            Control de ingresos, gastos y facturación
+          </p>
+        </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          label="Ingresos"
-          value={formatCurrency(income)}
-          icon={<TrendUpIcon size={18} weight="bold" className="text-green-9" />}
-        />
-        <StatCard
-          label="Gastos"
-          value={formatCurrency(expenses)}
-          icon={
-            <TrendDownIcon size={18} weight="bold" className="text-red-9" />
-          }
-        />
-        <StatCard
-          label="Balance"
-          value={formatCurrency(balance)}
-          detail={balance >= 0 ? "Positivo" : "Negativo"}
-          icon={<CurrencyDollarIcon size={18} weight="fill" />}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="secondary" className="text-xs" onClick={() => setScanModalOpen(true)}>
-          <CameraIcon size={16} weight="bold" />
-          Escanear Factura
-        </Button>
-        <Button variant="primary" className="text-xs" onClick={() => openCreate()}>
-          <PlusIcon size={16} weight="bold" />
-          Registrar Movimiento
-        </Button>
-      </div>
-
-      {/* Tabs */}
-      <Tabs.Root defaultValue="all">
-        <Tabs.List>
-          <Tabs.Tab value="all">Todos</Tabs.Tab>
-          <Tabs.Tab value="income">Ingresos</Tabs.Tab>
-          <Tabs.Tab value="expenses">Gastos</Tabs.Tab>
-          <Tabs.Indicator />
-        </Tabs.List>
-        <Tabs.Panel value="all">{tabContent(transactions)}</Tabs.Panel>
-        <Tabs.Panel value="income">{tabContent(incomeData)}</Tabs.Panel>
-        <Tabs.Panel value="expenses">{tabContent(expenseData)}</Tabs.Panel>
-      </Tabs.Root>
-
-      {/* Modal */}
-      <Modal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        title={editingId ? "Editar Movimiento" : "Nuevo Movimiento"}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSave();
-          }}
-          className="flex flex-col gap-4"
-        >
-          <Input
-            label="Concepto"
-            id="tx-concept"
-            value={form.concept}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, concept: e.target.value }))
-            }
-            placeholder="Descripción del movimiento"
-            required
+        {/* Stats */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Balance Neto"
+            value={formatCurrency(balance)}
+            detail="Ingresos menos egresos"
+            icon={<CurrencyDollarIcon size={18} weight="fill" />}
+            index={0}
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard
+            label="Ingresos Totales"
+            value={formatCurrency(income)}
+            detail={`${incomeData.length} transacciones`}
+            icon={<TrendUpIcon size={18} weight="bold" className="text-green-9" />}
+            index={1}
+          />
+          <StatCard
+            label="Egresos Totales"
+            value={formatCurrency(expenses)}
+            detail={`${expenseData.length} transacciones`}
+            icon={<TrendDownIcon size={18} weight="bold" className="text-red-9" />}
+            index={2}
+          />
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-2">
+            <Button variant="primary" className="text-xs" onClick={() => openCreate("income")}>
+              <PlusIcon size={16} weight="bold" />
+              Registrar Ingreso
+            </Button>
+            <Button variant="secondary" className="text-xs" onClick={() => openCreate("expense")}>
+              <PlusIcon size={16} weight="bold" />
+              Registrar Gasto
+            </Button>
+          </div>
+
+          <Button
+            variant="secondary"
+            className="text-xs border-accent-7 text-accent-11 bg-accent-2/20 hover:bg-accent-3/30"
+            onClick={() => setScanModalOpen(true)}
+          >
+            <CameraIcon size={16} weight="bold" />
+            Escanear Factura (IA)
+          </Button>
+        </div>
+
+        {/* Tabs */}
+        <Tabs.Component
+          items={[
+            {
+              value: "all",
+              label: "Todos",
+              content: (
+                <DataTable
+                  columns={makeColumns()}
+                  data={transactions}
+                  keyExtractor={(t) => t._id}
+                  emptyState={
+                    <EmptyState
+                      icon={<CurrencyDollarIcon size={40} weight="duotone" />}
+                      title="Sin transacciones"
+                      description="Aún no hay ingresos o egresos registrados en este periodo."
+                    />
+                  }
+                />
+              ),
+            },
+            {
+              value: "income",
+              label: "Ingresos",
+              content: (
+                <DataTable
+                  columns={makeColumns()}
+                  data={incomeData}
+                  keyExtractor={(t) => t._id}
+                  emptyState={
+                    <EmptyState
+                      icon={<TrendUpIcon size={40} weight="duotone" />}
+                      title="Sin ingresos"
+                      description="Aún no hay transacciones de tipo ingreso registradas."
+                    />
+                  }
+                />
+              ),
+            },
+            {
+              value: "expenses",
+              label: "Egresos",
+              content: (
+                <DataTable
+                  columns={makeColumns()}
+                  data={expenseData}
+                  keyExtractor={(t) => t._id}
+                  emptyState={
+                    <EmptyState
+                      icon={<TrendDownIcon size={40} weight="duotone" />}
+                      title="Sin egresos"
+                      description="Aún no hay transacciones de tipo egreso registradas."
+                    />
+                  }
+                />
+              ),
+            },
+          ]}
+        />
+
+        {/* Modal: Create/Edit */}
+        <Modal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          title={
+            editingId
+              ? "Editar Transacción"
+              : form.type === "income"
+                ? "Registrar Ingreso"
+                : "Registrar Gasto"
+          }
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+            className="flex flex-col gap-4"
+          >
             <Input
-              label="Monto"
-              id="tx-amount"
-              type="number"
-              value={form.amount || ""}
+              label="Concepto / Detalle"
+              id="tx-concept"
+              value={form.concept}
               onChange={(e) =>
-                setForm((f) => ({ ...f, amount: Number(e.target.value) }))
+                setForm((f) => ({ ...f, concept: e.target.value }))
               }
-              placeholder="0"
+              placeholder="Ej: Pago de cliente o Compra de disco duro"
               required
             />
-            <Input
-              label="Fecha"
-              id="tx-date"
-              type="date"
-              value={form.date}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, date: e.target.value }))
-              }
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Select
-              label="Tipo"
-              id="tx-type"
-              value={form.type}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  type: e.target.value as "income" | "expense",
-                }))
-              }
-              options={[
-                { value: "income", label: "Ingreso" },
-                { value: "expense", label: "Gasto" },
-              ]}
-            />
-            <Select
-              label="Categoría"
-              id="tx-category"
-              value={form.category}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, category: e.target.value }))
-              }
-              options={CATEGORIES.map((c) => ({ value: c, label: c }))}
-            />
-            <Select
-              label="Estado"
-              id="tx-status"
-              value={form.status}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  status: e.target.value as Transaction["status"],
-                }))
-              }
-              options={[
-                { value: "paid", label: "Pagado" },
-                { value: "pending", label: "Pendiente" },
-                { value: "cancelled", label: "Cancelado" },
-              ]}
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              className="text-xs"
-              type="button"
-              onClick={() => setModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button variant="primary" className="text-xs" type="submit">
-              {editingId ? "Guardar Cambios" : "Registrar"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Monto (CRC)"
+                id="tx-amount"
+                type="number"
+                value={form.amount || ""}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, amount: Number(e.target.value) }))
+                }
+                placeholder="0"
+                required
+              />
+              <Input
+                label="Fecha"
+                id="tx-date"
+                type="date"
+                value={form.date}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, date: e.target.value }))
+                }
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Select
+                label="Categoría"
+                id="tx-category"
+                value={form.category}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, category: e.target.value }))
+                }
+                options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+              />
+              <Select
+                label="Tipo"
+                id="tx-type"
+                value={form.type}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    type: e.target.value as "income" | "expense",
+                  }))
+                }
+                options={[
+                  { value: "income", label: "Ingreso" },
+                  { value: "expense", label: "Egreso" },
+                ]}
+              />
+              <Select
+                label="Estado"
+                id="tx-status"
+                value={form.status}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    status: e.target.value as any,
+                  }))
+                }
+                options={[
+                  { value: "paid", label: "Pagado" },
+                  { value: "pending", label: "Pendiente" },
+                  { value: "cancelled", label: "Cancelado" },
+                ]}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button variant="primary" className="text-xs" type="submit">
+                {editingId ? "Guardar Cambios" : "Registrar"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
-      {/* Scan Modal */}
-      <InvoiceScanner
-        open={scanModalOpen}
-        onOpenChange={setScanModalOpen}
-        onScanComplete={handleScanComplete}
-      />
+        {/* Modal: OCR Scanner */}
+        <Modal
+          open={scanModalOpen}
+          onOpenChange={setScanModalOpen}
+          title="Escanear Factura con IA"
+        >
+          <InvoiceScanner onScanComplete={handleScanComplete} />
+        </Modal>
       </div>
     </PageContainer>
   );

@@ -350,7 +350,7 @@ export default function AnalyticsPage() {
             {/* Custom CSS Bar Chart */}
             <div className="flex h-56 items-end justify-between gap-2 pt-6 pb-2 border-b border-grayscale-3 dark:border-grayscale-4">
               {MOCK_MONTHLY_VIEWS.map((data, mIdx) => {
-                const max = 1600000;
+                const max = 500000;
                 const ytHeight = (data.youtube / max) * 100;
                 const igHeight = (data.instagram / max) * 100;
                 const tkHeight = (data.tiktok / max) * 100;
@@ -361,7 +361,7 @@ export default function AnalyticsPage() {
                     <div className="flex w-full items-end gap-0.5 px-0.5 h-full max-w-[65px]">
                       {/* YouTube Bar */}
                       <div
-                        className="flex-1 rounded-t bg-red-9/80 dark:bg-red-9/60 transition-all hover:bg-red-9 cursor-pointer relative group animate-grow-up opacity-0"
+                        className="flex-1 rounded-t bg-red-9/80 dark:bg-red-9/60 transition-all hover:bg-red-9 cursor-pointer relative group animate-grow-up"
                         style={{ height: `${ytHeight}%`, animationDelay: `${mIdx * 80}ms` }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
@@ -370,7 +370,7 @@ export default function AnalyticsPage() {
                       </div>
                       {/* Instagram Bar */}
                       <div
-                        className="flex-1 rounded-t bg-violet-9/80 dark:bg-violet-9/60 transition-all hover:bg-violet-9 cursor-pointer relative group animate-grow-up opacity-0"
+                        className="flex-1 rounded-t bg-violet-9/80 dark:bg-violet-9/60 transition-all hover:bg-violet-9/60 hover:bg-violet-9 cursor-pointer relative group animate-grow-up"
                         style={{ height: `${igHeight}%`, animationDelay: `${mIdx * 80 + 20}ms` }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
                       </div>
                       {/* TikTok Bar */}
                       <div
-                        className="flex-1 rounded-t bg-cyan-9/80 dark:bg-cyan-9/60 transition-all hover:bg-cyan-9 cursor-pointer relative group animate-grow-up opacity-0"
+                        className="flex-1 rounded-t bg-cyan-9/80 dark:bg-cyan-9/60 transition-all hover:bg-cyan-9 cursor-pointer relative group animate-grow-up"
                         style={{ height: `${tkHeight}%`, animationDelay: `${mIdx * 80 + 40}ms` }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
@@ -388,7 +388,7 @@ export default function AnalyticsPage() {
                       </div>
                       {/* Facebook Bar */}
                       <div
-                        className="flex-1 rounded-t bg-blue-9/80 dark:bg-blue-9/60 transition-all hover:bg-blue-9 cursor-pointer relative group animate-grow-up opacity-0"
+                        className="flex-1 rounded-t bg-blue-9/80 dark:bg-blue-9/60 transition-all hover:bg-blue-9 cursor-pointer relative group animate-grow-up"
                         style={{ height: `${fbHeight}%`, animationDelay: `${mIdx * 80 + 60}ms` }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">

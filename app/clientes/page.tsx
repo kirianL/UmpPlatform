@@ -15,8 +15,9 @@ import EmptyState from "@/components/public/EmptyState";
 import Input from "@/components/public/Input";
 import Modal from "@/components/public/Modal";
 import StatCard from "@/components/public/StatCard";
-import { type Client, MOCK_CLIENTS } from "@/lib/mock-data";
 import PageContainer from "@/components/public/PageContainer";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 function formatDate(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("es-MX", {
@@ -26,7 +27,7 @@ function formatDate(iso: string): string {
   });
 }
 
-const EMPTY_CLIENT: Omit<Client, "id"> = {
+const EMPTY_CLIENT = {
   name: "",
   company: "",
   phone: "",
@@ -36,7 +37,11 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
 };
 
 export default function ClientesPage() {
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
+  const clients = useQuery(api.clients.get) ?? [];
+  const createClient = useMutation(api.clients.create);
+  const updateClient = useMutation(api.clients.update);
+  const removeClient = useMutation(api.clients.remove);
+
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,8 +61,8 @@ export default function ClientesPage() {
     setModalOpen(true);
   }
 
-  function openEdit(c: Client) {
-    setEditingId(c.id);
+  function openEdit(c: any) {
+    setEditingId(c._id);
     setForm({
       name: c.name,
       company: c.company,
@@ -73,20 +78,21 @@ export default function ClientesPage() {
     if (!form.name.trim()) return;
 
     if (editingId) {
-      setClients((prev) =>
-        prev.map((c) => (c.id === editingId ? { ...c, ...form } : c)),
-      );
+      updateClient({
+        id: editingId as any,
+        ...form,
+      });
     } else {
-      setClients((prev) => [{ id: String(Date.now()), ...form }, ...prev]);
+      createClient(form);
     }
     setModalOpen(false);
   }
 
   function handleDelete(id: string) {
-    setClients((prev) => prev.filter((c) => c.id !== id));
+    removeClient({ id: id as any });
   }
 
-  const columns: Column<Client>[] = [
+  const columns: Column<any>[] = [
     {
       key: "name",
       header: "Nombre",
@@ -146,7 +152,7 @@ export default function ClientesPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleDelete(c.id)}
+            onClick={() => handleDelete(c._id)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
           >
             <TrashIcon size={14} />
@@ -159,176 +165,179 @@ export default function ClientesPage() {
   return (
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-          Clientes
-        </h1>
-        <p className="text-sm text-grayscale-10">
-          Directorio de clientes y empresas
-        </p>
-      </div>
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+            Clientes
+          </h1>
+          <p className="text-sm text-grayscale-10">
+            Directorio de clientes y proyectos asociados
+          </p>
+        </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <StatCard
-          label="Total Clientes"
-          value={clients.length}
-          icon={<AddressBookIcon size={18} weight="fill" />}
-        />
-        <StatCard
-          label="Proyectos Activos"
-          value={totalProjects}
-          detail="Total acumulado"
-          icon={<BriefcaseIcon size={18} weight="fill" />}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <MagnifyingGlassIcon
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+        {/* Stats */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <StatCard
+            label="Clientes Registrados"
+            value={clients.length}
+            icon={<AddressBookIcon size={18} weight="fill" />}
+            index={0}
           />
-          <input
-            type="text"
-            placeholder="Buscar por nombre o empresa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+          <StatCard
+            label="Proyectos Totales"
+            value={totalProjects}
+            icon={<BriefcaseIcon size={18} weight="fill" />}
+            index={1}
           />
         </div>
-        <Button variant="primary" className="text-xs" onClick={openCreate}>
-          <PlusIcon size={16} weight="bold" />
-          Agregar Cliente
-        </Button>
-      </div>
 
-      {/* Table */}
-      <DataTable
-        columns={columns}
-        data={filtered}
-        keyExtractor={(c) => c.id}
-        emptyState={
-          <EmptyState
-            icon={<AddressBookIcon size={40} weight="duotone" />}
-            title="Sin resultados"
-            description={
-              search
-                ? "No se encontraron clientes con esa búsqueda."
-                : "Aún no hay clientes registrados."
-            }
-            action={
-              !search && (
-                <Button
-                  variant="primary"
-                  className="text-xs"
-                  onClick={openCreate}
-                >
-                  <PlusIcon size={16} weight="bold" />
-                  Agregar Cliente
-                </Button>
-              )
-            }
-          />
-        }
-      />
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative">
+            <MagnifyingGlassIcon
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o empresa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+            />
+          </div>
+          <Button variant="primary" className="text-xs" onClick={openCreate}>
+            <PlusIcon size={16} weight="bold" />
+            Agregar Cliente
+          </Button>
+        </div>
 
-      {/* Modal */}
-      <Modal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        title={editingId ? "Editar Cliente" : "Nuevo Cliente"}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSave();
-          }}
-          className="flex flex-col gap-4"
+        {/* Table */}
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(c) => c._id}
+          emptyState={
+            <EmptyState
+              icon={<AddressBookIcon size={40} weight="duotone" />}
+              title="Sin resultados"
+              description={
+                search
+                  ? "No se encontraron clientes con esa búsqueda."
+                  : "Aún no hay clientes registrados."
+              }
+              action={
+                !search && (
+                  <Button
+                    variant="primary"
+                    className="text-xs"
+                    onClick={openCreate}
+                  >
+                    <PlusIcon size={16} weight="bold" />
+                    Agregar Cliente
+                  </Button>
+                )
+              }
+            />
+          }
+        />
+
+        {/* Modal */}
+        <Modal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          title={editingId ? "Editar Cliente" : "Agregar Cliente"}
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+            className="flex flex-col gap-4"
+          >
             <Input
-              label="Nombre"
+              label="Nombre del Cliente"
               id="client-name"
               value={form.name}
               onChange={(e) =>
                 setForm((f) => ({ ...f, name: e.target.value }))
               }
-              placeholder="Nombre del contacto"
+              placeholder="Ej: Laura Sánchez"
               required
             />
-            <Input
-              label="Empresa"
-              id="client-company"
-              value={form.company}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, company: e.target.value }))
-              }
-              placeholder="Nombre de la empresa"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="Email"
-              id="client-email"
-              type="email"
-              value={form.email}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, email: e.target.value }))
-              }
-              placeholder="correo@empresa.com"
-            />
-            <Input
-              label="Teléfono"
-              id="client-phone"
-              value={form.phone}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value }))
-              }
-              placeholder="+52 55 1234 5678"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="Proyectos"
-              id="client-projects"
-              type="number"
-              value={form.projectCount || ""}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  projectCount: Number(e.target.value),
-                }))
-              }
-              placeholder="0"
-            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Empresa / Compañía"
+                id="client-company"
+                value={form.company}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, company: e.target.value }))
+                }
+                placeholder="Ej: Streaming MX"
+                required
+              />
+              <Input
+                label="Proyectos Asociados"
+                id="client-projects"
+                type="number"
+                value={form.projectCount}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    projectCount: Number(e.target.value),
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Correo Electrónico"
+                id="client-email"
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                placeholder="correo@ejemplo.com"
+                required
+              />
+              <Input
+                label="Teléfono"
+                id="client-phone"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value }))
+                }
+                placeholder="555-0100"
+                required
+              />
+            </div>
             <Input
               label="Última Interacción"
-              id="client-lastInteraction"
+              id="client-date"
               type="date"
               value={form.lastInteraction}
               onChange={(e) =>
                 setForm((f) => ({ ...f, lastInteraction: e.target.value }))
               }
+              required
             />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              className="text-xs"
-              type="button"
-              onClick={() => setModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button variant="primary" className="text-xs" type="submit">
-              {editingId ? "Guardar Cambios" : "Crear Cliente"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button variant="primary" className="text-xs" type="submit">
+                {editingId ? "Guardar Cambios" : "Agregar Cliente"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </PageContainer>
   );

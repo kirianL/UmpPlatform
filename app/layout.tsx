@@ -5,6 +5,7 @@ import "../styles/globals.css";
 import MobileHeader from "@/components/MobileHeader";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ConvexClientProvider from "@/components/ConvexClientProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -50,19 +51,17 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-grayscale-1 text-grayscale-12">
         <ThemeProvider>
-          <div className="root">
-            <div style={{ viewTransitionName: "sidebar" }}>
+          <ConvexClientProvider>
+            <div className="root">
               <Sidebar />
-            </div>
-            <div style={{ viewTransitionName: "mobile-header" }}>
               <MobileHeader />
+              <main className="min-h-screen xl:pl-56">
+                <ViewTransition enter="page-enter" exit="page-exit">
+                  {children}
+                </ViewTransition>
+              </main>
             </div>
-            <main className="min-h-screen xl:pl-56">
-              <ViewTransition enter="page-enter" exit="page-exit">
-                {children}
-              </ViewTransition>
-            </main>
-          </div>
+          </ConvexClientProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -17,8 +17,9 @@ import Input from "@/components/public/Input";
 import Modal from "@/components/public/Modal";
 import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
-import { type Employee, MOCK_EMPLOYEES } from "@/lib/mock-data";
 import PageContainer from "@/components/public/PageContainer";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("es-CR", {
@@ -28,18 +29,22 @@ function formatCurrency(n: number): string {
   }).format(n);
 }
 
-const EMPTY_EMPLOYEE: Omit<Employee, "id" | "avatarInitials"> = {
+const EMPTY_EMPLOYEE = {
   name: "",
   role: "",
   phone: "",
   email: "",
   salary: 0,
-  status: "active",
+  status: "active" as const,
   episodeCount: 0,
 };
 
 export default function PersonalPage() {
-  const [employees, setEmployees] = useState<Employee[]>(MOCK_EMPLOYEES);
+  const employees = useQuery(api.employees.get) ?? [];
+  const createEmployee = useMutation(api.employees.create);
+  const updateEmployee = useMutation(api.employees.update);
+  const removeEmployee = useMutation(api.employees.remove);
+
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -60,8 +65,8 @@ export default function PersonalPage() {
     setModalOpen(true);
   }
 
-  function openEdit(emp: Employee) {
-    setEditingId(emp.id);
+  function openEdit(emp: any) {
+    setEditingId(emp._id);
     setForm({
       name: emp.name,
       role: emp.role,
@@ -77,45 +82,34 @@ export default function PersonalPage() {
   function handleSave() {
     if (!form.name.trim()) return;
 
+    const avatarInitials = form.name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+
     if (editingId) {
-      setEmployees((prev) =>
-        prev.map((e) =>
-          e.id === editingId
-            ? {
-                ...e,
-                ...form,
-                avatarInitials: form.name
-                  .split(" ")
-                  .map((w) => w[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2),
-              }
-            : e,
-        ),
-      );
-    } else {
-      const newEmp: Employee = {
-        id: String(Date.now()),
+      updateEmployee({
+        id: editingId as any,
         ...form,
-        avatarInitials: form.name
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2),
-      };
-      setEmployees((prev) => [newEmp, ...prev]);
+        avatarInitials,
+      });
+    } else {
+      createEmployee({
+        ...form,
+        avatarInitials,
+      });
     }
 
     setModalOpen(false);
   }
 
   function handleDelete(id: string) {
-    setEmployees((prev) => prev.filter((e) => e.id !== id));
+    removeEmployee({ id: id as any });
   }
 
-  const columns: Column<Employee>[] = [
+  const columns: Column<any>[] = [
     {
       key: "name",
       header: "Nombre",
@@ -168,6 +162,11 @@ export default function PersonalPage() {
     {
       key: "status",
       header: "Estado",
+      filterOptions: [
+        { label: "Activos", value: "active" },
+        { label: "Inactivos", value: "inactive" },
+      ],
+      getFilterValue: (e) => e.status,
       render: (e) => (
         <Badge variant={e.status === "active" ? "green" : "gray"}>
           {e.status === "active" ? "Activo" : "Inactivo"}
@@ -189,7 +188,7 @@ export default function PersonalPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleDelete(e.id)}
+            onClick={() => handleDelete(e._id)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
           >
             <TrashIcon size={14} />
@@ -202,202 +201,205 @@ export default function PersonalPage() {
   return (
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-          Personal
-        </h1>
-        <p className="text-sm text-grayscale-10">
-          Gestión del equipo de producción
-        </p>
-      </div>
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+            Personal
+          </h1>
+          <p className="text-sm text-grayscale-10">
+            Gestión del equipo de producción
+          </p>
+        </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          label="Total"
-          value={employees.length}
-          icon={<UsersIcon size={18} weight="fill" />}
-        />
-        <StatCard
-          label="Activos"
-          value={activeCount}
-          detail={`${employees.length - activeCount} inactivos`}
-          icon={<UsersIcon size={18} weight="fill" />}
-        />
-        <StatCard
-          label="Total Capítulos"
-          value={totalEpisodes}
-          detail="Participaciones acumuladas"
-          icon={<FilmStripIcon size={18} weight="fill" />}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <MagnifyingGlassIcon
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+        {/* Stats */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Total"
+            value={employees.length}
+            icon={<UsersIcon size={18} weight="fill" />}
+            index={0}
           />
-          <input
-            type="text"
-            placeholder="Buscar por nombre o puesto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+          <StatCard
+            label="Activos"
+            value={activeCount}
+            detail={`${employees.length - activeCount} inactivos`}
+            icon={<UsersIcon size={18} weight="fill" />}
+            index={1}
+          />
+          <StatCard
+            label="Total Capítulos"
+            value={totalEpisodes}
+            detail="Participaciones acumuladas"
+            icon={<FilmStripIcon size={18} weight="fill" />}
+            index={2}
           />
         </div>
-        <Button variant="primary" className="text-xs" onClick={openCreate}>
-          <PlusIcon size={16} weight="bold" />
-          Agregar Empleado
-        </Button>
-      </div>
 
-      {/* Table */}
-      <DataTable
-        columns={columns}
-        data={filtered}
-        keyExtractor={(e) => e.id}
-        emptyState={
-          <EmptyState
-            icon={<UsersIcon size={40} weight="duotone" />}
-            title="Sin resultados"
-            description={
-              search
-                ? "No se encontraron empleados con esa búsqueda."
-                : "Aún no hay empleados registrados."
-            }
-            action={
-              !search && (
-                <Button
-                  variant="primary"
-                  className="text-xs"
-                  onClick={openCreate}
-                >
-                  <PlusIcon size={16} weight="bold" />
-                  Agregar Empleado
-                </Button>
-              )
-            }
-          />
-        }
-      />
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative">
+            <MagnifyingGlassIcon
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o puesto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+            />
+          </div>
+          <Button variant="primary" className="text-xs" onClick={openCreate}>
+            <PlusIcon size={16} weight="bold" />
+            Agregar Empleado
+          </Button>
+        </div>
 
-      {/* Modal */}
-      <Modal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        title={editingId ? "Editar Empleado" : "Nuevo Empleado"}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSave();
-          }}
-          className="flex flex-col gap-4"
+        {/* Table */}
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(e) => e._id}
+          emptyState={
+            <EmptyState
+              icon={<UsersIcon size={40} weight="duotone" />}
+              title="Sin resultados"
+              description={
+                search
+                  ? "No se encontraron empleados con esa búsqueda."
+                  : "Aún no hay empleados registrados."
+              }
+              action={
+                !search && (
+                  <Button
+                    variant="primary"
+                    className="text-xs"
+                    onClick={openCreate}
+                  >
+                    <PlusIcon size={16} weight="bold" />
+                    Agregar Empleado
+                  </Button>
+                )
+              }
+            />
+          }
+        />
+
+        {/* Modal */}
+        <Modal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          title={editingId ? "Editar Empleado" : "Agregar Empleado"}
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+            className="flex flex-col gap-4"
+          >
             <Input
-              label="Nombre"
+              label="Nombre Completo"
               id="emp-name"
               value={form.name}
               onChange={(e) =>
                 setForm((f) => ({ ...f, name: e.target.value }))
               }
-              placeholder="Nombre completo"
+              placeholder="Ej: Juan Pérez"
               required
             />
-            <Input
-              label="Puesto"
-              id="emp-role"
-              value={form.role}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, role: e.target.value }))
-              }
-              placeholder="Ej: Director de Fotografía"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="Email"
-              id="emp-email"
-              type="email"
-              value={form.email}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, email: e.target.value }))
-              }
-              placeholder="correo@ump.com"
-            />
-            <Input
-              label="Teléfono"
-              id="emp-phone"
-              value={form.phone}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value }))
-              }
-              placeholder="+52 55 1234 5678"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Input
-              label="Salario"
-              id="emp-salary"
-              type="number"
-              value={form.salary || ""}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  salary: Number(e.target.value),
-                }))
-              }
-              placeholder="0"
-            />
-            <Input
-              label="Capítulos"
-              id="emp-episodes"
-              type="number"
-              value={form.episodeCount || ""}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  episodeCount: Number(e.target.value),
-                }))
-              }
-              placeholder="0"
-            />
-            <Select
-              label="Estado"
-              id="emp-status"
-              value={form.status}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  status: e.target.value as "active" | "inactive",
-                }))
-              }
-              options={[
-                { value: "active", label: "Activo" },
-                { value: "inactive", label: "Inactivo" },
-              ]}
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              className="text-xs"
-              type="button"
-              onClick={() => setModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button variant="primary" className="text-xs" type="submit">
-              {editingId ? "Guardar Cambios" : "Crear Empleado"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Puesto / Rol"
+                id="emp-role"
+                value={form.role}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, role: e.target.value }))
+                }
+                placeholder="Ej: Editor"
+                required
+              />
+              <Input
+                label="Salario Mensual"
+                id="emp-salary"
+                type="number"
+                value={form.salary || ""}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, salary: Number(e.target.value) }))
+                }
+                placeholder="0"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Correo Electrónico"
+                id="emp-email"
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                placeholder="correo@ejemplo.com"
+                required
+              />
+              <Input
+                label="Teléfono"
+                id="emp-phone"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value }))
+                }
+                placeholder="8888-8888"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Estado"
+                id="emp-status"
+                value={form.status}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    status: e.target.value as any,
+                  }))
+                }
+                options={[
+                  { value: "active", label: "Activo" },
+                  { value: "inactive", label: "Inactivo" },
+                ]}
+              />
+              <Input
+                label="Participación en Capítulos"
+                id="emp-episodes"
+                type="number"
+                value={form.episodeCount}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    episodeCount: Number(e.target.value),
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button variant="primary" className="text-xs" type="submit">
+                {editingId ? "Guardar Cambios" : "Agregar Empleado"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </PageContainer>
   );
