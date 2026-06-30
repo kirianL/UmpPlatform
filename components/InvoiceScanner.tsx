@@ -125,7 +125,7 @@ export default function InvoiceScanner({
       open={open}
       onOpenChange={handleClose}
       title="Escanear Factura"
-      className="max-w-md"
+      className="sm:max-w-xl md:max-w-2xl"
     >
       <div className="flex flex-col gap-4">
         {/* Hidden file inputs */}
@@ -269,8 +269,8 @@ export default function InvoiceScanner({
             </div>
 
             {/* Results card */}
-            <div className="rounded-xl border border-grayscale-3 bg-grayscale-1/50 p-4 dark:border-grayscale-4 dark:bg-grayscale-2/30">
-              <div className="mb-3.5 flex items-center justify-between border-b border-grayscale-3 pb-2 dark:border-grayscale-4">
+            <div className="rounded-xl border border-grayscale-3 bg-grayscale-1/50 p-5 dark:border-grayscale-4 dark:bg-grayscale-2/30">
+              <div className="mb-4 flex items-center justify-between border-b border-grayscale-3 pb-3 dark:border-grayscale-4">
                 <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-green-9 dark:text-green-8">
                   <CheckCircleIcon size={16} weight="fill" />
                   Lectura Exitosa
@@ -284,7 +284,7 @@ export default function InvoiceScanner({
 
               {/* Vendor, Date & Exchange Rate */}
               {(result.vendor || result.date || result.currency !== "CRC") && (
-                <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
                   {result.vendor && (
                     <span className="flex items-center gap-1 text-xs font-medium text-grayscale-11">
                       <StorefrontIcon size={12} weight="bold" className="text-grayscale-8" />
@@ -298,7 +298,7 @@ export default function InvoiceScanner({
                     </span>
                   )}
                   {result.currency && result.currency !== "CRC" && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold bg-amber-2 dark:bg-amber-4/30 text-amber-11 px-2 py-0.5 rounded border border-amber-5">
+                    <span className="flex items-center gap-1 text-[11px] font-bold bg-amber-2 dark:bg-amber-4/30 text-amber-11 px-2.5 py-0.5 rounded border border-amber-5">
                       {result.currency} @ ₡{result.exchangeRate.toFixed(2)}
                     </span>
                   )}
@@ -306,11 +306,11 @@ export default function InvoiceScanner({
               )}
 
               {/* Items list */}
-              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              <div className="space-y-2.5 max-h-64 overflow-y-auto no-scrollbar">
                 {result.items.map((item, i) => (
                   <div
                     key={`${item.description}-${i}`}
-                    className="flex items-center justify-between gap-2 rounded-md bg-grayscale-2/50 px-2.5 py-1.5 dark:bg-grayscale-3/20"
+                    className="flex items-center justify-between gap-3 rounded-lg bg-grayscale-2/50 px-3.5 py-2.5 dark:bg-grayscale-3/20"
                   >
                     <span className="min-w-0 truncate text-xs text-grayscale-11 dark:text-grayscale-10">
                       {item.description}
@@ -333,7 +333,7 @@ export default function InvoiceScanner({
 
               {/* Total */}
               {result.total != null && result.items.length > 1 && (
-                <div className="mt-2.5 flex items-center justify-between border-t border-grayscale-3 pt-2.5 dark:border-grayscale-4">
+                <div className="mt-3.5 flex items-center justify-between border-t border-grayscale-3 pt-3.5 dark:border-grayscale-4">
                   <span className="text-xs font-mono uppercase font-semibold text-grayscale-8">
                     Total
                   </span>

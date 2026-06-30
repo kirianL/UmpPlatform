@@ -44,6 +44,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("employees") },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.id);
+    const existing = await ctx.db.get(args.id);
+    if (existing) {
+      await ctx.db.delete(args.id);
+    }
   },
 });
