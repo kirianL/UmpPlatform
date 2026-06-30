@@ -877,7 +877,7 @@ export default function AnalyticsPage() {
             Contenido con Mayor Rendimiento
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredContent.map((item) => {
+            {filteredContent.map((item: any) => {
               const Icon =
                 item.platform === "youtube"
                   ? YoutubeLogo
