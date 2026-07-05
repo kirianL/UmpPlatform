@@ -117,21 +117,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Demo Credentials Info */}
-        <div className="rounded-xl border border-grayscale-3 bg-grayscale-2/50 p-4 text-xs text-grayscale-11">
-          <p className="font-bold mb-1.5 uppercase font-mono tracking-wider text-[10px]">Credenciales de acceso:</p>
-          <div className="flex flex-col gap-1 font-mono text-[11px]">
-            <div className="flex justify-between">
-              <span className="text-grayscale-9">Usuario:</span>
-              <span>admin@ultimate.cr</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-grayscale-9">Contraseña:</span>
-              <span>UmpPlatform2026!</span>
-            </div>
-          </div>
-        </div>
       </div>
 
     </div>
