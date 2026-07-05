@@ -422,7 +422,7 @@ button, a, [role="button"], input, select, textarea {
     cursor: default;
   }
   html {
-    @apply font-sans;
+    @apply font-sans bg-background text-foreground;
   }
 
   /* Prevent text cursor (I-beam bar) on static text elements for a premium native app feel */
@@ -444,6 +444,23 @@ button, a, [role="button"], input, select, textarea {
   input, textarea, [contenteditable="true"], input *, textarea * {
     cursor: text;
   }
+
+  /* Ensure native date/time inputs behave like standard block elements on iOS Safari */
+  input[type="date"],
+  input[type="time"] {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    -webkit-appearance: none;
+  }
+}
+
+/* Customise default Next.js view transitions (on root) */
+::view-transition-old(root) {
+  animation: vt-page-out 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+::view-transition-new(root) {
+  animation: vt-page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Tooltip theme overrides to ensure visibility of text */

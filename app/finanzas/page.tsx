@@ -8,6 +8,7 @@ import {
   TrendDownIcon,
   TrendUpIcon,
   TrashIcon,
+  EyeIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 import Badge from "@/components/public/Badge";
@@ -72,6 +73,7 @@ export default function FinanzasPage() {
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_TRANSACTION);
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   const income = transactions
     .filter((t) => t.type === "income" && t.status !== "cancelled")
@@ -87,6 +89,7 @@ export default function FinanzasPage() {
   function openCreate(type: "income" | "expense" = "income") {
     setEditingId(null);
     setForm({ ...EMPTY_TRANSACTION, type });
+    setIsViewOnly(false);
     setModalOpen(true);
   }
 
@@ -101,6 +104,22 @@ export default function FinanzasPage() {
       status: t.status,
       local: t.local ?? "",
     });
+    setIsViewOnly(false);
+    setModalOpen(true);
+  }
+
+  function openView(t: any) {
+    setEditingId(null);
+    setForm({
+      concept: t.concept,
+      amount: t.amount,
+      date: t.date,
+      category: t.category,
+      type: t.type,
+      status: t.status,
+      local: t.local ?? "",
+    });
+    setIsViewOnly(true);
     setModalOpen(true);
   }
 
@@ -259,13 +278,22 @@ export default function FinanzasPage() {
     {
       key: "actions",
       header: "",
-      className: "w-20",
+      className: "w-24", // increased from w-20 to fit three buttons
       render: (t) => (
         <div className="flex items-center gap-1">
           <button
             type="button"
+            onClick={() => openView(t)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
+            title="Ver Detalles"
+          >
+            <EyeIcon size={14} />
+          </button>
+          <button
+            type="button"
             onClick={() => openEdit(t)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
+            title="Editar"
           >
             <PencilSimpleIcon size={14} />
           </button>
@@ -273,6 +301,7 @@ export default function FinanzasPage() {
             type="button"
             onClick={() => handleDelete(t._id)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
+            title="Eliminar"
           >
             <TrashIcon size={14} />
           </button>
@@ -402,16 +431,18 @@ export default function FinanzasPage() {
           ]}
         />
 
-        {/* Modal: Create/Edit */}
+        {/* Modal: Create/Edit/View */}
         <Modal
           open={modalOpen}
           onOpenChange={setModalOpen}
           title={
-            editingId
-              ? "Editar Transacción"
-              : form.type === "income"
-                ? "Registrar Ingreso"
-                : "Registrar Gasto"
+            isViewOnly
+              ? "Detalle de Transacción"
+              : editingId
+                ? "Editar Transacción"
+                : form.type === "income"
+                  ? "Registrar Ingreso"
+                  : "Registrar Gasto"
           }
         >
           <form
@@ -419,7 +450,7 @@ export default function FinanzasPage() {
               e.preventDefault();
               handleSave();
             }}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-4 w-full min-w-0"
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
@@ -431,6 +462,7 @@ export default function FinanzasPage() {
                 }
                 placeholder="Ej: Pago de cliente o Compra de disco duro"
                 required
+                disabled={isViewOnly}
               />
               <Input
                 label="Local / Establecimiento"
@@ -440,6 +472,7 @@ export default function FinanzasPage() {
                   setForm((f) => ({ ...f, local: e.target.value }))
                 }
                 placeholder="Ej: Walmart, Starbucks, etc."
+                disabled={isViewOnly}
               />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -453,6 +486,7 @@ export default function FinanzasPage() {
                 }
                 placeholder="0"
                 required
+                disabled={isViewOnly}
               />
               <Input
                 label="Fecha"
@@ -463,6 +497,7 @@ export default function FinanzasPage() {
                   setForm((f) => ({ ...f, date: e.target.value }))
                 }
                 required
+                disabled={isViewOnly}
               />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -474,6 +509,7 @@ export default function FinanzasPage() {
                   setForm((f) => ({ ...f, category: e.target.value }))
                 }
                 options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+                disabled={isViewOnly}
               />
               <Select
                 label="Tipo"
@@ -489,6 +525,7 @@ export default function FinanzasPage() {
                   { value: "income", label: "Ingreso" },
                   { value: "expense", label: "Egreso" },
                 ]}
+                disabled={isViewOnly}
               />
               <Select
                 label="Estado"
@@ -505,6 +542,7 @@ export default function FinanzasPage() {
                   { value: "pending", label: "Pendiente" },
                   { value: "cancelled", label: "Cancelado" },
                 ]}
+                disabled={isViewOnly}
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -514,11 +552,13 @@ export default function FinanzasPage() {
                 type="button"
                 onClick={() => setModalOpen(false)}
               >
-                Cancelar
+                {isViewOnly ? "Cerrar" : "Cancelar"}
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
-                {editingId ? "Guardar Cambios" : "Registrar"}
-              </Button>
+              {!isViewOnly && (
+                <Button variant="primary" className="text-xs" type="submit">
+                  {editingId ? "Guardar Cambios" : "Registrar"}
+                </Button>
+              )}
             </div>
           </form>
         </Modal>

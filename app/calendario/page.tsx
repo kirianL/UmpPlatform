@@ -405,7 +405,7 @@ export default function CalendarioPage() {
               e.preventDefault();
               handleSave();
             }}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-4 w-full min-w-0"
           >
             <Input
               label="Título del Evento / Tarea"
