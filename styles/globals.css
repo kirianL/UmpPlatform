@@ -198,12 +198,23 @@ button, a, [role="button"], input, select, textarea {
    View Transitions — Page Navigation
    --------------------------------------------------------------------------- */
 
+/* Assign transition names to keep layout persistent */
+.desktop-sidebar {
+  view-transition-name: sidebar;
+}
+
+.mobile-header {
+  view-transition-name: mobile-header;
+}
+
 /* Page enter: fade in + subtle slide up */
+::view-transition-new(page-enter),
 ::view-transition-new(.page-enter) {
   animation: vt-page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Page exit: fade out quickly */
+::view-transition-old(page-exit),
 ::view-transition-old(.page-exit) {
   animation: vt-page-out 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

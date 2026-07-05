@@ -119,7 +119,7 @@ function SidebarNavContent({ onNavigate, hideLogo = false }: { onNavigate?: () =
 
 export default function Sidebar() {
   return (
-    <aside className="fixed top-0 left-0 z-50 hidden h-full w-56 shrink-0 flex-col px-3 py-4 border-r border-grayscale-3 bg-grayscale-1 dark:border-grayscale-2 dark:bg-grayscale-1 xl:flex">
+    <aside className="desktop-sidebar fixed top-0 left-0 z-50 hidden h-full w-56 shrink-0 flex-col px-3 py-4 border-r border-grayscale-3 bg-grayscale-1 dark:border-grayscale-2 dark:bg-grayscale-1 xl:flex">
       <SidebarNavContent />
     </aside>
   );

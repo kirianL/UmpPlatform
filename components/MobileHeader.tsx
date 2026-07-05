@@ -13,7 +13,7 @@ export default function MobileHeader() {
 
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => setOpen(nextOpen)}>
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-100 flex h-14 xl:hidden">
+      <header className="mobile-header pointer-events-none fixed inset-x-0 top-0 z-100 flex h-14 xl:hidden">
         <div className="pointer-events-auto relative mx-auto flex h-full w-full items-center justify-between border-b border-grayscale-3 bg-grayscale-1/95 px-4 backdrop-blur dark:border-grayscale-2">
           <Dialog.Trigger
             aria-label="Open navigation"

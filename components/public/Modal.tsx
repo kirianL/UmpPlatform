@@ -25,7 +25,7 @@ export default function Modal({
         <Dialog.Backdrop className="fixed inset-0 z-100 bg-grayscale-1/75 animate-backdrop" />
         <Dialog.Popup
           className={cn(
-            "fixed left-1/2 top-1/2 z-100 flex w-full max-w-lg flex-col rounded-xl border border-grayscale-3 bg-grayscale-1 shadow-xl outline-none animate-modal dark:border-grayscale-4 dark:bg-grayscale-2",
+            "fixed left-1/2 top-1/2 z-100 flex w-[calc(100%-2.5rem)] sm:w-full max-w-lg flex-col rounded-xl border border-grayscale-3 bg-grayscale-1 shadow-xl outline-none animate-modal dark:border-grayscale-4 dark:bg-grayscale-2",
             className,
           )}
         >
