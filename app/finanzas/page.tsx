@@ -59,6 +59,7 @@ const EMPTY_TRANSACTION = {
   category: "Producción",
   type: "income" as "income" | "expense",
   status: "pending" as const,
+  local: "",
 };
 
 export default function FinanzasPage() {
@@ -98,6 +99,7 @@ export default function FinanzasPage() {
       category: t.category,
       type: t.type,
       status: t.status,
+      local: t.local ?? "",
     });
     setModalOpen(true);
   }
@@ -123,7 +125,6 @@ export default function FinanzasPage() {
   async function handleScanComplete(data: InvoiceData) {
     const date = data.date ?? new Date().toISOString().slice(0, 10);
     const type = data.type ?? "expense";
-    const vendor = data.vendor ? `${data.vendor} — ` : "";
     const isForeign = data.currency !== "CRC";
 
     if (data.items.length <= 1) {
@@ -143,7 +144,8 @@ export default function FinanzasPage() {
       setForm({
         ...EMPTY_TRANSACTION,
         type,
-        concept: item ? `${conceptPrefix}${vendor}${item.description}` : (data.total ? `${conceptPrefix}${vendor}Compra` : ""),
+        concept: item ? `${conceptPrefix}${item.description}` : (data.total ? `${conceptPrefix}Compra` : ""),
+        local: data.vendor ?? "",
         amount,
         date,
       });
@@ -163,7 +165,8 @@ export default function FinanzasPage() {
         : "";
 
       return {
-        concept: `${conceptPrefix}${vendor}${item.description}`,
+        concept: `${conceptPrefix}${item.description}`,
+        local: data.vendor ?? "",
         amount,
         date,
         category: "Otro",
@@ -197,7 +200,17 @@ export default function FinanzasPage() {
           <p className="text-sm font-medium text-grayscale-12 truncate max-w-[200px]">
             {t.concept}
           </p>
-          <p className="text-xs text-grayscale-9">{t.category}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-grayscale-9">{t.category}</span>
+            {t.local && (
+              <>
+                <span className="text-grayscale-6 text-[10px]">•</span>
+                <span className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded truncate max-w-[120px]" title={t.local}>
+                  {t.local}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       ),
     },
@@ -400,16 +413,27 @@ export default function FinanzasPage() {
             }}
             className="flex flex-col gap-4"
           >
-            <Input
-              label="Concepto / Detalle"
-              id="tx-concept"
-              value={form.concept}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, concept: e.target.value }))
-              }
-              placeholder="Ej: Pago de cliente o Compra de disco duro"
-              required
-            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Concepto / Detalle"
+                id="tx-concept"
+                value={form.concept}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, concept: e.target.value }))
+                }
+                placeholder="Ej: Pago de cliente o Compra de disco duro"
+                required
+              />
+              <Input
+                label="Local / Establecimiento"
+                id="tx-local"
+                value={form.local}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, local: e.target.value }))
+                }
+                placeholder="Ej: Walmart, Starbucks, etc."
+              />
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="Monto (CRC)"

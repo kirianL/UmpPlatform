@@ -68,30 +68,7 @@ export default function DashboardPage() {
   return (
     <PageContainer>
       <div className="flex flex-col gap-8">
-        {/* Seed Button for Empty DB */}
-        {employees.length === 0 && transactions.length === 0 && (
-          <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-dashed border-accent-6 bg-accent-2/10 p-5 sm:flex-row dark:border-accent-7">
-            <div>
-              <h3 className="font-mono text-sm font-bold uppercase text-accent-11">
-                Base de Datos Convex Vacía
-              </h3>
-              <p className="text-xs text-grayscale-10">
-                Inicializa las tablas con los datos simulados por defecto de UmpPlatform para probar el sistema.
-              </p>
-            </div>
-            <Button
-              variant="primary"
-              className="text-xs shrink-0"
-              onClick={() => {
-                seed()
-                  .then(() => alert("Base de datos inicializada con éxito"))
-                  .catch((e) => alert("Error al inicializar: " + e.message));
-              }}
-            >
-              Cargar Datos Demo
-            </Button>
-          </div>
-        )}
+
 
         {/* Header */}
         <div className="flex flex-col gap-1">

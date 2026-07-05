@@ -58,7 +58,7 @@ export default function MobileHeader() {
               <XIcon size={16} weight="bold" />
             </Dialog.Close>
           </div>
-          <SidebarNavContent onNavigate={() => setOpen(false)} />
+          <SidebarNavContent onNavigate={() => setOpen(false)} hideLogo />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

@@ -19,6 +19,7 @@ export default defineSchema({
     category: v.string(),
     type: v.union(v.literal("income"), v.literal("expense")),
     status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
+    local: v.optional(v.string()),
   }),
   clients: defineTable({
     name: v.string(),

@@ -28,19 +28,21 @@ const NAV_ITEMS = [
   { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
 ];
 
-function SidebarNavContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarNavContent({ onNavigate, hideLogo = false }: { onNavigate?: () => void; hideLogo?: boolean }) {
   const pathname = usePathname();
 
   return (
     <>
-      <div className="flex items-center gap-2 px-2 py-1">
-        <Logo iconSize={16} className="w-6" />
-        <span className="font-mono text-xs font-bold uppercase text-grayscale-12">
-          UmpPlatform
-        </span>
-      </div>
+      {!hideLogo && (
+        <div className="flex items-center gap-2 px-2 py-1">
+          <Logo iconSize={16} className="w-6" />
+          <span className="font-mono text-xs font-bold uppercase text-grayscale-12">
+            UmpPlatform
+          </span>
+        </div>
+      )}
 
-      <nav className="mt-6 flex flex-col gap-px">
+      <nav className={cn("flex flex-col gap-px", hideLogo ? "mt-2" : "mt-6")}>
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const isActive =
             href === "/" ? pathname === "/" : pathname.startsWith(href);

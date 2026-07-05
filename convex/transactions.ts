@@ -16,6 +16,7 @@ export const create = mutation({
     category: v.string(),
     type: v.union(v.literal("income"), v.literal("expense")),
     status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
+    local: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("transactions", args);
@@ -31,6 +32,7 @@ export const update = mutation({
     category: v.string(),
     type: v.union(v.literal("income"), v.literal("expense")),
     status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
+    local: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);

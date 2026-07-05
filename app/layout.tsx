@@ -7,6 +7,7 @@ import MobileHeader from "@/components/MobileHeader";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
+import PwaRegister from "@/components/PwaRegister";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -40,6 +41,14 @@ export const metadata: Metadata = {
   title: "UmpPlatform",
   description:
     "Plataforma de gestión para productora audiovisual — personal, finanzas, clientes, inventario y calendario.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "UmpPlatform",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default async function RootLayout({
@@ -59,6 +68,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full bg-grayscale-1 text-grayscale-12">
         <ThemeProvider>
+          <PwaRegister />
           <ConvexClientProvider>
             {isLoginPage ? (
               children
