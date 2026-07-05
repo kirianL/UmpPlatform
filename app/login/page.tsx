@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeftIcon, SpinnerIcon } from "@phosphor-icons/react/dist/ssr";
+import { SpinnerIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 
@@ -42,21 +42,13 @@ export default function LoginPage() {
     <div className="relative flex h-dvh w-screen flex-col justify-between overflow-hidden bg-grayscale-1 text-grayscale-12 p-6 font-sans">
       
       {/* Top Header Row */}
-      <div className="flex items-center justify-between w-full animate-fade-in">
-        <button 
-          type="button"
-          onClick={() => window.history.back()} 
-          className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-11 hover:bg-grayscale-2 active:scale-95 transition-all dark:border-grayscale-4 dark:bg-grayscale-2 dark:hover:bg-grayscale-3"
-        >
-          <ArrowLeftIcon size={15} weight="bold" />
-        </button>
+      <div className="flex items-center justify-center w-full animate-fade-in">
         <div className="flex items-center gap-2">
           <Logo iconSize={13} className="w-5 h-5 rounded-md" />
           <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-12">
             UmpPlatform
           </span>
         </div>
-        <div className="w-8" /> {/* Spacer to balance and center the logo */}
       </div>
 
       {/* Main Login Form Container */}
