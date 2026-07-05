@@ -65,13 +65,14 @@ async function verifySession(token: string): Promise<{ valid: boolean; reason?: 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow next assets, favicon, icon, and public auth APIs to pass through
+  // Allow next assets, favicon, icon, manifest, and public auth APIs to pass through
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
     pathname.includes("/icon.svg") ||
     pathname.startsWith("/static") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.webmanifest"
   ) {
     return NextResponse.next();
   }
@@ -130,7 +131,8 @@ export const config = {
      * - image optimization files (_next/image)
      * - favicon.ico (favicon file)
      * - icon.svg
+     * - manifest.webmanifest
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest).*)",
   ],
 };
