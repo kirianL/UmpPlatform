@@ -62,7 +62,7 @@ async function verifySession(token: string): Promise<{ valid: boolean; reason?: 
   return { valid: true };
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow next assets, favicon, icon, and public auth APIs to pass through
