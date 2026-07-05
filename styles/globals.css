@@ -473,3 +473,15 @@ button, a, [role="button"], input, select, textarea {
 .text-chart-tooltip-muted {
   color: var(--chart-tooltip-muted) !important;
 }
+
+/* Hide all scrollbars globally across the entire project while preserving scrolling */
+::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

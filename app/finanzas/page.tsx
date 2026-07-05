@@ -75,21 +75,59 @@ export default function FinanzasPage() {
   const [form, setForm] = useState(EMPTY_TRANSACTION);
   const [isViewOnly, setIsViewOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDateRange, setFilterDateRange] = useState<string>("all");
 
-  const income = transactions
-    .filter((t) => t.type === "income" && t.status !== "cancelled")
-    .reduce((s, t) => s + t.amount, 0);
-  const expenses = transactions
-    .filter((t) => t.type === "expense" && t.status !== "cancelled")
-    .reduce((s, t) => s + t.amount, 0);
-  const balance = income - expenses;
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      // Status filter
+      if (filterStatus !== "all" && t.status !== filterStatus) {
+        return false;
+      }
+      
+      // Date range filter
+      if (filterDateRange !== "all") {
+        const txDate = new Date(t.date + "T00:00:00");
+        const today = new Date();
+        const txTime = txDate.getTime();
+        
+        if (filterDateRange === "7days") {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(today.getDate() - 7);
+          if (txTime < sevenDaysAgo.getTime()) return false;
+        } else if (filterDateRange === "thisMonth") {
+          if (txDate.getFullYear() !== today.getFullYear() || txDate.getMonth() !== today.getMonth()) {
+            return false;
+          }
+        } else if (filterDateRange === "lastMonth") {
+          const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          if (txTime < firstOfLastMonth.getTime() || txTime >= firstOfThisMonth.getTime()) {
+            return false;
+          }
+        } else if (filterDateRange === "thisYear") {
+          if (txDate.getFullYear() !== today.getFullYear()) return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [transactions, filterStatus, filterDateRange]);
 
   const sortedTransactions = useMemo(() => {
-    return [...transactions].sort((a, b) => {
+    return [...filteredTransactions].sort((a, b) => {
       const dateCompare = b.date.localeCompare(a.date);
       return sortOrder === "desc" ? dateCompare : -dateCompare;
     });
-  }, [transactions, sortOrder]);
+  }, [filteredTransactions, sortOrder]);
+
+  const income = sortedTransactions
+    .filter((t) => t.type === "income" && t.status !== "cancelled")
+    .reduce((s, t) => s + t.amount, 0);
+  const expenses = sortedTransactions
+    .filter((t) => t.type === "expense" && t.status !== "cancelled")
+    .reduce((s, t) => s + t.amount, 0);
+  const balance = income - expenses;
 
   const incomeData = useMemo(() => {
     return sortedTransactions.filter((t) => t.type === "income");
@@ -280,12 +318,6 @@ export default function FinanzasPage() {
       key: "status",
       header: "Estado",
       className: "hidden md:table-cell",
-      filterOptions: [
-        { label: "Pagados", value: "paid" },
-        { label: "Pendientes", value: "pending" },
-        { label: "Anulados", value: "cancelled" },
-      ],
-      getFilterValue: (t) => t.status,
       render: (t) => statusBadge(t.status),
     },
     {
@@ -394,19 +426,53 @@ export default function FinanzasPage() {
               <Tabs.Indicator />
             </Tabs.List>
 
-            {/* Sorting controls */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold uppercase text-grayscale-9 select-none">Fecha:</span>
-              <button
-                type="button"
-                onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-                className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
-              >
-                <span>{sortOrder === "desc" ? "Más Recientes" : "Más Antiguos"}</span>
-                <span className="text-grayscale-9 text-xs leading-none mt-[-1px]">
-                  {sortOrder === "desc" ? "↓" : "↑"}
-                </span>
-              </button>
+            {/* Filtering and Sorting controls */}
+            <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
+              {/* Date range filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Periodo:</span>
+                <select
+                  value={filterDateRange}
+                  onChange={(e) => setFilterDateRange(e.target.value)}
+                  className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                >
+                  <option value="all">Todos</option>
+                  <option value="7days">Últimos 7 días</option>
+                  <option value="thisMonth">Este Mes</option>
+                  <option value="lastMonth">Mes Anterior</option>
+                  <option value="thisYear">Este Año</option>
+                </select>
+              </div>
+
+              {/* Status filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Estado:</span>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                >
+                  <option value="all">Todos</option>
+                  <option value="paid">Pagados</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="cancelled">Anulados</option>
+                </select>
+              </div>
+
+              {/* Sorting order */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Orden:</span>
+                <button
+                  type="button"
+                  onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                  className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                >
+                  <span>{sortOrder === "desc" ? "Recientes" : "Antiguos"}</span>
+                  <span className="text-grayscale-9 text-xs leading-none mt-[-1px]">
+                    {sortOrder === "desc" ? "↓" : "↑"}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 

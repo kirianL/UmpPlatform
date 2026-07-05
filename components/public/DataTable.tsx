@@ -8,6 +8,7 @@ export type Column<T> = {
   className?: string;
   filterOptions?: { label: string; value: string }[];
   getFilterValue?: (item: T) => string;
+  filterMatch?: (itemValue: any, filterValue: string) => boolean;
 };
 
 type DataTableProps<T> = {
@@ -53,7 +54,12 @@ export default function DataTable<T>({
         if (!value) continue;
         const col = columns.find((c) => c.key === key);
         const itemVal = col?.getFilterValue ? col.getFilterValue(item) : (item as any)[key];
-        if (String(itemVal) !== value) return false;
+        
+        if (col?.filterMatch) {
+          if (!col.filterMatch(itemVal, value)) return false;
+        } else {
+          if (String(itemVal) !== value) return false;
+        }
       }
       return true;
     });
@@ -82,7 +88,7 @@ export default function DataTable<T>({
   return (
     <div
       className={cn(
-        "w-full overflow-x-auto no-scrollbar rounded-xl border border-grayscale-3 bg-grayscale-2 dark:border-grayscale-3 dark:bg-grayscale-2 flex flex-col",
+        "w-full overflow-x-auto no-scrollbar rounded-xl border border-grayscale-3 bg-grayscale-2 dark:border-grayscale-3 dark:bg-grayscale-2 flex flex-col min-h-[280px]",
         className,
       )}
     >

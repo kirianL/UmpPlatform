@@ -50,6 +50,17 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "UmpPlatform",
   },
+  icons: {
+    icon: [
+      { url: "/ICO-UMP/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/ICO-UMP/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/ICO-UMP/favicon-48x48.png", sizes: "48x48", type: "image/png" },
+      { url: "/ICO-UMP/favicon-128x128.png", sizes: "128x128", type: "image/png" },
+    ],
+    apple: [
+      { url: "/ICO-UMP/favicon-180x180.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   formatDetection: {
     telephone: false,
   },

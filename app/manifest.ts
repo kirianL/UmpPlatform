@@ -12,9 +12,21 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#000000",
     icons: [
       {
-        src: "/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/ICO-UMP/favicon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/ICO-UMP/favicon-256x256.png",
+        sizes: "256x256",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/ICO-UMP/favicon-180x180.png",
+        sizes: "180x180",
+        type: "image/png",
         purpose: "any",
       },
     ],

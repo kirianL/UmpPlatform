@@ -70,6 +70,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
     pathname.includes("/icon.svg") ||
+    pathname.includes("/ICO-UMP") ||
     pathname.startsWith("/static") ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.webmanifest"
@@ -132,7 +133,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - icon.svg
      * - manifest.webmanifest
+     * - ICO-UMP icons
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|ICO-UMP).*)",
   ],
 };
