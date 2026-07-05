@@ -212,7 +212,7 @@ export default function FinanzasPage() {
     const map = {
       paid: { variant: "green" as const, label: "Pagado" },
       pending: { variant: "orange" as const, label: "Pendiente" },
-      cancelled: { variant: "red" as const, label: "Cancelado" },
+      cancelled: { variant: "red" as const, label: "Anulado" },
     };
     const { variant, label } = map[status as "paid" | "pending" | "cancelled"] || map.pending;
     return <Badge variant={variant}>{label}</Badge>;
@@ -270,7 +270,7 @@ export default function FinanzasPage() {
       filterOptions: [
         { label: "Pagados", value: "paid" },
         { label: "Pendientes", value: "pending" },
-        { label: "Cancelados", value: "cancelled" },
+        { label: "Anulados", value: "cancelled" },
       ],
       getFilterValue: (t) => t.status,
       render: (t) => statusBadge(t.status),
@@ -540,7 +540,7 @@ export default function FinanzasPage() {
                 options={[
                   { value: "paid", label: "Pagado" },
                   { value: "pending", label: "Pendiente" },
-                  { value: "cancelled", label: "Cancelado" },
+                  { value: "cancelled", label: "Anulado" },
                 ]}
                 disabled={isViewOnly}
               />
