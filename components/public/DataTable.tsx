@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/helpers/classname-helper";
 
 export type Column<T> = {
@@ -16,6 +16,7 @@ type DataTableProps<T> = {
   keyExtractor: (item: T) => string;
   emptyState?: React.ReactNode;
   className?: string;
+  pageSize?: number;
 };
 
 const FunnelIconSvg = ({ active }: { active: boolean }) => (
@@ -39,9 +40,11 @@ export default function DataTable<T>({
   keyExtractor,
   emptyState,
   className,
+  pageSize = 25,
 }: DataTableProps<T>) {
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filter data locally based on active filters
   const filteredData = useMemo(() => {
@@ -56,6 +59,20 @@ export default function DataTable<T>({
     });
   }, [data, activeFilters, columns]);
 
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilters]);
+
+  // Total pages
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+
+  // Paginated data
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
   const isInitialDataEmpty = data.length === 0;
 
   if (isInitialDataEmpty && emptyState) {
@@ -65,7 +82,7 @@ export default function DataTable<T>({
   return (
     <div
       className={cn(
-        "w-full overflow-x-auto no-scrollbar rounded-xl border border-grayscale-3 bg-grayscale-2 dark:border-grayscale-3 dark:bg-grayscale-2",
+        "w-full overflow-x-auto no-scrollbar rounded-xl border border-grayscale-3 bg-grayscale-2 dark:border-grayscale-3 dark:bg-grayscale-2 flex flex-col",
         className,
       )}
     >
@@ -153,7 +170,7 @@ export default function DataTable<T>({
           </tr>
         </thead>
         <tbody className="divide-y divide-grayscale-3 dark:divide-grayscale-3">
-          {filteredData.map((item, idx) => (
+          {paginatedData.map((item, idx) => (
             <tr
               key={keyExtractor(item)}
               style={{ animationDelay: `${idx * 40}ms` }}
@@ -182,6 +199,75 @@ export default function DataTable<T>({
           )}
         </tbody>
       </table>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-grayscale-3 bg-grayscale-2 px-4 py-3 gap-3 dark:border-grayscale-4 dark:bg-grayscale-2 select-none">
+          <div className="text-[11px] font-mono uppercase text-grayscale-9">
+            Mostrando <span className="font-semibold text-grayscale-12">{(currentPage - 1) * pageSize + 1}</span> -{" "}
+            <span className="font-semibold text-grayscale-12">
+              {Math.min(currentPage * pageSize, filteredData.length)}
+            </span>{" "}
+            de <span className="font-semibold text-grayscale-12">{filteredData.length}</span> registros
+          </div>
+          <div className="flex items-center gap-1.5">
+            {/* Previous button */}
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+            >
+              <span className="text-xs">←</span>
+            </button>
+
+            {/* Page numbers */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((page) => {
+                // Show first, last, current, and pages near current
+                return (
+                  page === 1 ||
+                  page === totalPages ||
+                  Math.abs(page - currentPage) <= 1
+                );
+              })
+              .map((page, index, arr) => {
+                const showEllipsisBefore = index > 0 && page - arr[index - 1] > 1;
+                const isSelected = page === currentPage;
+
+                return (
+                  <div key={page} className="flex items-center gap-1.5">
+                    {showEllipsisBefore && (
+                      <span className="text-grayscale-8 font-mono text-[10px]">...</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-lg border text-xs font-mono font-medium transition-all active:scale-95 cursor-pointer",
+                        isSelected
+                          ? "border-accent-9 bg-accent-9 text-white font-bold"
+                          : "border-grayscale-3 bg-grayscale-1 text-grayscale-10 hover:bg-grayscale-2 dark:border-grayscale-4 dark:bg-grayscale-3"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  </div>
+                );
+              })}
+
+            {/* Next button */}
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+            >
+              <span className="text-xs">→</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

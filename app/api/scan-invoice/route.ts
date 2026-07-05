@@ -194,6 +194,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if the error is a 503 high demand or temporary server issue
+    if (
+      message.includes("503") ||
+      message.includes("UNAVAILABLE") ||
+      message.includes("high demand") ||
+      message.includes("temporary")
+    ) {
+      return NextResponse.json(
+        { error: "El servicio de Gemini está saturado temporalmente o experimenta alta demanda. Por favor, intenta de nuevo en unos segundos." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { error: `Error al procesar: ${message}` },
       { status: 500 },

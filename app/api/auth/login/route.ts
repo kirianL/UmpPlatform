@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+import { hashPassword } from "@/lib/auth-helpers";
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "fallback_secret_for_ump_platform_2026";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin@ultimate.cr";
@@ -43,7 +46,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Faltan credenciales" }, { status: 400 });
     }
 
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    let isValid = false;
+
+    // 1. Try to find the user in Convex
+    try {
+      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+      if (convexUrl) {
+        const convex = new ConvexHttpClient(convexUrl);
+        const user = await convex.query(api.users.getByEmail, { email: username });
+        if (user) {
+          const expectedHash = hashPassword(password);
+          if (user.passwordHash === expectedHash) {
+            isValid = true;
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.error("Error querying database for login:", dbErr);
+    }
+
+    // 2. Fallback to Env variables if database check was not successful
+    if (!isValid) {
+      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        isValid = true;
+      }
+    }
+
+    if (!isValid) {
       return NextResponse.json({ error: "Usuario o contraseña incorrectos" }, { status: 401 });
     }
 
@@ -52,7 +81,7 @@ export async function POST(request: Request) {
     const expiresAt = Date.now() + duration;
     const token = await signSession(username, expiresAt);
 
-    const response = NextResponse.json({ success: true, redirect: "/analytics" });
+    const response = NextResponse.json({ success: true, redirect: "/" });
     
     // Set HTTP-Only Cookie
     response.cookies.set({

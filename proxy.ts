@@ -36,9 +36,11 @@ async function signSession(username: string, expiresAt: number): Promise<string>
 async function verifySession(token: string): Promise<{ valid: boolean; reason?: string }> {
   if (!token) return { valid: false, reason: "Token vacío" };
   const parts = token.split(".");
-  if (parts.length !== 3) return { valid: false, reason: "Formato de token inválido (no tiene 3 partes)" };
+  if (parts.length < 3) return { valid: false, reason: "Formato de token inválido (menos de 3 partes)" };
 
-  const [username, expiresAtStr, signature] = parts;
+  const signature = parts.pop()!;
+  const expiresAtStr = parts.pop()!;
+  const username = parts.join(".");
   const expiresAt = parseInt(expiresAtStr, 10);
 
   if (isNaN(expiresAt)) {
@@ -60,7 +62,7 @@ async function verifySession(token: string): Promise<{ valid: boolean; reason?: 
   return { valid: true };
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow next assets, favicon, icon, and public auth APIs to pass through
@@ -88,11 +90,11 @@ export async function middleware(request: NextRequest) {
     console.warn(`[Proxy Auth Check] Acceso denegado en "${pathname}": No se encontró cookie session_token`);
   }
 
-  // If path is /login and session is valid, redirect to analytics/dashboard
+  // If path is /login and session is valid, redirect to dashboard (/)
   if (pathname === "/login") {
     if (isSessionValid) {
-      console.log(`[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo a /analytics.`);
-      return NextResponse.redirect(new URL("/analytics", request.url));
+      console.log(`[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo a /.`);
+      return NextResponse.redirect(new URL("/", request.url));
     }
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-pathname", pathname);

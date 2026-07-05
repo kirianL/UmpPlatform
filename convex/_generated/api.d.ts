@@ -16,6 +16,7 @@ import type * as equipment from "../equipment.js";
 import type * as events from "../events.js";
 import type * as seed from "../seed.js";
 import type * as transactions from "../transactions.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   seed: typeof seed;
   transactions: typeof transactions;
+  users: typeof users;
 }>;
 
 /**

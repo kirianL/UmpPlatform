@@ -98,4 +98,9 @@ export default defineSchema({
     date: v.string(),
     thumbnailUrl: v.optional(v.string()),
   }),
+  users: defineTable({
+    email: v.string(),
+    passwordHash: v.string(),
+    name: v.optional(v.string()),
+  }).index("by_email", ["email"]),
 });
