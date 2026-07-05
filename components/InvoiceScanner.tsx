@@ -22,7 +22,7 @@ type ScanStatus = "idle" | "processing" | "done" | "error";
 type InvoiceScannerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onScanComplete: (data: InvoiceData) => void;
+  onScanComplete: (data: InvoiceData) => Promise<void> | void;
 };
 
 function formatCurrency(n: number): string {
@@ -117,6 +117,7 @@ export default function InvoiceScanner({
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<InvoiceData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const reset = useCallback(() => {
     setPreview(null);
@@ -176,10 +177,24 @@ export default function InvoiceScanner({
     [processFile],
   );
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     if (result) {
-      onScanComplete(result);
-      handleClose(false);
+      try {
+        setIsSaving(true);
+        setError(null);
+        await onScanComplete(result);
+        handleClose(false);
+      } catch (err) {
+        console.error("Save error:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al registrar los movimientos",
+        );
+        setStatus("error");
+      } finally {
+        setIsSaving(false);
+      }
     }
   }, [result, onScanComplete, handleClose]);
 
@@ -432,26 +447,34 @@ export default function InvoiceScanner({
             </details>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
               <Button
                 variant="secondary"
-                className="flex-1 justify-center text-xs"
+                className="w-full sm:flex-1 justify-center text-xs"
                 type="button"
                 onClick={reset}
+                disabled={isSaving}
               >
                 <ArrowCounterClockwiseIcon size={14} weight="bold" />
                 Reintentar
               </Button>
               <Button
                 variant="primary"
-                className="flex-1 justify-center text-xs"
+                className="w-full sm:flex-1 justify-center text-xs"
                 type="button"
                 onClick={handleConfirm}
+                disabled={isSaving}
               >
-                <CheckCircleIcon size={14} weight="bold" />
-                {result.items.length > 1
-                  ? `Crear ${result.items.length} movimientos`
-                  : "Usar datos"}
+                {isSaving ? (
+                  <SpinnerIcon size={14} className="animate-spin" />
+                ) : (
+                  <CheckCircleIcon size={14} weight="bold" />
+                )}
+                {isSaving
+                  ? "Registrando..."
+                  : result.items.length > 1
+                    ? `Crear ${result.items.length} movimientos`
+                    : "Usar datos"}
               </Button>
             </div>
           </div>

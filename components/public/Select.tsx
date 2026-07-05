@@ -21,7 +21,7 @@ export default function Select({
   ...props
 }: SelectProps) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 w-full min-w-0">
       {label && (
         <label
           htmlFor={id}
@@ -33,7 +33,7 @@ export default function Select({
       <select
         id={id}
         className={cn(
-          "w-full appearance-none rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-2 text-sm text-grayscale-12 outline-none transition-all duration-200 focus:border-accent-8 focus:ring-2 focus:ring-accent-8/30 dark:border-grayscale-5 dark:bg-grayscale-3",
+          "w-full min-w-0 appearance-none rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-2 text-sm text-grayscale-12 outline-none transition-all duration-200 focus:border-accent-8 focus:ring-2 focus:ring-accent-8/30 dark:border-grayscale-5 dark:bg-grayscale-3",
           className,
         )}
         {...props}

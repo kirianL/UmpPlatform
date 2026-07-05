@@ -150,7 +150,10 @@ export default function FinanzasPage() {
         date,
       });
       setScanModalOpen(false);
-      setModalOpen(true);
+      // Wait for focus restoration / modal transition animation to complete
+      setTimeout(() => {
+        setModalOpen(true);
+      }, 250);
       return;
     }
 
@@ -175,10 +178,15 @@ export default function FinanzasPage() {
       };
     });
 
-    const promises = newTransactions.map((tx) => createTransaction(tx));
-    await Promise.all(promises);
-
-    setScanModalOpen(false);
+    try {
+      const promises = newTransactions.map((tx) => createTransaction(tx));
+      await Promise.all(promises);
+    } catch (err) {
+      console.error("Error creating transactions from scanned invoice:", err);
+      throw new Error(
+        err instanceof Error ? err.message : "Error al registrar las transacciones",
+      );
+    }
   }
 
   const statusBadge = (status: any) => {
