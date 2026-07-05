@@ -419,9 +419,30 @@ button, a, [role="button"], input, select, textarea {
   }
   body {
     @apply bg-background text-foreground;
+    cursor: default;
   }
   html {
     @apply font-sans;
+  }
+
+  /* Prevent text cursor (I-beam bar) on static text elements for a premium native app feel */
+  p, span, td, th, div, h1, h2, h3, h4, h5, h6, li, strong, em {
+    cursor: default;
+  }
+
+  /* Ensure interactive elements show the pointer cursor */
+  a, button, [role="button"], select, option, label {
+    cursor: pointer;
+  }
+
+  /* Ensure child elements inside interactive elements inherit the pointer cursor */
+  a *, button *, [role="button"] * {
+    cursor: inherit;
+  }
+
+  /* Ensure inputs and textareas show the text selection cursor */
+  input, textarea, [contenteditable="true"], input *, textarea * {
+    cursor: text;
   }
 }
 
