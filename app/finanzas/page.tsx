@@ -10,7 +10,7 @@ import {
   TrashIcon,
   EyeIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 import DataTable, { type Column } from "@/components/public/DataTable";
@@ -74,6 +74,7 @@ export default function FinanzasPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_TRANSACTION);
   const [isViewOnly, setIsViewOnly] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const income = transactions
     .filter((t) => t.type === "income" && t.status !== "cancelled")
@@ -83,8 +84,20 @@ export default function FinanzasPage() {
     .reduce((s, t) => s + t.amount, 0);
   const balance = income - expenses;
 
-  const incomeData = transactions.filter((t) => t.type === "income");
-  const expenseData = transactions.filter((t) => t.type === "expense");
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      return sortOrder === "desc" ? dateCompare : -dateCompare;
+    });
+  }, [transactions, sortOrder]);
+
+  const incomeData = useMemo(() => {
+    return sortedTransactions.filter((t) => t.type === "income");
+  }, [sortedTransactions]);
+
+  const expenseData = useMemo(() => {
+    return sortedTransactions.filter((t) => t.type === "expense");
+  }, [sortedTransactions]);
 
   function openCreate(type: "income" | "expense" = "income") {
     setEditingId(null);
@@ -372,64 +385,74 @@ export default function FinanzasPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs.Component
-          items={[
-            {
-              value: "all",
-              label: "Todos",
-              content: (
-                <DataTable
-                  columns={makeColumns()}
-                  data={transactions}
-                  keyExtractor={(t) => t._id}
-                  emptyState={
-                    <EmptyState
-                      icon={<CurrencyDollarIcon size={40} weight="duotone" />}
-                      title="Sin transacciones"
-                      description="Aún no hay ingresos o egresos registrados en este periodo."
-                    />
-                  }
+        <Tabs.Root defaultValue="all" className="w-full flex flex-col">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
+            <Tabs.List className="border-0 pb-0 gap-1.5">
+              <Tabs.Tab value="all" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">Todos</Tabs.Tab>
+              <Tabs.Tab value="income" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">Ingresos</Tabs.Tab>
+              <Tabs.Tab value="expense" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">Egresos</Tabs.Tab>
+              <Tabs.Indicator />
+            </Tabs.List>
+
+            {/* Sorting controls */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold uppercase text-grayscale-9 select-none">Fecha:</span>
+              <button
+                type="button"
+                onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+              >
+                <span>{sortOrder === "desc" ? "Más Recientes" : "Más Antiguos"}</span>
+                <span className="text-grayscale-9 text-xs leading-none mt-[-1px]">
+                  {sortOrder === "desc" ? "↓" : "↑"}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <Tabs.Panel value="all" className="mt-4">
+            <DataTable
+              columns={makeColumns()}
+              data={sortedTransactions}
+              keyExtractor={(t) => t._id}
+              emptyState={
+                <EmptyState
+                  icon={<CurrencyDollarIcon size={40} weight="duotone" />}
+                  title="Sin transacciones"
+                  description="Aún no hay ingresos o egresos registrados en este periodo."
                 />
-              ),
-            },
-            {
-              value: "income",
-              label: "Ingresos",
-              content: (
-                <DataTable
-                  columns={makeColumns()}
-                  data={incomeData}
-                  keyExtractor={(t) => t._id}
-                  emptyState={
-                    <EmptyState
-                      icon={<TrendUpIcon size={40} weight="duotone" />}
-                      title="Sin ingresos"
-                      description="Aún no hay transacciones de tipo ingreso registradas."
-                    />
-                  }
+              }
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="income" className="mt-4">
+            <DataTable
+              columns={makeColumns()}
+              data={incomeData}
+              keyExtractor={(t) => t._id}
+              emptyState={
+                <EmptyState
+                  icon={<TrendUpIcon size={40} weight="duotone" />}
+                  title="Sin ingresos"
+                  description="Aún no hay transacciones de tipo ingreso registradas."
                 />
-              ),
-            },
-            {
-              value: "expenses",
-              label: "Egresos",
-              content: (
-                <DataTable
-                  columns={makeColumns()}
-                  data={expenseData}
-                  keyExtractor={(t) => t._id}
-                  emptyState={
-                    <EmptyState
-                      icon={<TrendDownIcon size={40} weight="duotone" />}
-                      title="Sin egresos"
-                      description="Aún no hay transacciones de tipo egreso registradas."
-                    />
-                  }
+              }
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="expense" className="mt-4">
+            <DataTable
+              columns={makeColumns()}
+              data={expenseData}
+              keyExtractor={(t) => t._id}
+              emptyState={
+                <EmptyState
+                  icon={<TrendDownIcon size={40} weight="duotone" />}
+                  title="Sin egresos"
+                  description="Aún no hay transacciones de tipo egreso registradas."
                 />
-              ),
-            },
-          ]}
-        />
+              }
+            />
+          </Tabs.Panel>
+        </Tabs.Root>
 
         {/* Modal: Create/Edit/View */}
         <Modal

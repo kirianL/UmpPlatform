@@ -89,3 +89,5 @@ export const Tabs = {
   Indicator,
   Panel,
 };
+
+export default Tabs;
