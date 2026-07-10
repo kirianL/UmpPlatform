@@ -398,11 +398,11 @@ export default function FinanzasPage() {
           <div className="flex gap-2">
             <Button variant="primary" className="text-xs" onClick={() => openCreate("income")}>
               <PlusIcon size={16} weight="bold" />
-              Registrar Ingreso
+              Registrar ingreso
             </Button>
             <Button variant="secondary" className="text-xs" onClick={() => openCreate("expense")}>
               <PlusIcon size={16} weight="bold" />
-              Registrar Gasto
+              Registrar gasto
             </Button>
           </div>
 
@@ -412,7 +412,7 @@ export default function FinanzasPage() {
             onClick={() => setScanModalOpen(true)}
           >
             <CameraIcon size={16} weight="bold" />
-            Escanear Factura
+            Escanear factura
           </Button>
         </div>
 
@@ -645,7 +645,7 @@ export default function FinanzasPage() {
               </Button>
               {!isViewOnly && (
                 <Button variant="primary" className="text-xs" type="submit">
-                  {editingId ? "Guardar Cambios" : "Registrar"}
+                  {editingId ? "Guardar cambios" : "Registrar"}
                 </Button>
               )}
             </div>

@@ -208,7 +208,7 @@ export default function ClientesPage() {
           </div>
           <Button variant="primary" className="text-xs" onClick={openCreate}>
             <PlusIcon size={16} weight="bold" />
-            Agregar Cliente
+            Agregar cliente
           </Button>
         </div>
 
@@ -234,7 +234,7 @@ export default function ClientesPage() {
                     onClick={openCreate}
                   >
                     <PlusIcon size={16} weight="bold" />
-                    Agregar Cliente
+                    Agregar cliente
                   </Button>
                 )
               }
@@ -333,7 +333,7 @@ export default function ClientesPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="text-xs" type="submit">
-                {editingId ? "Guardar Cambios" : "Agregar Cliente"}
+                {editingId ? "Guardar cambios" : "Agregar cliente"}
               </Button>
             </div>
           </form>

@@ -255,7 +255,7 @@ export default function InventarioPage() {
           </div>
           <Button variant="primary" className="text-xs" onClick={openCreate}>
             <PlusIcon size={16} weight="bold" />
-            Agregar Equipo
+            Agregar equipo
           </Button>
         </div>
 
@@ -281,7 +281,7 @@ export default function InventarioPage() {
                     onClick={openCreate}
                   >
                     <PlusIcon size={16} weight="bold" />
-                    Agregar Equipo
+                    Agregar equipo
                   </Button>
                 )
               }
@@ -389,7 +389,7 @@ export default function InventarioPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="text-xs" type="submit">
-                {editingId ? "Guardar Cambios" : "Agregar Equipo"}
+                {editingId ? "Guardar cambios" : "Agregar equipo"}
               </Button>
             </div>
           </form>

@@ -494,7 +494,7 @@ export default function CalendarioPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="text-xs" type="submit">
-                {editingId ? "Guardar Cambios" : "Crear Evento"}
+                {editingId ? "Guardar cambios" : "Crear evento"}
               </Button>
             </div>
           </form>

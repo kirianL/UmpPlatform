@@ -252,7 +252,7 @@ export default function PersonalPage() {
           </div>
           <Button variant="primary" className="text-xs" onClick={openCreate}>
             <PlusIcon size={16} weight="bold" />
-            Agregar Empleado
+            Agregar empleado
           </Button>
         </div>
 
@@ -278,7 +278,7 @@ export default function PersonalPage() {
                     onClick={openCreate}
                   >
                     <PlusIcon size={16} weight="bold" />
-                    Agregar Empleado
+                    Agregar empleado
                   </Button>
                 )
               }
@@ -395,7 +395,7 @@ export default function PersonalPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="text-xs" type="submit">
-                {editingId ? "Guardar Cambios" : "Agregar Empleado"}
+                {editingId ? "Guardar cambios" : "Agregar empleado"}
               </Button>
             </div>
           </form>

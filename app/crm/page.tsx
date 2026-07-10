@@ -343,7 +343,7 @@ export default function CRMPage() {
           
           <Button variant="primary" className="text-xs ml-auto py-2.5 px-4" onClick={openCreate}>
             <PlusIcon size={16} weight="bold" />
-            Nuevo Deal
+            Nuevo deal
           </Button>
         </div>
 
@@ -639,7 +639,7 @@ export default function CRMPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="text-xs" type="submit">
-                {editingDeal ? "Guardar Cambios" : "Crear Deal"}
+                {editingDeal ? "Guardar cambios" : "Crear deal"}
               </Button>
             </div>
           </form>
