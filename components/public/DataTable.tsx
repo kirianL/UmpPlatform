@@ -41,11 +41,12 @@ export default function DataTable<T>({
   keyExtractor,
   emptyState,
   className,
-  pageSize = 25,
+  pageSize: initialPageSize = 10,
 }: DataTableProps<T>) {
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(initialPageSize);
 
   // Filter data locally based on active filters
   const filteredData = useMemo(() => {
@@ -65,10 +66,10 @@ export default function DataTable<T>({
     });
   }, [data, activeFilters, columns]);
 
-  // Reset page when filter changes
+  // Reset page when filter or pageSize changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeFilters]);
+  }, [activeFilters, pageSize]);
 
   // Total pages
   const totalPages = Math.ceil(filteredData.length / pageSize);
@@ -207,71 +208,95 @@ export default function DataTable<T>({
       </table>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
+      {filteredData.length > 5 && (
         <div className="flex flex-col sm:flex-row items-center justify-between border-t border-grayscale-3 bg-grayscale-2 px-4 py-3 gap-3 dark:border-grayscale-4 dark:bg-grayscale-2 select-none">
-          <div className="text-[11px] font-mono uppercase text-grayscale-9">
-            Mostrando <span className="font-semibold text-grayscale-12">{(currentPage - 1) * pageSize + 1}</span> -{" "}
-            <span className="font-semibold text-grayscale-12">
-              {Math.min(currentPage * pageSize, filteredData.length)}
-            </span>{" "}
-            de <span className="font-semibold text-grayscale-12">{filteredData.length}</span> registros
-          </div>
-          <div className="flex items-center gap-1.5">
-            {/* Previous button */}
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
-            >
-              <span className="text-xs">←</span>
-            </button>
-
-            {/* Page numbers */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter((page) => {
-                // Show first, last, current, and pages near current
-                return (
-                  page === 1 ||
-                  page === totalPages ||
-                  Math.abs(page - currentPage) <= 1
-                );
-              })
-              .map((page, index, arr) => {
-                const showEllipsisBefore = index > 0 && page - arr[index - 1] > 1;
-                const isSelected = page === currentPage;
-
-                return (
-                  <div key={page} className="flex items-center gap-1.5">
-                    {showEllipsisBefore && (
-                      <span className="text-grayscale-8 font-mono text-[10px]">...</span>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase text-grayscale-9">
+            <div>
+              Mostrando <span className="font-semibold text-grayscale-12">{(currentPage - 1) * pageSize + 1}</span> -{" "}
+              <span className="font-semibold text-grayscale-12">
+                {Math.min(currentPage * pageSize, filteredData.length)}
+              </span>{" "}
+              de <span className="font-semibold text-grayscale-12">{filteredData.length}</span> registros
+            </div>
+            <div className="flex items-center gap-1.5 border-l border-grayscale-3 pl-3 dark:border-grayscale-4">
+              <span className="text-[10px]">Filas:</span>
+              <div className="flex items-center gap-1">
+                {[5, 10, 25, 50].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setPageSize(size)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                      pageSize === size
+                        ? "bg-grayscale-4 text-grayscale-12 dark:bg-grayscale-4"
+                        : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11 dark:hover:bg-grayscale-3"
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={cn(
-                        "flex size-7 items-center justify-center rounded-lg border text-xs font-mono font-medium transition-all active:scale-95 cursor-pointer",
-                        isSelected
-                          ? "border-accent-9 bg-accent-9 text-white font-bold"
-                          : "border-grayscale-3 bg-grayscale-1 text-grayscale-10 hover:bg-grayscale-2 dark:border-grayscale-4 dark:bg-grayscale-3"
-                      )}
-                    >
-                      {page}
-                    </button>
-                  </div>
-                );
-              })}
-
-            {/* Next button */}
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
-            >
-              <span className="text-xs">→</span>
-            </button>
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              {/* Previous button */}
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+              >
+                <span className="text-xs">←</span>
+              </button>
+
+              {/* Page numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  return (
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - currentPage) <= 1
+                  );
+                })
+                .map((page, index, arr) => {
+                  const showEllipsisBefore = index > 0 && page - arr[index - 1] > 1;
+                  const isSelected = page === currentPage;
+
+                  return (
+                    <div key={page} className="flex items-center gap-1.5">
+                      {showEllipsisBefore && (
+                        <span className="text-grayscale-8 font-mono text-[10px]">...</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "flex size-7 items-center justify-center rounded-lg border text-xs font-mono font-medium transition-all active:scale-95 cursor-pointer",
+                          isSelected
+                            ? "border-accent-9 bg-accent-9 text-white font-bold"
+                            : "border-grayscale-3 bg-grayscale-1 text-grayscale-10 hover:bg-grayscale-2 dark:border-grayscale-4 dark:bg-grayscale-3"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  );
+                })}
+
+              {/* Next button */}
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+              >
+                <span className="text-xs">→</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
