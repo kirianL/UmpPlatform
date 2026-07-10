@@ -3,9 +3,58 @@ import { mutation } from "./_generated/server";
 export const run = mutation({
   args: {},
   handler: async (ctx) => {
-    // Check if database is already seeded
+    // Ensure test users exist with correct roles
+    const adminUser = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", "admin@ultimate.cr")).first();
+    if (adminUser) {
+      await ctx.db.patch(adminUser._id, {
+        name: "Administrador UMP",
+        passwordHash: "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
+        role: "admin",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "admin@ultimate.cr",
+        name: "Administrador UMP",
+        passwordHash: "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
+        role: "admin",
+      });
+    }
+
+    const prodUser = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", "produccion@ultimate.cr")).first();
+    if (prodUser) {
+      await ctx.db.patch(prodUser._id, {
+        name: "Producción UMP",
+        passwordHash: "f22ff8824c832bf9a32853e3b51d8a6ddc4b02042716dd41d085dcc1173952ac",
+        role: "produccion",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "produccion@ultimate.cr",
+        name: "Producción UMP",
+        passwordHash: "f22ff8824c832bf9a32853e3b51d8a6ddc4b02042716dd41d085dcc1173952ac",
+        role: "produccion",
+      });
+    }
+
+    const eymarUser = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", "eymar@ultimate.cr")).first();
+    if (eymarUser) {
+      await ctx.db.patch(eymarUser._id, {
+        name: "Eymar",
+        passwordHash: "703f07d7bb546836ef8f7beb4109453f6ce51123ac2f3cb8ba48f0f1c664b1d0",
+        role: "produccion",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "eymar@ultimate.cr",
+        name: "Eymar",
+        passwordHash: "703f07d7bb546836ef8f7beb4109453f6ce51123ac2f3cb8ba48f0f1c664b1d0",
+        role: "produccion",
+      });
+    }
+
+    // Check if other data is already seeded
     const existing = await ctx.db.query("employees").collect();
-    if (existing.length > 0) return "Database already seeded";
+    if (existing.length > 0) return "Users upserted. Database other tables already seeded.";
 
     // Seed employees
     const employees = [

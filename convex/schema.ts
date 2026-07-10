@@ -103,5 +103,6 @@ export default defineSchema({
     email: v.string(),
     passwordHash: v.string(),
     name: v.optional(v.string()),
+    role: v.optional(v.string()),
   }).index("by_email", ["email"]),
 });

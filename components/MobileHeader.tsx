@@ -8,7 +8,7 @@ import Logo from "@/components/Logo";
 import { SidebarNavContent } from "@/components/Sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-export default function MobileHeader() {
+export default function MobileHeader({ userRole }: { userRole?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,7 +23,7 @@ export default function MobileHeader() {
             <ListIcon size={18} weight="bold" />
           </Dialog.Trigger>
           <Link
-            href="/"
+            href={userRole === "produccion" ? "/inventario" : "/"}
             className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
           >
             <Logo iconSize={14} className="w-5" />
@@ -58,7 +58,7 @@ export default function MobileHeader() {
               <XIcon size={16} weight="bold" />
             </Dialog.Close>
           </div>
-          <SidebarNavContent onNavigate={() => setOpen(false)} hideLogo />
+          <SidebarNavContent onNavigate={() => setOpen(false)} hideLogo userRole={userRole} />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

@@ -73,6 +73,7 @@ export default async function RootLayout({
 }>) {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
+  const userRole = headersList.get("x-user-role") || "produccion";
   const isLoginPage = pathname === "/login";
 
   return (
@@ -89,8 +90,8 @@ export default async function RootLayout({
               children
             ) : (
               <div className="root">
-                <Sidebar />
-                <MobileHeader />
+                <Sidebar userRole={userRole} />
+                <MobileHeader userRole={userRole} />
                 <main className="min-h-screen xl:pl-56">
                   <ViewTransition enter="page-enter" exit="page-exit">
                     {children}

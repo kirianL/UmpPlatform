@@ -14,9 +14,9 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
 }
 
 // Helper to sign session data
-async function signSession(username: string, expiresAt: number): Promise<string> {
+async function signSession(username: string, role: string, expiresAt: number): Promise<string> {
   const encoder = new TextEncoder();
-  const data = `${username}.${expiresAt}`;
+  const data = `${username}.${role}.${expiresAt}`;
   const keyData = encoder.encode(SESSION_SECRET);
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
@@ -33,13 +33,14 @@ async function signSession(username: string, expiresAt: number): Promise<string>
   return arrayBufferToBase64Url(signature);
 }
 
-async function verifySession(token: string): Promise<{ valid: boolean; reason?: string }> {
+async function verifySession(token: string): Promise<{ valid: boolean; role?: string; username?: string; reason?: string }> {
   if (!token) return { valid: false, reason: "Token vacío" };
   const parts = token.split(".");
-  if (parts.length < 3) return { valid: false, reason: "Formato de token inválido (menos de 3 partes)" };
+  if (parts.length < 4) return { valid: false, reason: "Formato de token inválido (menos de 4 partes)" };
 
   const signature = parts.pop()!;
   const expiresAtStr = parts.pop()!;
+  const role = parts.pop()!;
   const username = parts.join(".");
   const expiresAt = parseInt(expiresAtStr, 10);
 
@@ -48,18 +49,18 @@ async function verifySession(token: string): Promise<{ valid: boolean; reason?: 
   }
   
   if (expiresAt < Date.now()) {
-    return { valid: false, reason: `Token expirado (expiró el: ${new Date(expiresAt).toISOString()})` };
+    return { valid: false, reason: `Token expirado` };
   }
 
-  const expectedSignature = await signSession(username, expiresAt);
+  const expectedSignature = await signSession(username, role, expiresAt);
   if (expectedSignature !== signature) {
     return { 
       valid: false, 
-      reason: `Firma inválida. ¿Secret de sesión coincide? Usando secret de longitud: ${SESSION_SECRET.length}` 
+      reason: `Firma inválida` 
     };
   }
 
-  return { valid: true };
+  return { valid: true, role, username };
 }
 
 export async function middleware(request: NextRequest) {
@@ -82,10 +83,16 @@ export async function middleware(request: NextRequest) {
   console.log(`[Proxy Auth Check] sessionToken value read from cookie: "${sessionToken}"`);
   
   let isSessionValid = false;
+  let userRole = "produccion";
+  let userEmail = "";
+
   if (sessionToken) {
     const result = await verifySession(sessionToken);
     isSessionValid = result.valid;
-    if (!result.valid) {
+    if (result.valid) {
+      userRole = result.role || "produccion";
+      userEmail = result.username || "";
+    } else {
       console.warn(`[Proxy Auth Check] Acceso denegado en "${pathname}": ${result.reason}`);
     }
   } else {
@@ -95,8 +102,9 @@ export async function middleware(request: NextRequest) {
   // If path is /login and session is valid, redirect to dashboard (/)
   if (pathname === "/login") {
     if (isSessionValid) {
-      console.log(`[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo a /.`);
-      return NextResponse.redirect(new URL("/", request.url));
+      console.log(`[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`);
+      const redirectUrl = userRole === "produccion" ? "/inventario" : "/";
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-pathname", pathname);
@@ -113,9 +121,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Inject current pathname into headers for Server Component layouts to read
+  // Role-based route protection
+  if (userRole === "produccion") {
+    const isAllowedPath =
+      pathname.startsWith("/inventario") ||
+      pathname.startsWith("/calendario") ||
+      pathname.startsWith("/api/auth/logout");
+
+    if (!isAllowedPath) {
+      console.warn(`[Proxy Auth Check] Rol "produccion" intentó acceder a "${pathname}". Redirigiendo a /inventario.`);
+      return NextResponse.redirect(new URL("/inventario", request.url));
+    }
+  }
+
+  // Inject current pathname and user info into headers for Server Component layouts to read
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
+  requestHeaders.set("x-user-role", userRole);
+  requestHeaders.set("x-user-email", userEmail);
 
   return NextResponse.next({
     request: {

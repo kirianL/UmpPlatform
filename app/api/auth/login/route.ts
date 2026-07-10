@@ -18,9 +18,9 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
 }
 
 // Helper to sign session data
-async function signSession(username: string, expiresAt: number): Promise<string> {
+async function signSession(username: string, role: string, expiresAt: number): Promise<string> {
   const encoder = new TextEncoder();
-  const data = `${username}.${expiresAt}`;
+  const data = `${username}.${role}.${expiresAt}`;
   const keyData = encoder.encode(SESSION_SECRET);
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     }
 
     let isValid = false;
+    let role = "produccion"; // Default role if not specified
 
     // 1. Try to find the user in Convex
     try {
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
           const expectedHash = hashPassword(password);
           if (user.passwordHash === expectedHash) {
             isValid = true;
+            role = user.role || "produccion";
           }
         }
       }
@@ -69,6 +71,7 @@ export async function POST(request: Request) {
     if (!isValid) {
       if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
         isValid = true;
+        role = "admin";
       }
     }
 
@@ -79,9 +82,11 @@ export async function POST(request: Request) {
     // Session valid for 7 days
     const duration = 7 * 24 * 60 * 60 * 1000;
     const expiresAt = Date.now() + duration;
-    const token = await signSession(username, expiresAt);
+    const token = await signSession(username, role, expiresAt);
 
-    const response = NextResponse.json({ success: true, redirect: "/" });
+    // Redirect produccion role to /inventario, others to /
+    const redirectUrl = role === "produccion" ? "/inventario" : "/";
+    const response = NextResponse.json({ success: true, redirect: redirectUrl });
     
     // Set HTTP-Only Cookie
     response.cookies.set({

@@ -28,8 +28,23 @@ const NAV_ITEMS = [
   { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
 ];
 
-function SidebarNavContent({ onNavigate, hideLogo = false }: { onNavigate?: () => void; hideLogo?: boolean }) {
+function SidebarNavContent({
+  onNavigate,
+  hideLogo = false,
+  userRole = "produccion",
+}: {
+  onNavigate?: () => void;
+  hideLogo?: boolean;
+  userRole?: string;
+}) {
   const pathname = usePathname();
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (userRole === "produccion") {
+      return item.href === "/inventario" || item.href === "/calendario";
+    }
+    return true;
+  });
 
   return (
     <>
@@ -43,7 +58,7 @@ function SidebarNavContent({ onNavigate, hideLogo = false }: { onNavigate?: () =
       )}
 
       <nav className={cn("flex flex-col gap-px", hideLogo ? "mt-2" : "mt-6")}>
-        {NAV_ITEMS.map(({ href, label, Icon }) => {
+        {visibleItems.map(({ href, label, Icon }) => {
           const isActive =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -117,10 +132,10 @@ function SidebarNavContent({ onNavigate, hideLogo = false }: { onNavigate?: () =
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ userRole }: { userRole?: string }) {
   return (
     <aside className="desktop-sidebar fixed top-0 left-0 z-50 hidden h-full w-56 shrink-0 flex-col px-3 py-4 border-r border-grayscale-3 bg-grayscale-1 dark:border-grayscale-2 dark:bg-grayscale-1 xl:flex">
-      <SidebarNavContent />
+      <SidebarNavContent userRole={userRole} />
     </aside>
   );
 }
