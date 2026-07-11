@@ -41,6 +41,7 @@ export default defineSchema({
     title: v.string(),
     client: v.string(),
     value: v.number(),
+    currency: v.optional(v.string()),
     stage: v.union(v.literal("lead"), v.literal("proposal"), v.literal("negotiation"), v.literal("won"), v.literal("lost")),
     priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     createdAt: v.string(),

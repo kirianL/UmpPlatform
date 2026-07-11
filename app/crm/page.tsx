@@ -29,11 +29,13 @@ import { api } from "@/convex/_generated/api";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCurrency(n: number): string {
+const DEFAULT_EXCHANGE_RATE = 515;
+
+function formatCurrency(n: number, currency: string = "CRC"): string {
   return new Intl.NumberFormat("es-CR", {
     style: "currency",
-    currency: "CRC",
-    maximumFractionDigits: 0,
+    currency: currency,
+    maximumFractionDigits: currency === "USD" ? 2 : 0,
   }).format(n);
 }
 
@@ -70,6 +72,7 @@ const EMPTY_DEAL = {
   title: "",
   client: "",
   value: 0,
+  currency: "CRC",
   stage: "lead" as DealStage,
   priority: "medium" as const,
   createdAt: new Date().toISOString().slice(0, 10),
@@ -91,6 +94,18 @@ export default function CRMPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<any | null>(null);
   const [form, setForm] = useState(EMPTY_DEAL);
+  const [exchangeRate, setExchangeRate] = useState(DEFAULT_EXCHANGE_RATE);
+
+  useEffect(() => {
+    fetch("/api/exchange-rate")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.venta) {
+          setExchangeRate(data.venta);
+        }
+      })
+      .catch((err) => console.error("Error fetching exchange rate:", err));
+  }, []);
   
   // Mobile stage view state
   const [activeMobileStage, setActiveMobileStage] = useState<SimplifiedStage>("contact");
@@ -126,10 +141,10 @@ export default function CRMPage() {
   // Pipeline stats (exclude lost and won for active pipeline value)
   const pipelineValue = deals
     .filter((d) => d.stage !== "lost" && d.stage !== "won")
-    .reduce((s, d) => s + d.value, 0);
+    .reduce((s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value), 0);
   const wonValue = deals
     .filter((d) => d.stage === "won")
-    .reduce((s, d) => s + d.value, 0);
+    .reduce((s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value), 0);
   const activeDeals = deals.filter(
     (d) => d.stage !== "lost" && d.stage !== "won",
   ).length;
@@ -146,6 +161,7 @@ export default function CRMPage() {
       title: deal.title,
       client: deal.client,
       value: deal.value,
+      currency: deal.currency || "CRC",
       stage: deal.stage,
       priority: deal.priority,
       createdAt: deal.createdAt,
@@ -184,6 +200,7 @@ export default function CRMPage() {
         title: deal.title,
         client: deal.client,
         value: deal.value,
+        currency: deal.currency || "CRC",
         stage: newStage,
         priority: deal.priority as any,
         createdAt: deal.createdAt,
@@ -351,7 +368,7 @@ export default function CRMPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {SIMPLIFIED_STAGE_ORDER.map((stage) => {
             const stageDeals = dealsByStage[stage];
-            const stageTotal = stageDeals.reduce((s, d) => s + d.value, 0);
+            const stageTotal = stageDeals.reduce((s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value), 0);
             const isVisibleMobile = activeMobileStage === stage;
 
             return (
@@ -447,9 +464,16 @@ export default function CRMPage() {
                         {/* Budget Highlight Block */}
                         <div className="flex items-center justify-between rounded-lg bg-grayscale-2 px-3 py-2 dark:bg-grayscale-4/30">
                           <span className="text-[10px] font-mono text-grayscale-9 uppercase font-medium">Valor</span>
-                          <span className="font-mono text-sm font-bold text-grayscale-12">
-                            {formatCurrency(deal.value)}
-                          </span>
+                          <div className="flex flex-col items-end">
+                            <span className="font-mono text-sm font-bold text-grayscale-12">
+                              {formatCurrency(deal.value, deal.currency || "CRC")}
+                            </span>
+                            {(deal.currency === "USD") && (
+                              <span className="font-mono text-[10px] text-grayscale-9 leading-none mt-0.5">
+                                ({formatCurrency(deal.value * exchangeRate, "CRC")})
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Expected Close Date and Stage Actions */}
@@ -556,18 +580,37 @@ export default function CRMPage() {
                 placeholder="correo@cliente.com"
               />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Input
-                label="Valor (MXN)"
-                id="deal-value"
-                type="number"
-                value={form.value || ""}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+              <Select
+                label="Moneda"
+                id="deal-currency"
+                value={form.currency || "CRC"}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, value: Number(e.target.value) }))
+                  setForm((f) => ({ ...f, currency: e.target.value }))
                 }
-                placeholder="0"
-                required
+                options={[
+                  { value: "CRC", label: "Colones (₡)" },
+                  { value: "USD", label: "Dólares ($)" },
+                ]}
               />
+              <div className="flex flex-col gap-1">
+                <Input
+                  label="Monto"
+                  id="deal-value"
+                  type="number"
+                  value={form.value || ""}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, value: Number(e.target.value) }))
+                  }
+                  placeholder="0"
+                  required
+                />
+                {form.currency === "USD" && form.value > 0 && (
+                  <span className="text-[10px] font-mono text-grayscale-9 mt-0.5 pl-1">
+                    Equivale a: {formatCurrency(form.value * exchangeRate, "CRC")}
+                  </span>
+                )}
+              </div>
               <Select
                 label="Etapa"
                 id="deal-stage"
@@ -665,7 +708,16 @@ export default function CRMPage() {
           <h4 className="text-sm font-bold text-grayscale-12 line-clamp-2">{draggedDeal.title}</h4>
           <div className="mt-3 flex items-center justify-between rounded bg-grayscale-2 px-2.5 py-1.5 dark:bg-grayscale-4/30">
             <span className="text-[10px] font-mono text-grayscale-9 uppercase">Valor</span>
-            <span className="font-mono text-sm font-bold text-grayscale-12">{formatCurrency(draggedDeal.value)}</span>
+            <div className="flex flex-col items-end">
+              <span className="font-mono text-sm font-bold text-grayscale-12">
+                {formatCurrency(draggedDeal.value, draggedDeal.currency || "CRC")}
+              </span>
+              {draggedDeal.currency === "USD" && (
+                <span className="font-mono text-[10px] text-grayscale-9 leading-none mt-0.5">
+                  ({formatCurrency(draggedDeal.value * exchangeRate, "CRC")})
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}
