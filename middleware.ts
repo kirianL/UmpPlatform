@@ -66,17 +66,26 @@ async function verifySession(token: string): Promise<{ valid: boolean; role?: st
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow next assets, favicon, icon, manifest, and public auth APIs to pass through
+  // Allow next assets, favicon, icon, manifest, public APIs, and public actor/script routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/guiones/public") ||
+    pathname.startsWith("/calendario-actores/public") ||
     pathname.includes("/icon.svg") ||
     pathname.includes("/ICO-UMP") ||
     pathname.startsWith("/static") ||
     pathname === "/favicon.ico" ||
-    pathname === "/manifest.webmanifest"
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js"
   ) {
-    return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   const sessionToken = request.cookies.get("session_token")?.value;
@@ -126,6 +135,8 @@ export async function middleware(request: NextRequest) {
     const isAllowedPath =
       pathname.startsWith("/inventario") ||
       pathname.startsWith("/calendario") ||
+      pathname.startsWith("/guiones") ||
+      pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
@@ -156,8 +167,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - icon.svg
      * - manifest.webmanifest
+     * - sw.js
      * - ICO-UMP icons
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|ICO-UMP).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js|ICO-UMP).*)",
   ],
 };

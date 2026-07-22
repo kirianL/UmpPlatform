@@ -52,9 +52,169 @@ export const run = mutation({
       });
     }
 
-    // Check if other data is already seeded
-    const existing = await ctx.db.query("employees").collect();
-    if (existing.length > 0) return "Users upserted. Database other tables already seeded.";
+    // Seed scripts if empty
+    const existingScripts = await ctx.db.query("scripts").collect();
+    if (existingScripts.length === 0) {
+      const script1Id = await ctx.db.insert("scripts", {
+        title: "Horizontes — Episodio 1: El Despertar",
+        episodeOrProject: "Serie Horizontes T1",
+        version: "v2.1 Final",
+        status: "approved" as const,
+        fileName: "Horizontes_Ep1_v2.1.pdf",
+        fileSize: "2.4 MB",
+        fileType: "application/pdf",
+        uploadedAt: "2026-07-15T10:30:00Z",
+        uploadedBy: "Valeria Quirós",
+        shareId: "guion-ep1-horizontes",
+        description: "Guión técnico revisado para el episodio piloto. Incluye llamados de escena 1 a 14.",
+        content: `ESCENA 1. INTERIOR. OFICINA INSPECTOR MORALES - NOCHE
+
+Lluvia intensa golpea los cristales de la ventana. La oficina está a oscuras salvo por la luz tenue de una lámpara de escritorio.
+
+El INSPECTOR MORALES (42) revisa un informe confidencial. Sus ojos reflejan cansancio extremo pero determinación. Suena el teléfono de línea fija.
+
+MORALES
+(Atendiendo sin dudar)
+Dígame.
+
+VOZ EN EL TELÉFONO (FILTRADA)
+Encontraron el archivo en el muelle cuatro. No nos queda mucho tiempo.
+
+Morales cierra el expediente de golpe, toma su abrigo de cuero y sale acelerado.
+
+ESCENA 2. EXTERIOR. MUELLE PRINCIPAL DE PUNTARENAS - NOCHE
+
+Niebla densa sobre el mar. Luces de patrullas parpadean en azul y rojo.
+
+La DRA. ELENA VARGAS (38) aguarda junto al perimetral con un maletín forense. Morales se aproxima ajustándose la solapa.
+
+DRA. ELENA
+Te estaba esperando, Morales. El contenedor estaba abierto.
+
+MORALES
+¿Hubo algún testigo?
+
+DRA. ELENA
+(Niega con la cabeza)
+Solo una huella parcial en la cerradura principal. Y esta nota dirigida a ti.
+
+Elena le entrega un sobre sellado. Morales observa el reverso con preocupación.`,
+      });
+
+      await ctx.db.insert("scripts", {
+        title: "Horizontes — Episodio 2: Sombras en la Niebla",
+        episodeOrProject: "Serie Horizontes T1",
+        version: "v1.2 Borrador",
+        status: "review" as const,
+        fileName: "Horizontes_Ep2_v1.2.pdf",
+        fileSize: "1.9 MB",
+        fileType: "application/pdf",
+        uploadedAt: "2026-07-18T14:15:00Z",
+        uploadedBy: "Andrés Monge",
+        shareId: "guion-ep2-horizontes",
+        description: "Segunda revisión del guión. Pendiente ajustar diálogo de la escena 5 con el actor principal.",
+        content: `ESCENA 3. INTERIOR. LABORATORIO FORENSE CENTRAL - DÍA
+
+Luz fluorescente blanca. Mesas de acero inoxidable. 
+
+Dra. Elena Vargas coloca la muestra bajo el microscopio. Morales permanece de pie a su lado sosteniendo una taza de café solo.
+
+DRA. ELENA
+El compuesto sintético no coincide con ningún producto conocido en la región.
+
+MORALES
+Alguien está financiando esto desde afuera.
+
+RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser visto antes de desaparecer en el corredor.`,
+      });
+
+      await ctx.db.insert("scriptComments", {
+        scriptId: script1Id,
+        shareId: "guion-ep1-horizontes",
+        authorName: "Carlos Rivera (Inspector Morales)",
+        comment: "¡Excelente guión! En la escena 3, la línea del diálogo sobre el teléfono queda perfecta.",
+        createdAt: "2026-07-16T09:12:00Z",
+      });
+
+      await ctx.db.insert("scriptComments", {
+        scriptId: script1Id,
+        shareId: "guion-ep1-horizontes",
+        authorName: "Mariana Rojas (Dra. Elena)",
+        comment: "Confirmado mi llamado para las escenas 4 y 7. ¿El vestuario será el abrigo azul?",
+        createdAt: "2026-07-17T11:45:00Z",
+      });
+    }
+
+    // Seed actors if empty
+    const existingActors = await ctx.db.query("actors").collect();
+    if (existingActors.length === 0) {
+      const actor1Id = await ctx.db.insert("actors", {
+        name: "Carlos Rivera",
+        characterName: "Inspector Morales",
+        characterBio: "Detective meticuloso de 42 años, perspicaz y reservado. Lidera la investigación principal de la serie.",
+        photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+        phone: "8888-1122",
+        email: "carlos.rivera@actores.cr",
+        status: "active" as const,
+        episodeCount: 8,
+        shareToken: "carlos-rivera-9921",
+      });
+
+      const actor2Id = await ctx.db.insert("actors", {
+        name: "Mariana Rojas",
+        characterName: "Dra. Elena Vargas",
+        characterBio: "Médica forense y científica experta. Aliada estratégica del Inspector Morales.",
+        photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        phone: "8777-3344",
+        email: "mariana.rojas@actores.cr",
+        status: "active" as const,
+        episodeCount: 6,
+        shareToken: "mariana-rojas-4412",
+      });
+
+      await ctx.db.insert("actors", {
+        name: "Esteban Castro",
+        characterName: "Rodrigo 'El Sombra'",
+        characterBio: "Antagonista principal de la temporada. Personaje enigmático de pasado militar.",
+        photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+        phone: "8666-5577",
+        email: "esteban.castro@actores.cr",
+        status: "active" as const,
+        episodeCount: 5,
+        shareToken: "esteban-castro-7731",
+      });
+
+      // Seed actorSchedules
+      await ctx.db.insert("actorSchedules", {
+        title: "Grabación Escena 3: Interrogatorio Central",
+        date: "2026-07-25",
+        startTime: "08:30",
+        endTime: "13:00",
+        callTime: "07:45",
+        location: "Estudio Principal - Foro A (San José)",
+        actorId: actor1Id,
+        actorName: "Carlos Rivera",
+        characterName: "Inspector Morales",
+        sceneDetails: "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
+        status: "scheduled" as const,
+        shareToken: "carlos-rivera-9921",
+      });
+
+      await ctx.db.insert("actorSchedules", {
+        title: "Grabación Escena 7: Laboratorio Forense",
+        date: "2026-07-26",
+        startTime: "10:00",
+        endTime: "15:30",
+        callTime: "09:15",
+        location: "Hospital San Juan de Dios (Locación Exterior)",
+        actorId: actor2Id,
+        actorName: "Mariana Rojas",
+        characterName: "Dra. Elena Vargas",
+        sceneDetails: "Revisión de pruebas médicas y llamada de urgencia. Traer bata médica y credencial props.",
+        status: "scheduled" as const,
+        shareToken: "mariana-rojas-4412",
+      });
+    }
 
     // Seed employees
     const employees = [
@@ -144,6 +304,120 @@ export const run = mutation({
       await ctx.db.insert("topContent", item);
     }
 
-    return "Database seeded successfully";
+    // Seed scripts
+    const script1Id = await ctx.db.insert("scripts", {
+      title: "Horizontes — Episodio 1: El Despertar",
+      episodeOrProject: "Serie Horizontes T1",
+      version: "v2.1 Final",
+      status: "approved" as const,
+      fileName: "Horizontes_Ep1_v2.1.pdf",
+      fileSize: "2.4 MB",
+      fileType: "application/pdf",
+      uploadedAt: "2026-07-15T10:30:00Z",
+      uploadedBy: "Valeria Quirós",
+      shareId: "guion-ep1-horizontes",
+      description: "Guión técnico revisado para el episodio piloto. Incluye llamados de escena 1 a 14.",
+    });
+
+    await ctx.db.insert("scripts", {
+      title: "Horizontes — Episodio 2: Sombras en la Niebla",
+      episodeOrProject: "Serie Horizontes T1",
+      version: "v1.2 Borrador",
+      status: "review" as const,
+      fileName: "Horizontes_Ep2_v1.2.pdf",
+      fileSize: "1.9 MB",
+      fileType: "application/pdf",
+      uploadedAt: "2026-07-18T14:15:00Z",
+      uploadedBy: "Andrés Monge",
+      shareId: "guion-ep2-horizontes",
+      description: "Segunda revisión del guión. Pendiente ajustar diálogo de la escena 5 con el actor principal.",
+    });
+
+    // Seed scriptComments
+    await ctx.db.insert("scriptComments", {
+      scriptId: script1Id,
+      shareId: "guion-ep1-horizontes",
+      authorName: "Carlos Rivera (Inspector Morales)",
+      comment: "¡Excelente guión! En la escena 3, la línea del diálogo sobre el teléfono queda perfecta.",
+      createdAt: "2026-07-16T09:12:00Z",
+    });
+
+    await ctx.db.insert("scriptComments", {
+      scriptId: script1Id,
+      shareId: "guion-ep1-horizontes",
+      authorName: "Mariana Rojas (Dra. Elena)",
+      comment: "Confirmado mi llamado para las escenas 4 y 7. ¿El vestuario será el abrigo azul?",
+      createdAt: "2026-07-17T11:45:00Z",
+    });
+
+    // Seed actors
+    const actor1Id = await ctx.db.insert("actors", {
+      name: "Carlos Rivera",
+      characterName: "Inspector Morales",
+      characterBio: "Detective meticuloso de 42 años, perspicaz y reservado. Lidera la investigación principal de la serie.",
+      photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+      phone: "8888-1122",
+      email: "carlos.rivera@actores.cr",
+      status: "active" as const,
+      episodeCount: 8,
+      shareToken: "carlos-rivera-9921",
+    });
+
+    await ctx.db.insert("actors", {
+      name: "Mariana Rojas",
+      characterName: "Dra. Elena Vargas",
+      characterBio: "Médica forense y científica experta. Aliada estratégica del Inspector Morales.",
+      photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+      phone: "8777-3344",
+      email: "mariana.rojas@actores.cr",
+      status: "active" as const,
+      episodeCount: 6,
+      shareToken: "mariana-rojas-4412",
+    });
+
+    await ctx.db.insert("actors", {
+      name: "Esteban Castro",
+      characterName: "Rodrigo 'El Sombra'",
+      characterBio: "Antagonista principal de la temporada. Personaje enigmático de pasado militar.",
+      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+      phone: "8666-5577",
+      email: "esteban.castro@actores.cr",
+      status: "active" as const,
+      episodeCount: 5,
+      shareToken: "esteban-castro-7731",
+    });
+
+    // Seed actorSchedules
+    await ctx.db.insert("actorSchedules", {
+      title: "Grabación Escena 3: Interrogatorio Central",
+      date: "2026-07-25",
+      startTime: "08:30",
+      endTime: "13:00",
+      callTime: "07:45",
+      location: "Estudio Principal - Foro A (San José)",
+      actorId: actor1Id,
+      actorName: "Carlos Rivera",
+      characterName: "Inspector Morales",
+      sceneDetails: "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
+      status: "scheduled" as const,
+      shareToken: "carlos-rivera-9921",
+    });
+
+    await ctx.db.insert("actorSchedules", {
+      title: "Grabación Escena 7: Laboratorio Forense",
+      date: "2026-07-26",
+      startTime: "10:00",
+      endTime: "15:30",
+      callTime: "09:15",
+      location: "Hospital San Juan de Dios (Locación Exterior)",
+      actorId: actor1Id,
+      actorName: "Mariana Rojas",
+      characterName: "Dra. Elena Vargas",
+      sceneDetails: "Revisión de pruebas médicas y llamada de urgencia. Traer bata médica y credencial props.",
+      status: "scheduled" as const,
+      shareToken: "mariana-rojas-4412",
+    });
+
+    return "Database seeded successfully with scripts, actors and schedules";
   },
 });

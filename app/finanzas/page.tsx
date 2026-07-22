@@ -175,15 +175,18 @@ export default function FinanzasPage() {
   }
 
   function handleSave() {
-    if (!form.concept.trim()) return;
+    const payload = {
+      ...form,
+      concept: form.concept.trim() || "Transacción sin concepto",
+    };
 
     if (editingId) {
       updateTransaction({
         id: editingId as any,
-        ...form,
+        ...payload,
       });
     } else {
-      createTransaction(form);
+      createTransaction(payload);
     }
     setModalOpen(false);
   }

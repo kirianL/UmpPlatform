@@ -8,12 +8,15 @@
  * @module
  */
 
+import type * as actorSchedules from "../actorSchedules.js";
+import type * as actors from "../actors.js";
 import type * as analytics from "../analytics.js";
 import type * as clients from "../clients.js";
 import type * as deals from "../deals.js";
 import type * as employees from "../employees.js";
 import type * as equipment from "../equipment.js";
 import type * as events from "../events.js";
+import type * as scripts from "../scripts.js";
 import type * as seed from "../seed.js";
 import type * as transactions from "../transactions.js";
 import type * as users from "../users.js";
@@ -25,12 +28,15 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  actorSchedules: typeof actorSchedules;
+  actors: typeof actors;
   analytics: typeof analytics;
   clients: typeof clients;
   deals: typeof deals;
   employees: typeof employees;
   equipment: typeof equipment;
   events: typeof events;
+  scripts: typeof scripts;
   seed: typeof seed;
   transactions: typeof transactions;
   users: typeof users;

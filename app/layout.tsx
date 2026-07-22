@@ -74,7 +74,7 @@ export default async function RootLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
   const userRole = headersList.get("x-user-role") || "produccion";
-  const isLoginPage = pathname === "/login";
+  const isPublicPage = pathname === "/login" || pathname.includes("/public");
 
   return (
     <html
@@ -86,7 +86,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <PwaRegister />
           <ConvexClientProvider>
-            {isLoginPage ? (
+            {isPublicPage ? (
               children
             ) : (
               <div className="root">

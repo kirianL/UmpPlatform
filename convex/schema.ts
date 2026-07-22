@@ -106,4 +106,60 @@ export default defineSchema({
     name: v.optional(v.string()),
     role: v.optional(v.string()),
   }).index("by_email", ["email"]),
+  scripts: defineTable({
+    title: v.string(),
+    episodeOrProject: v.string(),
+    version: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("review"),
+      v.literal("approved")
+    ),
+    fileUrl: v.optional(v.string()),
+    fileName: v.string(),
+    fileSize: v.string(),
+    fileType: v.string(),
+    uploadedAt: v.string(),
+    uploadedBy: v.string(),
+    shareId: v.string(),
+    description: v.optional(v.string()),
+    content: v.optional(v.string()),
+  }).index("by_shareId", ["shareId"]),
+  scriptComments: defineTable({
+    scriptId: v.string(),
+    shareId: v.string(),
+    authorName: v.string(),
+    comment: v.string(),
+    createdAt: v.string(),
+  }).index("by_shareId", ["shareId"]).index("by_scriptId", ["scriptId"]),
+  actors: defineTable({
+    name: v.string(),
+    characterName: v.string(),
+    characterBio: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
+    phone: v.string(),
+    email: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    episodeCount: v.number(),
+    shareToken: v.optional(v.string()),
+  }).index("by_shareToken", ["shareToken"]),
+  actorSchedules: defineTable({
+    title: v.string(),
+    date: v.string(), // YYYY-MM-DD
+    startTime: v.string(), // HH:mm
+    endTime: v.string(), // HH:mm
+    callTime: v.string(), // HH:mm (hora de llamado)
+    location: v.string(),
+    actorId: v.optional(v.string()),
+    actorName: v.string(),
+    characterName: v.string(),
+    sceneDetails: v.string(),
+    status: v.union(
+      v.literal("scheduled"),
+      v.literal("filmed"),
+      v.literal("rescheduled"),
+      v.literal("cancelled")
+    ),
+    shareToken: v.optional(v.string()),
+  }).index("by_actorName", ["actorName"]).index("by_shareToken", ["shareToken"]),
 });

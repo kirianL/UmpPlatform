@@ -34,6 +34,7 @@
     "motion": "^12.42.2",
     "next": "16.2.6",
     "next-themes": "^0.4.6",
+    "pdfjs-dist": "^6.1.200",
     "posthog-js": "^1.373.5",
     "radix-ui": "^1.6.1",
     "react": "19.2.4",

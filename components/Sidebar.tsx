@@ -10,6 +10,8 @@ import {
   SquaresFourIcon,
   UsersIcon,
   SignOutIcon,
+  ScrollIcon,
+  UserCheckIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,12 +22,14 @@ import { cn } from "@/helpers/classname-helper";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
   { href: "/personal", label: "Personal", Icon: UsersIcon },
+  { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
+  { href: "/calendario-actores", label: "Agenda Actores", Icon: UserCheckIcon },
+  { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
   { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
   { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
   { href: "/crm", label: "CRM", Icon: FunnelIcon },
   { href: "/analytics", label: "Analytics", Icon: ChartBarIcon },
   { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
-  { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
 ];
 
 function SidebarNavContent({
@@ -41,7 +45,12 @@ function SidebarNavContent({
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (userRole === "produccion") {
-      return item.href === "/inventario" || item.href === "/calendario";
+      return (
+        item.href === "/inventario" ||
+        item.href === "/calendario" ||
+        item.href === "/guiones" ||
+        item.href === "/calendario-actores"
+      );
     }
     return true;
   });
@@ -60,7 +69,9 @@ function SidebarNavContent({
       <nav className={cn("flex flex-col gap-px", hideLogo ? "mt-2" : "mt-6")}>
         {visibleItems.map(({ href, label, Icon }) => {
           const isActive =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+            href === "/"
+              ? pathname === "/"
+              : pathname === href || pathname.startsWith(href + "/");
 
           return (
             <Link

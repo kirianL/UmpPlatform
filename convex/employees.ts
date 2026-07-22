@@ -17,10 +17,11 @@ export const create = mutation({
     salary: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
-    avatarInitials: v.string(),
+    avatarInitials: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("employees", args);
+    const initials = args.avatarInitials || args.name.slice(0, 2).toUpperCase();
+    return await ctx.db.insert("employees", { ...args, avatarInitials: initials });
   },
 });
 
@@ -34,10 +35,11 @@ export const update = mutation({
     salary: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
-    avatarInitials: v.string(),
+    avatarInitials: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
-    await ctx.db.patch(id, args);
+    const initials = args.avatarInitials || args.name.slice(0, 2).toUpperCase();
+    await ctx.db.patch(id, { ...args, avatarInitials: initials });
   },
 });
 
