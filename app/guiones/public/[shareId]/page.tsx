@@ -177,10 +177,12 @@ export default function PublicScriptPage({ params }: { params: Promise<{ shareId
                 <button
                   type="button"
                   onClick={() => {
-                    const a = document.createElement("a");
-                    a.href = script.fileUrl;
-                    a.download = script.fileName;
-                    a.click();
+                    if (script.fileUrl) {
+                      const a = document.createElement("a");
+                      a.href = script.fileUrl;
+                      a.download = script.fileName;
+                      a.click();
+                    }
                   }}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-6/50 bg-sky-3/60 px-3 py-1.5 text-xs font-mono font-bold text-sky-12 hover:bg-sky-4/60 transition-colors shrink-0 cursor-pointer"
                 >
