@@ -557,30 +557,40 @@ export default function GuionesPage() {
 
               {/* Real-Time Script Content Reader / PDF Viewer in Modal */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-grayscale-3 bg-grayscale-2 p-3 sm:p-4 dark:border-grayscale-4">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-grayscale-3/60 pb-2 dark:border-grayscale-4/60">
                   <div className="flex items-center gap-2">
                     <BookOpenIcon size={16} className="text-accent-9 shrink-0" />
                     <span className="font-mono text-xs font-bold uppercase text-grayscale-11">
                       Lectura del Guión en Vivo
                     </span>
                   </div>
-                  {selectedScript.fileUrl && selectedScript.fileUrl.startsWith("data:") && (
-                    <span className="text-[10px] font-mono text-emerald-11 dark:text-emerald-400 bg-emerald-2/40 dark:bg-emerald-9/20 px-2 py-0.5 rounded-md border border-emerald-4/30 shrink-0">
-                      Documento PDF Cargado
-                    </span>
+                  {selectedScript.fileUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const a = document.createElement("a");
+                        a.href = selectedScript.fileUrl;
+                        a.download = `${selectedScript.title}.pdf`;
+                        a.click();
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-emerald-4/40 bg-emerald-2/60 dark:bg-emerald-9/20 px-2.5 py-1 text-[11px] font-mono font-bold text-emerald-11 dark:text-emerald-300 hover:bg-emerald-2/80 transition-colors cursor-pointer shrink-0"
+                    >
+                      <DownloadSimpleIcon size={13} />
+                      <span>Descargar PDF</span>
+                    </button>
                   )}
                 </div>
 
                 {selectedScript.fileUrl && selectedScript.fileUrl.startsWith("data:") ? (
-                  <div className="w-full h-64 sm:h-80 rounded-lg overflow-hidden border border-grayscale-4/50 bg-white">
+                  <div className="w-full h-72 sm:h-96 rounded-lg overflow-hidden border border-grayscale-4/50 bg-white">
                     <iframe
-                      src={`${selectedScript.fileUrl}#toolbar=0&navpanes=0`}
+                      src={`${selectedScript.fileUrl}#toolbar=1&navpanes=0`}
                       className="w-full h-full border-0"
                       title="Visor PDF de Guión"
                     />
                   </div>
                 ) : selectedScript.content ? (
-                  <div className="max-h-48 sm:max-h-64 overflow-y-auto rounded-lg border border-grayscale-4/50 bg-grayscale-1 p-3 dark:border-grayscale-5 dark:bg-grayscale-3">
+                  <div className="max-h-64 sm:max-h-80 overflow-y-auto rounded-lg border border-grayscale-4/50 bg-grayscale-1 p-3.5 dark:border-grayscale-5 dark:bg-grayscale-3">
                     <pre className="whitespace-pre-wrap font-mono text-xs text-grayscale-12 leading-relaxed">
                       {selectedScript.content}
                     </pre>

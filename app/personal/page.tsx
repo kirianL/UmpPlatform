@@ -627,11 +627,11 @@ export default function PersonalPage() {
               ]}
             />
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" className="text-xs" type="button" onClick={() => setEmpModalOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-2">
+              <Button variant="secondary" className="w-full sm:w-auto text-xs justify-center" type="button" onClick={() => setEmpModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
+              <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
                 {editingEmpId ? "Guardar Cambios" : "Agregar Empleado"}
               </Button>
             </div>
@@ -802,11 +802,11 @@ export default function PersonalPage() {
               onChange={(e) => setActorForm((f) => ({ ...f, episodeCount: Number(e.target.value) }))}
             />
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" className="text-xs" type="button" onClick={() => setActorModalOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-2">
+              <Button variant="secondary" className="w-full sm:w-auto text-xs justify-center" type="button" onClick={() => setActorModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
+              <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
                 {editingActorId ? "Guardar Cambios" : "Agregar Actor"}
               </Button>
             </div>

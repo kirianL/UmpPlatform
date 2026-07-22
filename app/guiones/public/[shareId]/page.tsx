@@ -169,12 +169,32 @@ export default function PublicScriptPage({ params }: { params: Promise<{ shareId
 
           {/* Reader Window - Responsive Viewer */}
           {hasPdfUrl ? (
-            <div className="w-full rounded-xl overflow-hidden border border-grayscale-4/60 bg-white shadow-inner">
-              <iframe
-                src={`${script.fileUrl}#toolbar=0&navpanes=0`}
-                className="w-full h-[65vh] min-h-[450px] sm:h-[750px] border-0"
-                title="Lectura de PDF del Guión"
-              />
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-sky-4/40 bg-sky-2/40 p-3 dark:border-sky-8/40 dark:bg-sky-9/20">
+                <span className="text-xs text-sky-11 dark:text-sky-300 font-mono">
+                  ¿Problemas para visualizar el PDF en tu navegador móvil?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = script.fileUrl;
+                    a.download = script.fileName;
+                    a.click();
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-6/50 bg-sky-3/60 px-3 py-1.5 text-xs font-mono font-bold text-sky-12 hover:bg-sky-4/60 transition-colors shrink-0 cursor-pointer"
+                >
+                  <DownloadSimpleIcon size={14} />
+                  <span>Abrir / Descargar PDF</span>
+                </button>
+              </div>
+              <div className="w-full rounded-xl overflow-hidden border border-grayscale-4/60 bg-white shadow-inner">
+                <iframe
+                  src={`${script.fileUrl}#toolbar=1&navpanes=0`}
+                  className="w-full h-[65vh] min-h-[400px] sm:h-[750px] border-0"
+                  title="Lectura de PDF del Guión"
+                />
+              </div>
             </div>
           ) : script.content ? (
             <div className="max-h-[60vh] sm:max-h-[650px] overflow-y-auto rounded-xl border border-grayscale-4/60 bg-grayscale-1 p-4 sm:p-6 shadow-inner dark:border-grayscale-5 dark:bg-grayscale-3">

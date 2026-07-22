@@ -292,12 +292,12 @@ export default function CalendarioActoresPage() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             {selectedActorFilter !== "all" && (
               <button
                 type="button"
                 onClick={() => copyPublicLink(selectedActorFilter)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-accent-6/40 bg-accent-2/10 px-3 py-1.5 text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/20 transition-colors cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-accent-6/40 bg-accent-2/10 px-3 py-2 text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/20 transition-colors cursor-pointer"
               >
                 {copiedToken === getSlug(selectedActorFilter) ? (
                   <>
@@ -316,7 +316,7 @@ export default function CalendarioActoresPage() {
             <button
               type="button"
               onClick={() => copyPublicLink("general")}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 text-xs font-mono font-bold text-grayscale-11 hover:bg-grayscale-3 transition-colors cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-2 text-xs font-mono font-bold text-grayscale-11 hover:bg-grayscale-3 transition-colors cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
             >
               {copiedToken === "general" ? (
                 <>
@@ -331,7 +331,7 @@ export default function CalendarioActoresPage() {
               )}
             </button>
 
-            <Button variant="primary" className="text-xs" onClick={openCreate}>
+            <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" onClick={openCreate}>
               <PlusIcon size={14} weight="bold" />
               Agendar Llamado
             </Button>
@@ -631,16 +631,16 @@ export default function CalendarioActoresPage() {
               placeholder="Notas de vestuario, props o especificaciones para el actor..."
             />
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-2">
               <Button
                 variant="secondary"
-                className="text-xs"
+                className="w-full sm:w-auto text-xs justify-center"
                 type="button"
                 onClick={() => setModalOpen(false)}
               >
                 Cancelar
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
+              <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
                 {editingId ? "Guardar Cambios" : "Agendar Rodaje"}
               </Button>
             </div>

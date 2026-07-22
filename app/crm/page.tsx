@@ -333,9 +333,9 @@ export default function CRMPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Mobile stage switcher tabs */}
-          <div className="flex gap-1 overflow-x-auto no-scrollbar rounded-lg bg-grayscale-2 p-1 dark:bg-grayscale-2 md:hidden max-w-[calc(100vw-8rem)]">
+          <div className="flex w-full sm:w-auto items-center gap-1 overflow-x-auto no-scrollbar rounded-xl bg-grayscale-2 p-1 dark:bg-grayscale-3 md:hidden">
             {SIMPLIFIED_STAGE_ORDER.map((stage) => {
               const count = dealsByStage[stage].length;
               const isSelected = activeMobileStage === stage;
@@ -345,20 +345,20 @@ export default function CRMPage() {
                   type="button"
                   onClick={() => setActiveMobileStage(stage)}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[10px] font-bold uppercase transition-all whitespace-nowrap cursor-pointer",
+                    "flex-1 sm:flex-initial flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 font-mono text-[11px] font-bold uppercase transition-all whitespace-nowrap cursor-pointer",
                     isSelected
-                      ? "bg-grayscale-1 text-grayscale-12 shadow-sm dark:bg-grayscale-3"
+                      ? "bg-grayscale-1 text-grayscale-12 shadow-xs dark:bg-grayscale-4"
                       : "text-grayscale-9 hover:text-grayscale-11"
                   )}
                 >
                   <span>{SIMPLIFIED_STAGE_LABELS[stage].split(" ")[0]}</span>
-                  <span className="opacity-70 font-sans font-normal text-[9px]">({count})</span>
+                  <span className="opacity-70 font-sans font-normal text-[10px]">({count})</span>
                 </button>
               );
             })}
           </div>
-          
-          <Button variant="primary" className="text-xs ml-auto py-2.5 px-4" onClick={openCreate}>
+
+          <Button variant="primary" className="w-full sm:w-auto text-xs justify-center py-2.5 px-4" onClick={openCreate}>
             <PlusIcon size={16} weight="bold" />
             Nuevo deal
           </Button>
@@ -672,17 +672,17 @@ export default function CRMPage() {
               }
               placeholder="Detalles del proyecto..."
             />
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-2">
               <Button
                 variant="secondary"
-                className="text-xs"
+                className="w-full sm:w-auto text-xs justify-center"
                 type="button"
                 onClick={() => setModalOpen(false)}
               >
                 Cancelar
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
-                {editingDeal ? "Guardar cambios" : "Crear deal"}
+              <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
+                {editingDeal ? "Guardar Cambios" : "Crear Deal"}
               </Button>
             </div>
           </form>
