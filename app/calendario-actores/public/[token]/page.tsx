@@ -60,10 +60,7 @@ export default function PublicActorSchedulePage({ params }: { params: Promise<{ 
   if (schedules === undefined) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-grayscale-1 dark:bg-grayscale-1">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-accent-9 border-t-transparent" />
-          <p className="font-mono text-xs text-grayscale-9">Cargando agenda de rodaje...</p>
-        </div>
+        <div className="size-8 animate-spin rounded-full border-2 border-accent-9 border-t-transparent" />
       </div>
     );
   }
