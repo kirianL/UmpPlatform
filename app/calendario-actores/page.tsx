@@ -105,6 +105,7 @@ export default function CalendarioActoresPage() {
     toDateString(now.getFullYear(), now.getMonth(), now.getDate())
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [routesModalOpen, setRoutesModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_SCHEDULE);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -188,8 +189,12 @@ export default function CalendarioActoresPage() {
 
   function openCreate() {
     setEditingId(null);
+    const initialActor = actors.length > 0 ? actors[0].name : "Elenco General";
+    const initialChar = actors.length > 0 ? actors[0].characterName : "Personaje General";
     setForm({
       ...EMPTY_SCHEDULE,
+      actorName: initialActor,
+      characterName: initialChar,
       date: selectedDate || new Date().toISOString().slice(0, 10),
     });
     setModalOpen(true);
@@ -212,16 +217,30 @@ export default function CalendarioActoresPage() {
     setModalOpen(true);
   }
 
+  function getSlug(text: string) {
+    if (!text || text === "all" || text === "general") return "general";
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\(.*?\)/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
   function handleSave() {
     const title = form.title.trim() || "Llamado a Rodaje";
     const actorName = form.actorName.trim() || "Elenco General";
-    const matchedActor = actors.find((a) => a.name.toLowerCase().trim() === actorName.toLowerCase().trim());
+    const matchedActor = actors.find(
+      (a) => a.name.toLowerCase().trim() === actorName.toLowerCase().trim()
+    );
     const shareToken = matchedActor?.shareToken || getSlug(actorName);
 
     const payload = {
       ...form,
       title,
       actorName,
+      characterName: form.characterName.trim() || matchedActor?.characterName || "Personaje General",
       shareToken,
     };
 
@@ -243,25 +262,27 @@ export default function CalendarioActoresPage() {
     removeSchedule({ id: id as any });
   }
 
-  function getSlug(text: string) {
-    if (!text || text === "all" || text === "general") return "general";
-    return text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
-
   function getActorShareToken(ev: any): string {
+    if (ev.shareToken && ev.shareToken !== "general") {
+      return ev.shareToken;
+    }
     if (ev.actorName && ev.actorName !== "Elenco General") {
+      const matched = actors.find((a) => a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim());
+      if (matched?.shareToken) return matched.shareToken;
       return getSlug(ev.actorName);
     }
     return "general";
   }
 
   function copyPublicLink(target: string) {
-    const slug = getSlug(target);
+    let slug = getSlug(target);
+    const matched = actors.find(
+      (a) => a.name.toLowerCase().trim() === target.toLowerCase().trim() || a.shareToken === target
+    );
+    if (matched?.shareToken) {
+      slug = matched.shareToken;
+    }
+
     const url = `${window.location.origin}/calendario-actores/public/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedToken(slug);
@@ -300,6 +321,15 @@ export default function CalendarioActoresPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setRoutesModalOpen(true)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-accent-6/40 bg-accent-2/10 px-3 py-2 text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/20 transition-colors cursor-pointer"
+            >
+              <ShareNetworkIcon size={14} className="text-accent-9" />
+              <span>Ver Rutas por Actor ({actors.length})</span>
+            </button>
+
             {selectedActorFilter !== "all" && (
               <button
                 type="button"
@@ -652,6 +682,133 @@ export default function CalendarioActoresPage() {
               </Button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal Rutas y Enlaces por Actor */}
+        <Modal
+          open={routesModalOpen}
+          onOpenChange={setRoutesModalOpen}
+          title="Rutas y Enlaces Públicos por Actor"
+        >
+          <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-1">
+            <p className="text-xs text-grayscale-10">
+              Cada actor dispone de una ruta única e individual para acceder a su dossier y agenda de citaciones pendientes. Puedes copiar o compartir sus enlaces directos:
+            </p>
+
+            <div className="flex flex-col gap-2.5">
+              {/* General Link Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/40">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-2/60 text-accent-10 dark:bg-accent-9/20 dark:text-accent-9 font-bold font-mono text-xs">
+                    ALL
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-grayscale-12">Agenda General (Todos los Actores)</span>
+                    <span className="text-[10px] font-mono text-grayscale-9 truncate">
+                      /calendario-actores/public/general
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => copyPublicLink("general")}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 text-xs font-mono font-bold text-grayscale-11 hover:bg-grayscale-3 transition-colors cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+                  >
+                    {copiedToken === "general" ? (
+                      <>
+                        <CheckCircleIcon size={14} className="text-green-9" />
+                        <span>¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon size={14} className="text-grayscale-9" />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href="/calendario-actores/public/general"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-accent-6/40 bg-accent-2/20 px-2.5 py-1.5 text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/30 transition-colors"
+                  >
+                    <span>Abrir</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Actor Rows */}
+              {actors.map((actor) => {
+                const token = actor.shareToken || getSlug(actor.name);
+                const isCopied = copiedToken === token;
+                return (
+                  <div
+                    key={actor._id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-grayscale-3 bg-grayscale-1 p-3 dark:border-grayscale-4/80 dark:bg-grayscale-2"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative size-10 shrink-0 overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3 border border-grayscale-3 dark:border-grayscale-4">
+                        {actor.photoUrl ? (
+                          <img src={actor.photoUrl} alt={actor.name} className="size-full object-cover object-center" />
+                        ) : (
+                          <div className="flex size-full items-center justify-center font-mono text-xs font-bold text-accent-10 bg-accent-2/40">
+                            {actor.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-grayscale-12 truncate">{actor.name}</span>
+                          <span className="text-[10px] font-mono font-bold text-accent-10 dark:text-accent-9">
+                            ({actor.characterName})
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-grayscale-9 truncate">
+                          /calendario-actores/public/{token}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => copyPublicLink(token)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-2 px-3 py-1.5 text-xs font-mono font-bold text-grayscale-12 hover:bg-grayscale-3 transition-colors cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+                      >
+                        {isCopied ? (
+                          <>
+                            <CheckCircleIcon size={14} className="text-green-9" />
+                            <span>¡Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <CopyIcon size={14} className="text-accent-9" />
+                            <span>Copiar Enlace</span>
+                          </>
+                        )}
+                      </button>
+
+                      <a
+                        href={`/calendario-actores/public/${token}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border border-accent-6/40 bg-accent-2/20 px-2.5 py-1.5 text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/30 transition-colors"
+                      >
+                        <span>Abrir</span>
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {actors.length === 0 && (
+                <div className="p-4 text-center text-xs text-grayscale-9 font-mono">
+                  No hay actores registrados en el elenco aún.
+                </div>
+              )}
+            </div>
+          </div>
         </Modal>
       </div>
     </PageContainer>

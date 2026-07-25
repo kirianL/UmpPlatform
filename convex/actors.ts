@@ -139,7 +139,7 @@ export const create = mutation({
     shareToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const token = args.shareToken || args.name.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 20) + "-" + Math.random().toString(36).substring(2, 7);
+    const token = args.shareToken || toSlug(args.name) || "actor-" + Date.now();
     return await ctx.db.insert("actors", { ...args, shareToken: token });
   },
 });
@@ -155,9 +155,11 @@ export const update = mutation({
     email: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
+    shareToken: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
-    await ctx.db.patch(id, args);
+    const shareToken = args.shareToken || toSlug(args.name);
+    await ctx.db.patch(id, { ...args, shareToken });
   },
 });
 

@@ -503,6 +503,25 @@ export default function PersonalPage() {
                       <div className="flex items-center gap-1 sm:gap-1.5">
                         <button
                           type="button"
+                          onClick={() => copyActorPublicLink(actor.name, actor._id)}
+                          className="inline-flex items-center gap-1 rounded-lg sm:rounded-xl border border-accent-6/40 bg-accent-2/10 px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/30 transition-all cursor-pointer"
+                          title="Copiar Enlace Público de Agenda"
+                        >
+                          {copiedLinkActorId === actor._id ? (
+                            <>
+                              <CheckCircleIcon size={13} className="text-green-9 shrink-0" />
+                              <span className="hidden sm:inline">¡Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShareNetworkIcon size={13} className="text-accent-9 shrink-0" />
+                              <span className="hidden sm:inline">Enlace</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => {
                             setSelectedFichaActor(actor);
                             setFichaModalOpen(true);

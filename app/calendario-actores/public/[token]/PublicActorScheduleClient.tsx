@@ -79,7 +79,7 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
         </div>
 
         {/* Actor Hero Split Cover Card */}
-        {actor && (
+        {actor ? (
           <div className="rounded-3xl border border-grayscale-3 bg-grayscale-1 shadow-md dark:border-grayscale-4/80 dark:bg-grayscale-2 overflow-hidden flex flex-col sm:flex-row items-stretch sm:min-h-[280px]">
             {/* Left Side: Photo Frame */}
             <div className="relative w-full sm:w-2/5 aspect-[4/3] sm:aspect-auto sm:h-auto sm:min-h-full shrink-0 bg-grayscale-2 border-b sm:border-b-0 sm:border-r border-grayscale-3/60 dark:border-grayscale-4/60 overflow-hidden">
@@ -126,6 +126,18 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
                 </p>
               )}
             </div>
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-grayscale-3 bg-grayscale-1 p-6 sm:p-7 shadow-md dark:border-grayscale-4/80 dark:bg-grayscale-2 flex flex-col gap-2 bg-gradient-to-br from-grayscale-1 to-grayscale-2/40 dark:from-grayscale-2 dark:to-grayscale-3/30">
+            <span className="font-mono text-xs font-bold uppercase tracking-widest text-accent-10 dark:text-accent-9">
+              Elenco de Producción UMP
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-grayscale-12 tracking-tight">
+              {token === "general" || token === "all" ? "Agenda General de Rodajes" : `Agenda de Citaciones (${token})`}
+            </h1>
+            <p className="text-xs text-grayscale-11 leading-relaxed">
+              Consulta oficial de citaciones, fechas de grabación y locaciones de rodaje.
+            </p>
           </div>
         )}
 

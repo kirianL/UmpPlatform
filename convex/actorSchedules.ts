@@ -35,46 +35,47 @@ export const getByShareToken = query({
     if (!args.shareToken) return [];
     const token = args.shareToken.trim();
 
-    // Return schedule for this token or all schedules if token is global
-    const specific = await ctx.db
-      .query("actorSchedules")
-      .withIndex("by_shareToken", (q) => q.eq("shareToken", token))
-      .collect();
-
-    if (specific.length > 0) return specific;
-
-    if (token === "general") {
-      return await ctx.db.query("actorSchedules").collect();
+    if (token === "general" || token === "all") {
+      const all = await ctx.db.query("actorSchedules").collect();
+      return all.sort((a, b) => a.date.localeCompare(b.date));
     }
 
     const normalizedInput = toSlug(token);
-    if (!normalizedInput) return [];
-
     const allActors = await ctx.db.query("actors").collect();
-    const actor = allActors.find((a) => {
-      if (a.shareToken === token) return true;
+    const matchedActor = allActors.find((a) => {
+      if (a.shareToken === token || a._id === token) return true;
+      if (!normalizedInput) return false;
       const slug = toSlug(a.name);
-      return slug === normalizedInput || slug.includes(normalizedInput) || normalizedInput.includes(slug);
+      return slug === normalizedInput || (slug.length > 3 && (slug.includes(normalizedInput) || normalizedInput.includes(slug)));
     });
 
-    if (actor) {
-      const actorSlug = toSlug(actor.name);
-      const allScheds = await ctx.db.query("actorSchedules").collect();
-      return allScheds.filter(s => {
-        const sSlug = toSlug(s.actorName);
-        return sSlug === actorSlug || sSlug.includes(actorSlug) || actorSlug.includes(sSlug);
-      });
+    const actorSlug = matchedActor ? toSlug(matchedActor.name) : normalizedInput;
+    const actorToken = matchedActor?.shareToken;
+    const actorId = matchedActor?._id;
+
+    const allSchedules = await ctx.db.query("actorSchedules").collect();
+    const matching = allSchedules.filter((s) => {
+      if (s.shareToken === token) return true;
+      if (actorToken && s.shareToken === actorToken) return true;
+      if (actorId && s.actorId === actorId) return true;
+      
+      const sSlug = toSlug(s.actorName);
+      if (!sSlug) return false;
+      if (normalizedInput && sSlug === normalizedInput) return true;
+      if (actorSlug && sSlug === actorSlug) return true;
+      if (normalizedInput && normalizedInput.length > 3 && (sSlug.includes(normalizedInput) || normalizedInput.includes(sSlug))) return true;
+      if (actorSlug && actorSlug.length > 3 && (sSlug.includes(actorSlug) || actorSlug.includes(sSlug))) return true;
+
+      return false;
+    });
+
+    // Deduplicate by ID
+    const uniqueMap = new Map<string, typeof matching[0]>();
+    for (const item of matching) {
+      uniqueMap.set(item._id, item);
     }
 
-    // Fallback: match actorSchedules directly by actorName slug
-    const allSchedules = await ctx.db.query("actorSchedules").collect();
-    return allSchedules.filter((s) => {
-      const slug = toSlug(s.actorName);
-      return (
-        slug === normalizedInput ||
-        (slug.length > 3 && (slug.includes(normalizedInput) || normalizedInput.includes(slug)))
-      );
-    });
+    return Array.from(uniqueMap.values()).sort((a, b) => a.date.localeCompare(b.date));
   },
 });
 
