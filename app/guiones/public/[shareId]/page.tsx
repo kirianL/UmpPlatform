@@ -16,14 +16,17 @@ import { api } from "@/convex/_generated/api";
 import Button from "@/components/public/Button";
 import Input from "@/components/public/Input";
 import Logo from "@/components/Logo";
+import { downloadFile, usePdfBlobUrl } from "@/lib/file-download";
 
 export default function PublicScriptPage({ params }: { params: Promise<{ shareId: string }> | { shareId: string } }) {
   const unwrappedParams = typeof (params as any)?.then === "function" ? use(params as Promise<{ shareId: string }>) : (params as { shareId: string });
   const shareId = unwrappedParams?.shareId || "";
 
   const script = useQuery(api.scripts.getByShareId, shareId ? { shareId } : "skip");
+  const pdfBlobUrl = usePdfBlobUrl(script?.fileUrl);
   const comments = useQuery(api.scripts.getCommentsByShareId, shareId ? { shareId } : "skip") ?? [];
   const addComment = useMutation(api.scripts.addComment);
+
 
   const [authorName, setAuthorName] = useState("");
   const [commentText, setCommentText] = useState("");
@@ -87,7 +90,7 @@ export default function PublicScriptPage({ params }: { params: Promise<{ shareId
             </span>
           </div>
           <span className="font-mono text-xs text-grayscale-9">
-            Lectura de Guiones
+            Guiones y Libretos
           </span>
         </div>
 
@@ -135,21 +138,7 @@ export default function PublicScriptPage({ params }: { params: Promise<{ shareId
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (script.fileUrl) {
-                  const a = document.createElement("a");
-                  a.href = script.fileUrl;
-                  a.download = script.fileName;
-                  a.click();
-                } else {
-                  const blob = new Blob([script.content || script.title], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = script.fileName;
-                  a.click();
-                }
-              }}
+              onClick={() => downloadFile(script.fileUrl, script.fileName, script.content)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-2 px-3 py-2 text-xs font-mono font-medium text-grayscale-11 hover:bg-grayscale-3 transition-colors cursor-pointer"
             >
               <DownloadSimpleIcon size={14} />
@@ -158,43 +147,39 @@ export default function PublicScriptPage({ params }: { params: Promise<{ shareId
           </div>
         </div>
 
-        {/* Real-Time Script Reader (Optimizado para Móviles sin Teleprompter) */}
+        {/* Script Viewer */}
         <div className="rounded-2xl border border-grayscale-3 bg-grayscale-2 p-4 sm:p-6 shadow-sm flex flex-col gap-4 dark:border-grayscale-4 dark:bg-grayscale-2/60">
           <div className="flex items-center gap-2 border-b border-grayscale-3 pb-3 dark:border-grayscale-4/60">
             <BookOpenIcon size={20} className="text-accent-9 shrink-0" />
             <h2 className="font-mono text-xs sm:text-sm font-bold uppercase text-grayscale-12">
-              Lectura del Guión
+              Guión
             </h2>
           </div>
 
           {/* Reader Window - Responsive Viewer */}
-          {hasPdfUrl ? (
+          {pdfBlobUrl ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-sky-4/40 bg-sky-2/40 p-3 dark:border-sky-8/40 dark:bg-sky-9/20">
                 <span className="text-xs text-sky-11 dark:text-sky-300 font-mono">
-                  ¿Problemas para visualizar el PDF en tu navegador móvil?
+                  ¿Visualizando en móvil o pantalla táctil? Puedes abrir el PDF completo:
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (script.fileUrl) {
-                      const a = document.createElement("a");
-                      a.href = script.fileUrl;
-                      a.download = script.fileName;
-                      a.click();
-                    }
-                  }}
+                  onClick={() => window.open(pdfBlobUrl, "_blank")}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-6/50 bg-sky-3/60 px-3 py-1.5 text-xs font-mono font-bold text-sky-12 hover:bg-sky-4/60 transition-colors shrink-0 cursor-pointer"
                 >
                   <DownloadSimpleIcon size={14} />
-                  <span>Abrir / Descargar PDF</span>
+                  <span>Ver Pantalla Completa ↗</span>
                 </button>
               </div>
-              <div className="w-full rounded-xl overflow-hidden border border-grayscale-4/60 bg-white shadow-inner">
+              <div
+                className="w-full rounded-xl overflow-y-auto border border-grayscale-4/60 bg-white shadow-inner"
+                style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+              >
                 <iframe
-                  src={`${script.fileUrl}#toolbar=1&navpanes=0`}
+                  src={`${pdfBlobUrl}#toolbar=1`}
                   className="w-full h-[65vh] min-h-[400px] sm:h-[750px] border-0"
-                  title="Lectura de PDF del Guión"
+                  title="PDF del Guión"
                 />
               </div>
             </div>

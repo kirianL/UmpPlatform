@@ -30,6 +30,8 @@ import StatCard from "@/components/public/StatCard";
 import PageContainer from "@/components/public/PageContainer";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { downloadFile, usePdfBlobUrl } from "@/lib/file-download";
+
 
 const STATUS_BADGE = {
   draft: { label: "Borrador", variant: "gray" as const },
@@ -59,11 +61,13 @@ export default function GuionesPage() {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedScript, setSelectedScript] = useState<any | null>(null);
+  const pdfBlobUrl = usePdfBlobUrl(selectedScript?.fileUrl);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState(EMPTY_SCRIPT);
+
 
   // Load comments for selected script
   const scriptComments = useQuery(
@@ -542,7 +546,7 @@ export default function GuionesPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <LinkIcon size={16} className="text-accent-10 shrink-0" />
                   <span className="text-xs font-mono font-medium text-grayscale-11 truncate">
-                    Enlace de lectura en vivo y comentarios para actores
+                    Enlace y comentarios para actores
                   </span>
                 </div>
                 <button
@@ -555,39 +559,51 @@ export default function GuionesPage() {
                 </button>
               </div>
 
-              {/* Real-Time Script Content Reader / PDF Viewer in Modal */}
+              {/* Script Content Reader / PDF Viewer in Modal */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-grayscale-3 bg-grayscale-2 p-3 sm:p-4 dark:border-grayscale-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-grayscale-3/60 pb-2 dark:border-grayscale-4/60">
                   <div className="flex items-center gap-2">
                     <BookOpenIcon size={16} className="text-accent-9 shrink-0" />
                     <span className="font-mono text-xs font-bold uppercase text-grayscale-11">
-                      Lectura del Guión en Vivo
+                      Guión
                     </span>
                   </div>
                   {selectedScript.fileUrl && (
                     <button
                       type="button"
-                      onClick={() => {
-                        const a = document.createElement("a");
-                        a.href = selectedScript.fileUrl;
-                        a.download = `${selectedScript.title}.pdf`;
-                        a.click();
-                      }}
+                      onClick={() => downloadFile(selectedScript.fileUrl, `${selectedScript.title}.pdf`, selectedScript.content)}
                       className="inline-flex items-center gap-1.5 rounded-md border border-emerald-4/40 bg-emerald-2/60 dark:bg-emerald-9/20 px-2.5 py-1 text-[11px] font-mono font-bold text-emerald-11 dark:text-emerald-300 hover:bg-emerald-2/80 transition-colors cursor-pointer shrink-0"
                     >
                       <DownloadSimpleIcon size={13} />
-                      <span>Descargar PDF</span>
+                      <span>Descargar Archivo</span>
                     </button>
                   )}
                 </div>
 
-                {selectedScript.fileUrl && selectedScript.fileUrl.startsWith("data:") ? (
-                  <div className="w-full h-72 sm:h-96 rounded-lg overflow-hidden border border-grayscale-4/50 bg-white">
-                    <iframe
-                      src={`${selectedScript.fileUrl}#toolbar=1&navpanes=0`}
-                      className="w-full h-full border-0"
-                      title="Visor PDF de Guión"
-                    />
+                {pdfBlobUrl ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg border border-sky-4/40 bg-sky-2/40 dark:border-sky-8/40 dark:bg-sky-9/20">
+                      <span className="text-[11px] font-mono text-sky-11 dark:text-sky-300">
+                        ¿Móvil o pantalla pequeña? Puedes abrir el PDF completo:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => window.open(pdfBlobUrl, "_blank")}
+                        className="inline-flex items-center justify-center gap-1 rounded-md bg-accent-9 px-2.5 py-1 text-[11px] font-mono font-bold text-grayscale-1 hover:bg-accent-10 transition-colors shrink-0 cursor-pointer"
+                      >
+                        <span>Ver Pantalla Completa ↗</span>
+                      </button>
+                    </div>
+                    <div
+                      className="w-full h-80 sm:h-[450px] rounded-lg overflow-y-auto border border-grayscale-4/50 bg-white"
+                      style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+                    >
+                      <iframe
+                        src={`${pdfBlobUrl}#toolbar=1`}
+                        className="w-full h-full border-0 min-h-[300px]"
+                        title="Visor PDF de Guión"
+                      />
+                    </div>
                   </div>
                 ) : selectedScript.content ? (
                   <div className="max-h-64 sm:max-h-80 overflow-y-auto rounded-lg border border-grayscale-4/50 bg-grayscale-1 p-3.5 dark:border-grayscale-5 dark:bg-grayscale-3">
