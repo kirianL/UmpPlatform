@@ -157,7 +157,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         email: "carlos.rivera@actores.cr",
         status: "active" as const,
         episodeCount: 8,
-        shareToken: "carlos-rivera-9921",
+        shareToken: "carlos-rivera",
       });
 
       const actor2Id = await ctx.db.insert("actors", {
@@ -169,7 +169,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         email: "mariana.rojas@actores.cr",
         status: "active" as const,
         episodeCount: 6,
-        shareToken: "mariana-rojas-4412",
+        shareToken: "mariana-rojas",
       });
 
       await ctx.db.insert("actors", {
@@ -181,7 +181,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         email: "esteban.castro@actores.cr",
         status: "active" as const,
         episodeCount: 5,
-        shareToken: "esteban-castro-7731",
+        shareToken: "esteban-castro",
       });
 
       // Seed actorSchedules
@@ -197,7 +197,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         characterName: "Inspector Morales",
         sceneDetails: "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
         status: "scheduled" as const,
-        shareToken: "carlos-rivera-9921",
+        shareToken: "carlos-rivera",
       });
 
       await ctx.db.insert("actorSchedules", {

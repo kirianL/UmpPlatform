@@ -254,12 +254,10 @@ export default function CalendarioActoresPage() {
   }
 
   function getActorShareToken(ev: any): string {
-    const matchedActor = actors.find((a) => a.name.toLowerCase().trim() === ev.actorName?.toLowerCase().trim());
-    if (matchedActor?.shareToken) return matchedActor.shareToken;
     if (ev.actorName && ev.actorName !== "Elenco General") {
       return getSlug(ev.actorName);
     }
-    return ev.shareToken || "general";
+    return "general";
   }
 
   function copyPublicLink(target: string) {
