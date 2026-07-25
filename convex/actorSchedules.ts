@@ -18,6 +18,17 @@ export const getByActorName = query({
   },
 });
 
+function toSlug(text: string): string {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export const getByShareToken = query({
   args: { shareToken: v.string() },
   handler: async (ctx, args) => {
@@ -36,27 +47,33 @@ export const getByShareToken = query({
       return await ctx.db.query("actorSchedules").collect();
     }
 
-    const normalizedInput = token.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const normalizedInput = toSlug(token);
     if (!normalizedInput) return [];
 
     const allActors = await ctx.db.query("actors").collect();
     const actor = allActors.find((a) => {
       if (a.shareToken === token) return true;
-      const slug = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput;
+      const slug = toSlug(a.name);
+      return slug === normalizedInput || slug.includes(normalizedInput) || normalizedInput.includes(slug);
     });
 
     if (actor) {
-      const actorNameLower = actor.name.toLowerCase().trim();
+      const actorSlug = toSlug(actor.name);
       const allScheds = await ctx.db.query("actorSchedules").collect();
-      return allScheds.filter(s => s.actorName.toLowerCase().trim() === actorNameLower);
+      return allScheds.filter(s => {
+        const sSlug = toSlug(s.actorName);
+        return sSlug === actorSlug || sSlug.includes(actorSlug) || actorSlug.includes(sSlug);
+      });
     }
 
-    // Fallback: match actorSchedules directly by actorName exact slug
+    // Fallback: match actorSchedules directly by actorName slug
     const allSchedules = await ctx.db.query("actorSchedules").collect();
     return allSchedules.filter((s) => {
-      const slug = s.actorName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput;
+      const slug = toSlug(s.actorName);
+      return (
+        slug === normalizedInput ||
+        (slug.length > 3 && (slug.includes(normalizedInput) || normalizedInput.includes(slug)))
+      );
     });
   },
 });

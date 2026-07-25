@@ -8,6 +8,35 @@ export const get = query({
   },
 });
 
+function toSlug(text: string): string {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function extractNameAndCharacter(rawName: string, rawCharacter?: string) {
+  let name = rawName.trim();
+  let character = rawCharacter?.trim() || "";
+
+  const match = name.match(/^(.*?)\((.*?)\)$/);
+  if (match) {
+    name = match[1].trim();
+    if (!character) {
+      character = match[2].trim();
+    }
+  }
+
+  return {
+    name: name || rawName,
+    characterName: character || "Personaje Principal",
+  };
+}
+
 export const getByShareToken = query({
   args: { shareToken: v.string() },
   handler: async (ctx, args) => {
@@ -21,15 +50,15 @@ export const getByShareToken = query({
       .first();
     if (exact) return exact;
 
-    const normalizedInput = token.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const normalizedInput = toSlug(token);
     if (!normalizedInput) return null;
 
     const allActors = await ctx.db.query("actors").collect();
 
-    // 2. Exact match by name slug
+    // 2. Match by name slug in actors table
     const exactSlug = allActors.find((a) => {
-      const slug = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput;
+      const slug = toSlug(a.name);
+      return slug === normalizedInput || slug.includes(normalizedInput) || normalizedInput.includes(slug);
     });
     if (exactSlug) return exactSlug;
 
@@ -40,18 +69,19 @@ export const getByShareToken = query({
       .collect();
 
     if (schedules.length > 0) {
-      const actorNameInSched = schedules[0].actorName;
+      const rawName = schedules[0].actorName;
+      const { name, characterName } = extractNameAndCharacter(rawName, schedules[0].characterName);
       const matchedByName = allActors.find((a) => 
-        a.name.toLowerCase().trim() === actorNameInSched.toLowerCase().trim()
+        toSlug(a.name) === toSlug(name)
       );
       if (matchedByName) return matchedByName;
 
       return {
         _id: "synthetic-" + token as any,
         _creationTime: Date.now(),
-        name: actorNameInSched,
-        characterName: schedules[0].characterName || "Personaje",
-        characterBio: "",
+        name,
+        characterName,
+        characterBio: "Elenco de producción registrado para llamados de rodaje.",
         photoUrl: "",
         phone: "",
         email: "",
@@ -63,27 +93,31 @@ export const getByShareToken = query({
 
     // 4. Fallback: Check if token matches actorName slug in actorSchedules
     const allSchedules = await ctx.db.query("actorSchedules").collect();
-    const schedMatch = allSchedules.find((s) => {
-      const slug = s.actorName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput;
+    const matchingSchedules = allSchedules.filter((s) => {
+      const slug = toSlug(s.actorName);
+      return slug === normalizedInput || (slug.length > 3 && (slug.includes(normalizedInput) || normalizedInput.includes(slug)));
     });
-    if (schedMatch) {
+
+    if (matchingSchedules.length > 0) {
+      const rawName = matchingSchedules[0].actorName;
+      const { name, characterName } = extractNameAndCharacter(rawName, matchingSchedules[0].characterName);
+
       const matchedByName = allActors.find((a) => 
-        a.name.toLowerCase().trim() === schedMatch.actorName.toLowerCase().trim()
+        toSlug(a.name) === toSlug(name)
       );
       if (matchedByName) return matchedByName;
 
       return {
         _id: "synthetic-" + token as any,
         _creationTime: Date.now(),
-        name: schedMatch.actorName,
-        characterName: schedMatch.characterName || "Personaje",
-        characterBio: "",
+        name,
+        characterName,
+        characterBio: "Elenco de producción registrado para llamados de rodaje.",
         photoUrl: "",
         phone: "",
         email: "",
         status: "active" as const,
-        episodeCount: 1,
+        episodeCount: matchingSchedules.length,
         shareToken: token,
       };
     }
