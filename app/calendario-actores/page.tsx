@@ -215,8 +215,8 @@ export default function CalendarioActoresPage() {
   function handleSave() {
     const title = form.title.trim() || "Llamado a Rodaje";
     const actorName = form.actorName.trim() || "Elenco General";
-    const matchedActor = actors.find((a) => a.name === actorName);
-    const shareToken = matchedActor?.shareToken || actorName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const matchedActor = actors.find((a) => a.name.toLowerCase().trim() === actorName.toLowerCase().trim());
+    const shareToken = matchedActor?.shareToken || getSlug(actorName);
 
     const payload = {
       ...form,
@@ -251,6 +251,15 @@ export default function CalendarioActoresPage() {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
+  }
+
+  function getActorShareToken(ev: any): string {
+    const matchedActor = actors.find((a) => a.name.toLowerCase().trim() === ev.actorName?.toLowerCase().trim());
+    if (matchedActor?.shareToken) return matchedActor.shareToken;
+    if (ev.actorName && ev.actorName !== "Elenco General") {
+      return getSlug(ev.actorName);
+    }
+    return ev.shareToken || "general";
   }
 
   function copyPublicLink(target: string) {
@@ -478,11 +487,11 @@ export default function CalendarioActoresPage() {
                   <div className="flex items-center justify-between border-t border-grayscale-2 pt-2.5 dark:border-grayscale-4/40">
                     <button
                       type="button"
-                      onClick={() => copyPublicLink(ev.shareToken || "general")}
+                      onClick={() => copyPublicLink(getActorShareToken(ev))}
                       className="text-[11px] font-mono text-accent-9 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <CopyIcon size={13} />
-                      {copiedToken === ev.shareToken ? "¡Enlace copiado!" : "Copiar enlace del actor"}
+                      {copiedToken === getSlug(getActorShareToken(ev)) ? "¡Enlace copiado!" : "Copiar enlace del actor"}
                     </button>
 
                     <div className="flex items-center gap-1">

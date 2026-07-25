@@ -222,7 +222,8 @@ export default function PersonalPage() {
   const [copiedLinkActorId, setCopiedLinkActorId] = useState<string | null>(null);
 
   function copyActorPublicLink(actorName: string, id: string) {
-    const slug = actorName
+    const actorObj = actors.find((a) => a._id === id || a.name === actorName);
+    const slug = actorObj?.shareToken || actorName
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -236,7 +237,12 @@ export default function PersonalPage() {
 
   function handleSaveActor() {
     const actorName = actorForm.name.trim() || "Actor Sin Nombre";
-    const shareToken = actorName.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 20) + "-" + Math.random().toString(36).substring(2, 7);
+    const shareToken = actorName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
     const payload = {
       ...actorForm,
