@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ump-platform-cache-v1';
+const CACHE_NAME = 'ump-platform-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
 ];
@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Exclude Next.js hot-reloading (webpack-hmr), Chrome extensions, API calls
+  // Exclude Next.js static assets, API calls, dynamic chunks, webpack
   if (
     url.pathname.startsWith('/_next/') ||
     url.pathname.startsWith('/api/') ||
@@ -43,13 +43,39 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isNavigationOrHtml =
+    event.request.mode === 'navigate' ||
+    (event.request.headers.get('accept') &&
+      event.request.headers.get('accept').includes('text/html'));
+
+  if (isNavigationOrHtml) {
+    // Network-First strategy for HTML pages: always fetch latest HTML first to prevent stale CSS chunk hashes
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // If network fails (offline), fall back to cached HTML
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Cache-First strategy for static assets (images, icons, public files)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).then((response) => {
-        // Cache valid responses
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
@@ -58,9 +84,8 @@ self.addEventListener('fetch', (event) => {
           cache.put(event.request, responseToCache);
         });
         return response;
-      }).catch(() => {
-        // Fallback offline logic if needed
       });
     })
   );
 });
+
