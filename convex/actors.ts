@@ -11,19 +11,84 @@ export const get = query({
 export const getByShareToken = query({
   args: { shareToken: v.string() },
   handler: async (ctx, args) => {
+    if (!args.shareToken) return null;
+    const token = args.shareToken.trim();
+
+    // 1. Exact match by shareToken index
     const exact = await ctx.db
       .query("actors")
-      .withIndex("by_shareToken", (q) => q.eq("shareToken", args.shareToken))
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", token))
       .first();
     if (exact) return exact;
 
-    const normalizedInput = args.shareToken.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizedInput = token.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (!normalizedInput) return null;
+
     const allActors = await ctx.db.query("actors").collect();
-    const matched = allActors.find((a) => {
+
+    // 2. Exact match by name slug
+    const exactSlug = allActors.find((a) => {
       const slug = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput || normalizedInput.startsWith(slug);
+      return slug === normalizedInput;
     });
-    return matched || null;
+    if (exactSlug) return exactSlug;
+
+    // 3. Match via actorSchedules table by shareToken
+    const schedules = await ctx.db
+      .query("actorSchedules")
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", token))
+      .collect();
+
+    if (schedules.length > 0) {
+      const actorNameInSched = schedules[0].actorName;
+      const matchedByName = allActors.find((a) => 
+        a.name.toLowerCase().trim() === actorNameInSched.toLowerCase().trim()
+      );
+      if (matchedByName) return matchedByName;
+
+      return {
+        _id: "synthetic-" + token as any,
+        _creationTime: Date.now(),
+        name: actorNameInSched,
+        characterName: schedules[0].characterName || "Personaje",
+        characterBio: "",
+        photoUrl: "",
+        phone: "",
+        email: "",
+        status: "active" as const,
+        episodeCount: schedules.length,
+        shareToken: token,
+      };
+    }
+
+    // 4. Fallback: Check if token matches actorName slug in actorSchedules
+    const allSchedules = await ctx.db.query("actorSchedules").collect();
+    const schedMatch = allSchedules.find((s) => {
+      const slug = s.actorName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      return slug === normalizedInput;
+    });
+    if (schedMatch) {
+      const matchedByName = allActors.find((a) => 
+        a.name.toLowerCase().trim() === schedMatch.actorName.toLowerCase().trim()
+      );
+      if (matchedByName) return matchedByName;
+
+      return {
+        _id: "synthetic-" + token as any,
+        _creationTime: Date.now(),
+        name: schedMatch.actorName,
+        characterName: schedMatch.characterName || "Personaje",
+        characterBio: "",
+        photoUrl: "",
+        phone: "",
+        email: "",
+        status: "active" as const,
+        episodeCount: 1,
+        shareToken: token,
+      };
+    }
+
+    return null;
   },
 });
 

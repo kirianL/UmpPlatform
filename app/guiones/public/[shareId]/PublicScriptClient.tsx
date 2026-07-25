@@ -1,0 +1,275 @@
+"use client";
+
+import {
+  BookOpenIcon,
+  ChatTeardropTextIcon,
+  CheckCircleIcon,
+  DownloadSimpleIcon,
+  FilePdfIcon,
+  PaperPlaneRightIcon,
+  ScrollIcon,
+  UserIcon,
+} from "@phosphor-icons/react/dist/ssr";
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import Button from "@/components/public/Button";
+import Input from "@/components/public/Input";
+import Logo from "@/components/Logo";
+import { downloadFile, usePdfBlobUrl } from "@/lib/file-download";
+
+export default function PublicScriptClient({ shareId }: { shareId: string }) {
+  const script = useQuery(api.scripts.getByShareId, shareId ? { shareId } : "skip");
+  const pdfBlobUrl = usePdfBlobUrl(script?.fileUrl);
+  const comments = useQuery(api.scripts.getCommentsByShareId, shareId ? { shareId } : "skip") ?? [];
+  const addComment = useMutation(api.scripts.addComment);
+
+  const [authorName, setAuthorName] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!authorName.trim() || !commentText.trim() || !script || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await addComment({
+        scriptId: script._id,
+        shareId: shareId,
+        authorName: authorName.trim(),
+        comment: commentText.trim(),
+      });
+
+      setCommentText("");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (script === undefined) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-grayscale-1 dark:bg-grayscale-1">
+        <div className="size-8 animate-spin rounded-full border-2 border-accent-9 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (script === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-grayscale-1 dark:bg-grayscale-1 px-4">
+        <div className="flex max-w-md flex-col items-center text-center gap-3 rounded-2xl border border-grayscale-3 bg-grayscale-2 p-8 shadow-sm dark:border-grayscale-4">
+          <ScrollIcon size={48} className="text-grayscale-8" />
+          <h2 className="font-mono text-lg font-bold text-grayscale-12">Guión No Encontrado</h2>
+          <p className="text-xs text-grayscale-9">
+            El enlace ingresado no existe o el guión ha sido removido de la plataforma UMP.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-grayscale-1 text-grayscale-12 dark:bg-grayscale-1 flex flex-col items-center px-3 sm:px-4 py-6 sm:py-8">
+      <div className="w-full max-w-4xl flex flex-col gap-5 sm:gap-6">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-grayscale-3 pb-4 dark:border-grayscale-4/60">
+          <div className="flex items-center gap-2.5">
+            <Logo iconSize={18} className="w-6" />
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
+              UmpPlatform
+            </span>
+          </div>
+          <span className="font-mono text-xs text-grayscale-9">
+            Guiones y Libretos
+          </span>
+        </div>
+
+        {/* Main Script Details Card */}
+        <div className="rounded-2xl border border-grayscale-3 bg-grayscale-2 p-4 sm:p-6 shadow-sm flex flex-col gap-4 sm:gap-5 dark:border-grayscale-4 dark:bg-grayscale-2/60">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-xs font-bold text-accent-10 uppercase tracking-wide">
+                {script.episodeOrProject}
+              </span>
+              
+              {/* Minimal Redesigned Status Indicator */}
+              <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider">
+                <span className={`size-2 rounded-full ${script.status === "approved" ? "bg-emerald-500" : script.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`} />
+                <span className={script.status === "approved" ? "text-emerald-11 dark:text-emerald-400" : "text-amber-11 dark:text-amber-400"}>
+                  {script.status === "approved" ? "Aprobado" : script.status === "review" ? "En Revisión" : "Borrador"}
+                </span>
+              </div>
+            </div>
+
+            <h1 className="text-lg sm:text-2xl font-bold text-grayscale-12 tracking-tight">
+              {script.title}
+            </h1>
+            <p className="text-xs text-grayscale-9 flex flex-wrap items-center gap-2 sm:gap-3">
+              <span>Versión: <strong className="text-grayscale-11 font-mono">{script.version}</strong></span>
+              <span>•</span>
+              <span>Subido por: <strong className="text-grayscale-11">{script.uploadedBy}</strong></span>
+            </p>
+          </div>
+
+          {script.description && (
+            <p className="text-xs sm:text-sm text-grayscale-10 leading-relaxed rounded-xl bg-grayscale-1 p-3 border border-grayscale-3 dark:border-grayscale-4/50">
+              {script.description}
+            </p>
+          )}
+
+          {/* Download File Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-grayscale-4/50 bg-grayscale-1 p-3.5 dark:border-grayscale-4">
+            <div className="flex items-center gap-3">
+              <FilePdfIcon size={24} className="text-red-9 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-grayscale-12 truncate">{script.fileName}</p>
+                <p className="text-[11px] text-grayscale-8 font-mono">{script.fileSize}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => downloadFile(script.fileUrl, script.fileName, script.content)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-2 px-3 py-2 text-xs font-mono font-medium text-grayscale-11 hover:bg-grayscale-3 transition-colors cursor-pointer"
+            >
+              <DownloadSimpleIcon size={14} />
+              Descargar Archivo
+            </button>
+          </div>
+        </div>
+
+        {/* Script Viewer */}
+        <div className="rounded-2xl border border-grayscale-3 bg-grayscale-2 p-4 sm:p-6 shadow-sm flex flex-col gap-4 dark:border-grayscale-4 dark:bg-grayscale-2/60">
+          <div className="flex items-center gap-2 border-b border-grayscale-3 pb-3 dark:border-grayscale-4/60">
+            <BookOpenIcon size={20} className="text-accent-9 shrink-0" />
+            <h2 className="font-mono text-xs sm:text-sm font-bold uppercase text-grayscale-12">
+              Guión
+            </h2>
+          </div>
+
+          {/* Reader Window - Responsive Viewer */}
+          {pdfBlobUrl ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-sky-4/40 bg-sky-2/40 p-3 dark:border-sky-8/40 dark:bg-sky-9/20">
+                <span className="text-xs text-sky-11 dark:text-sky-300 font-mono">
+                  ¿Visualizando en móvil o pantalla táctil? Puedes abrir el PDF completo:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => window.open(pdfBlobUrl, "_blank")}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-6/50 bg-sky-3/60 px-3 py-1.5 text-xs font-mono font-bold text-sky-12 hover:bg-sky-4/60 transition-colors shrink-0 cursor-pointer"
+                >
+                  <DownloadSimpleIcon size={14} />
+                  <span>Ver Pantalla Completa ↗</span>
+                </button>
+              </div>
+              <div
+                className="w-full rounded-xl overflow-y-auto border border-grayscale-4/60 bg-white shadow-inner"
+                style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+              >
+                <iframe
+                  src={`${pdfBlobUrl}#toolbar=1`}
+                  className="w-full h-[65vh] min-h-[400px] sm:h-[750px] border-0"
+                  title="PDF del Guión"
+                />
+              </div>
+            </div>
+          ) : script.content ? (
+            <div className="max-h-[60vh] sm:max-h-[650px] overflow-y-auto rounded-xl border border-grayscale-4/60 bg-grayscale-1 p-4 sm:p-6 shadow-inner dark:border-grayscale-5 dark:bg-grayscale-3">
+              <pre className="whitespace-pre-wrap font-mono text-xs sm:text-sm leading-relaxed text-grayscale-12 tracking-wide font-normal">
+                {script.content}
+              </pre>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-grayscale-9 flex flex-col items-center gap-2 rounded-xl border border-dashed border-grayscale-3 dark:border-grayscale-4">
+              <BookOpenIcon size={32} className="text-grayscale-8" />
+              <p className="text-xs font-mono uppercase font-bold text-grayscale-8">Sin archivo o texto para mostrar</p>
+            </div>
+          )}
+        </div>
+
+        {/* Comments Form & Feed */}
+        <div className="rounded-2xl border border-grayscale-3 bg-grayscale-2 p-4 sm:p-6 shadow-sm flex flex-col gap-5 dark:border-grayscale-4 dark:bg-grayscale-2/60">
+          <div className="flex items-center justify-between border-b border-grayscale-3 pb-3 dark:border-grayscale-4/60">
+            <h2 className="font-mono text-xs sm:text-sm font-bold uppercase text-grayscale-12 flex items-center gap-2">
+              <ChatTeardropTextIcon size={20} className="text-accent-9" />
+              Comentarios del Elenco
+            </h2>
+            <span className="rounded-full bg-accent-2/40 px-2.5 py-0.5 text-xs font-mono font-bold text-accent-11 border border-accent-4/40">
+              {comments.length}
+            </span>
+          </div>
+
+          {/* Add Comment Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-4 dark:border-grayscale-4 dark:bg-grayscale-3">
+            <h3 className="text-xs font-mono font-bold uppercase text-grayscale-11">
+              Agregar Comentario o Retroalimentación
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text"
+                required
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder="Tu Nombre / Personaje (Ej: Carlos - Director)"
+                className="rounded-lg border border-grayscale-4 bg-grayscale-2 px-3 py-2 text-xs font-mono text-grayscale-12 placeholder-grayscale-8 focus:border-accent-8 focus:outline-none dark:border-grayscale-5 dark:bg-grayscale-2"
+              />
+            </div>
+            <textarea
+              rows={3}
+              required
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Escribe tu nota, sugerencia o feedback sobre esta escena..."
+              className="rounded-lg border border-grayscale-4 bg-grayscale-2 px-3 py-2 text-xs font-mono text-grayscale-12 placeholder-grayscale-8 focus:border-accent-8 focus:outline-none dark:border-grayscale-5 dark:bg-grayscale-2"
+            />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-9 px-4 py-2 text-xs font-mono font-bold text-grayscale-1 hover:bg-accent-10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <PaperPlaneRightIcon size={14} weight="bold" />
+                <span>{isSubmitting ? "Enviando..." : "Publicar Comentario"}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Comments List */}
+          <div className="flex flex-col gap-3">
+            {comments.map((c) => (
+              <div
+                key={c._id}
+                className="rounded-xl border border-grayscale-3 bg-grayscale-1 p-3.5 flex flex-col gap-1.5 shadow-sm dark:border-grayscale-4/80 dark:bg-grayscale-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-grayscale-12 flex items-center gap-1.5">
+                    <UserIcon size={14} className="text-accent-9 shrink-0" />
+                    {c.authorName}
+                  </span>
+                  <span className="text-[10px] text-grayscale-8 font-mono">
+                    {new Date(c.createdAt).toLocaleDateString("es-CR", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-grayscale-11 leading-relaxed pl-5 border-l-2 border-accent-6/40">
+                  {c.comment}
+                </p>
+              </div>
+            ))}
+
+            {comments.length === 0 && (
+              <div className="py-8 text-center text-grayscale-8 font-mono text-xs border border-dashed border-grayscale-3 rounded-xl dark:border-grayscale-4">
+                Aún no se han publicado comentarios sobre este guión. ¡Sé el primero en aportar feedback!
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

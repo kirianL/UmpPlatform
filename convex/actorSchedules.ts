@@ -21,41 +21,43 @@ export const getByActorName = query({
 export const getByShareToken = query({
   args: { shareToken: v.string() },
   handler: async (ctx, args) => {
+    if (!args.shareToken) return [];
+    const token = args.shareToken.trim();
+
     // Return schedule for this token or all schedules if token is global
     const specific = await ctx.db
       .query("actorSchedules")
-      .withIndex("by_shareToken", (q) => q.eq("shareToken", args.shareToken))
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", token))
       .collect();
 
     if (specific.length > 0) return specific;
 
-    if (args.shareToken === "general") {
+    if (token === "general") {
       return await ctx.db.query("actorSchedules").collect();
     }
 
-    const normalizedInput = args.shareToken.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizedInput = token.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (!normalizedInput) return [];
+
     const allActors = await ctx.db.query("actors").collect();
     const actor = allActors.find((a) => {
-      if (a.shareToken === args.shareToken) return true;
+      if (a.shareToken === token) return true;
       const slug = a.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput || normalizedInput.startsWith(slug);
+      return slug === normalizedInput;
     });
 
     if (actor) {
-      return await ctx.db
-        .query("actorSchedules")
-        .withIndex("by_actorName", (q) => q.eq("actorName", actor.name))
-        .collect();
+      const actorNameLower = actor.name.toLowerCase().trim();
+      const allScheds = await ctx.db.query("actorSchedules").collect();
+      return allScheds.filter(s => s.actorName.toLowerCase().trim() === actorNameLower);
     }
 
-    // Fallback: match actorSchedules directly by actorName slug
+    // Fallback: match actorSchedules directly by actorName exact slug
     const allSchedules = await ctx.db.query("actorSchedules").collect();
-    const matchedSchedules = allSchedules.filter((s) => {
+    return allSchedules.filter((s) => {
       const slug = s.actorName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      return slug === normalizedInput || normalizedInput.startsWith(slug);
+      return slug === normalizedInput;
     });
-
-    return matchedSchedules;
   },
 });
 
