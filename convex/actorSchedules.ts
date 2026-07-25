@@ -113,6 +113,7 @@ export const update = mutation({
     endTime: v.string(),
     callTime: v.string(),
     location: v.string(),
+    actorId: v.optional(v.string()),
     actorName: v.string(),
     characterName: v.string(),
     sceneDetails: v.string(),

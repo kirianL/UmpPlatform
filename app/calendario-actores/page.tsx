@@ -241,6 +241,7 @@ export default function CalendarioActoresPage() {
       title,
       actorName,
       characterName: form.characterName.trim() || matchedActor?.characterName || "Personaje General",
+      actorId: matchedActor?._id,
       shareToken,
     };
 
@@ -252,7 +253,6 @@ export default function CalendarioActoresPage() {
     } else {
       createSchedule({
         ...payload,
-        actorId: matchedActor?._id,
       });
     }
     setModalOpen(false);
@@ -263,13 +263,17 @@ export default function CalendarioActoresPage() {
   }
 
   function getActorShareToken(ev: any): string {
-    if (ev.shareToken && ev.shareToken !== "general") {
-      return ev.shareToken;
+    if (ev.actorId) {
+      const matched = actors.find((a) => a._id === ev.actorId);
+      if (matched) return matched.shareToken || getSlug(matched.name);
     }
     if (ev.actorName && ev.actorName !== "Elenco General") {
       const matched = actors.find((a) => a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim());
-      if (matched?.shareToken) return matched.shareToken;
+      if (matched) return matched.shareToken || getSlug(matched.name);
       return getSlug(ev.actorName);
+    }
+    if (ev.shareToken && ev.shareToken !== "general") {
+      return ev.shareToken;
     }
     return "general";
   }
@@ -277,10 +281,15 @@ export default function CalendarioActoresPage() {
   function copyPublicLink(target: string) {
     let slug = getSlug(target);
     const matched = actors.find(
-      (a) => a.name.toLowerCase().trim() === target.toLowerCase().trim() || a.shareToken === target
+      (a) =>
+        a.name.toLowerCase().trim() === target.toLowerCase().trim() ||
+        a.shareToken === target ||
+        a._id === target
     );
-    if (matched?.shareToken) {
-      slug = matched.shareToken;
+    if (matched) {
+      slug = matched.shareToken || getSlug(matched.name);
+    } else if (target && target !== "all" && target !== "general") {
+      slug = getSlug(target);
     }
 
     const url = `${window.location.origin}/calendario-actores/public/${slug}`;
