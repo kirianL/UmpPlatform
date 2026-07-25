@@ -237,7 +237,7 @@ export default function CalendarioActoresPage() {
         getSlug(a.name) === targetSlug ||
         a.name.toLowerCase().trim() === actorName.toLowerCase().trim()
     );
-    const shareToken = matchedActor?.shareToken || targetSlug;
+    const shareToken = targetSlug;
 
     const payload = {
       ...form,
@@ -269,7 +269,7 @@ export default function CalendarioActoresPage() {
     // 1. Match by actorId if valid
     if (ev.actorId) {
       const matched = actors.find((a) => a._id === ev.actorId);
-      if (matched) return matched.shareToken || getSlug(matched.name);
+      if (matched) return getSlug(matched.name);
     }
 
     // 2. Match by actorName using normalized slug to ignore parentheses like "(El Dealer)"
@@ -280,7 +280,7 @@ export default function CalendarioActoresPage() {
           getSlug(a.name) === targetSlug ||
           a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim()
       );
-      if (matched) return matched.shareToken || targetSlug;
+      if (matched) return getSlug(matched.name);
       return targetSlug;
     }
 
@@ -305,7 +305,7 @@ export default function CalendarioActoresPage() {
         a._id === target
     );
 
-    const slug = matched?.shareToken || targetSlug;
+    const slug = matched ? getSlug(matched.name) : targetSlug;
     const url = `${window.location.origin}/calendario-actores/public/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedToken(slug);

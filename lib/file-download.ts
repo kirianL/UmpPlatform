@@ -71,13 +71,16 @@ export function usePdfBlobUrl(fileUrl?: string): string | null {
 export async function downloadFile(
   fileUrl?: string,
   fileName = "guion.pdf",
-  fallbackContent?: string
+  fallbackContent?: string,
 ): Promise<void> {
   if (!fileUrl && !fallbackContent) return;
 
   const sanitizeName = (name: string) => {
     let clean = name.trim();
-    if (!clean.toLowerCase().endsWith(".pdf") && !clean.toLowerCase().endsWith(".txt")) {
+    if (
+      !clean.toLowerCase().endsWith(".pdf") &&
+      !clean.toLowerCase().endsWith(".txt")
+    ) {
       clean += ".pdf";
     }
     return clean;
@@ -91,16 +94,26 @@ export async function downloadFile(
     // 1. Convert Data URL to Blob
     if (fileUrl && fileUrl.startsWith("data:")) {
       blob = dataUrlToBlob(fileUrl);
-    } else if (fileUrl && (fileUrl.startsWith("http://") || fileUrl.startsWith("https://") || fileUrl.startsWith("blob:"))) {
+    } else if (
+      fileUrl &&
+      (fileUrl.startsWith("http://") ||
+        fileUrl.startsWith("https://") ||
+        fileUrl.startsWith("blob:"))
+    ) {
       try {
         const res = await fetch(fileUrl);
         blob = await res.blob();
       } catch (fetchErr) {
-        console.warn("Could not fetch remote fileUrl for blob creation:", fetchErr);
+        console.warn(
+          "Could not fetch remote fileUrl for blob creation:",
+          fetchErr,
+        );
       }
     } else if (fallbackContent) {
       const isPdfName = finalName.toLowerCase().endsWith(".pdf");
-      const mimeType = isPdfName ? "application/pdf" : "text/plain;charset=utf-8";
+      const mimeType = isPdfName
+        ? "application/pdf"
+        : "text/plain;charset=utf-8";
       blob = new Blob([fallbackContent], { type: mimeType });
     }
 
@@ -179,4 +192,3 @@ export async function downloadFile(
     }
   }
 }
-

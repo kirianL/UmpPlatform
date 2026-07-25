@@ -100,7 +100,8 @@ export const create = mutation({
     shareToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("actorSchedules", args);
+    const shareToken = toSlug(args.actorName) || args.shareToken || "general";
+    return await ctx.db.insert("actorSchedules", { ...args, shareToken });
   },
 });
 
@@ -126,7 +127,8 @@ export const update = mutation({
     shareToken: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
-    await ctx.db.patch(id, args);
+    const shareToken = toSlug(args.actorName) || args.shareToken || "general";
+    await ctx.db.patch(id, { ...args, shareToken });
   },
 });
 
