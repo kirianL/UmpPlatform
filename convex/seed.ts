@@ -384,7 +384,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       email: "esteban.castro@actores.cr",
       status: "active" as const,
       episodeCount: 5,
-      shareToken: "esteban-castro-7731",
+      shareToken: "esteban-castro",
     });
 
     // Seed actorSchedules

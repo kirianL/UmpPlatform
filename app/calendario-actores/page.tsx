@@ -231,10 +231,13 @@ export default function CalendarioActoresPage() {
   function handleSave() {
     const title = form.title.trim() || "Llamado a Rodaje";
     const actorName = form.actorName.trim() || "Elenco General";
+    const targetSlug = getSlug(actorName);
     const matchedActor = actors.find(
-      (a) => a.name.toLowerCase().trim() === actorName.toLowerCase().trim()
+      (a) =>
+        getSlug(a.name) === targetSlug ||
+        a.name.toLowerCase().trim() === actorName.toLowerCase().trim()
     );
-    const shareToken = matchedActor?.shareToken || getSlug(actorName);
+    const shareToken = matchedActor?.shareToken || targetSlug;
 
     const payload = {
       ...form,
@@ -263,35 +266,46 @@ export default function CalendarioActoresPage() {
   }
 
   function getActorShareToken(ev: any): string {
+    // 1. Match by actorId if valid
     if (ev.actorId) {
       const matched = actors.find((a) => a._id === ev.actorId);
       if (matched) return matched.shareToken || getSlug(matched.name);
     }
+
+    // 2. Match by actorName using normalized slug to ignore parentheses like "(El Dealer)"
     if (ev.actorName && ev.actorName !== "Elenco General") {
-      const matched = actors.find((a) => a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim());
-      if (matched) return matched.shareToken || getSlug(matched.name);
-      return getSlug(ev.actorName);
+      const targetSlug = getSlug(ev.actorName);
+      const matched = actors.find(
+        (a) =>
+          getSlug(a.name) === targetSlug ||
+          a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim()
+      );
+      if (matched) return matched.shareToken || targetSlug;
+      return targetSlug;
     }
-    if (ev.shareToken && ev.shareToken !== "general") {
-      return ev.shareToken;
-    }
+
     return "general";
   }
 
   function copyPublicLink(target: string) {
-    let slug = getSlug(target);
+    const targetSlug = getSlug(target);
+    if (targetSlug === "general") {
+      const url = `${window.location.origin}/calendario-actores/public/general`;
+      navigator.clipboard.writeText(url);
+      setCopiedToken("general");
+      setTimeout(() => setCopiedToken(null), 2500);
+      return;
+    }
+
     const matched = actors.find(
       (a) =>
+        getSlug(a.name) === targetSlug ||
         a.name.toLowerCase().trim() === target.toLowerCase().trim() ||
         a.shareToken === target ||
         a._id === target
     );
-    if (matched) {
-      slug = matched.shareToken || getSlug(matched.name);
-    } else if (target && target !== "all" && target !== "general") {
-      slug = getSlug(target);
-    }
 
+    const slug = matched?.shareToken || targetSlug;
     const url = `${window.location.origin}/calendario-actores/public/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedToken(slug);
