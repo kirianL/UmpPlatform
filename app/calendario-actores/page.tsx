@@ -764,7 +764,7 @@ export default function CalendarioActoresPage() {
 
               {/* Actor Rows */}
               {actors.map((actor) => {
-                const token = getSlug(actor.name) || actor.shareToken;
+                const token = getSlug(actor.name) || actor.shareToken || "general";
                 const isCopied = copiedToken === token;
                 return (
                   <div

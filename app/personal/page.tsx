@@ -230,7 +230,7 @@ export default function PersonalPage() {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\(.*?\)/g, "")
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || actorObj?.shareToken;
+      .replace(/^-+|-+$/g, "") || actorObj?.shareToken || "general";
     const url = `${window.location.origin}/calendario-actores/public/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedLinkActorId(id);
