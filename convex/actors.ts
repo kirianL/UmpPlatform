@@ -43,72 +43,46 @@ export const getByShareToken = query({
     if (!args.shareToken) return null;
     const token = args.shareToken.trim();
 
-    // 1. Exact match by shareToken index
-    const exact = await ctx.db
-      .query("actors")
-      .withIndex("by_shareToken", (q) => q.eq("shareToken", token))
-      .first();
-    if (exact) return exact;
+    const allActors = await ctx.db.query("actors").collect();
+
+    // 1. Exact match by shareToken or _id
+    let actor = allActors.find((a) => a.shareToken === token || a._id === token);
+    if (actor) return actor;
 
     const normalizedInput = toSlug(token);
     if (!normalizedInput) return null;
 
-    const allActors = await ctx.db.query("actors").collect();
+    // 2. Exact match by name slug in actors table
+    actor = allActors.find((a) => toSlug(a.name) === normalizedInput);
+    if (actor) return actor;
 
-    // 2. Match by name slug in actors table
-    const exactSlug = allActors.find((a) => {
-      const slug = toSlug(a.name);
-      return slug === normalizedInput || slug.includes(normalizedInput) || normalizedInput.includes(slug);
-    });
-    if (exactSlug) return exactSlug;
-
-    // 3. Match via actorSchedules table by shareToken
-    const schedules = await ctx.db
-      .query("actorSchedules")
-      .withIndex("by_shareToken", (q) => q.eq("shareToken", token))
-      .collect();
-
-    if (schedules.length > 0) {
-      const rawName = schedules[0].actorName;
-      const { name, characterName } = extractNameAndCharacter(rawName, schedules[0].characterName);
-      const matchedByName = allActors.find((a) => 
-        toSlug(a.name) === toSlug(name)
-      );
-      if (matchedByName) return matchedByName;
-
-      return {
-        _id: "synthetic-" + token as any,
-        _creationTime: Date.now(),
-        name,
-        characterName,
-        characterBio: "Elenco de producción registrado para llamados de rodaje.",
-        photoUrl: "",
-        phone: "",
-        email: "",
-        status: "active" as const,
-        episodeCount: schedules.length,
-        shareToken: token,
-      };
-    }
-
-    // 4. Fallback: Check if token matches actorName slug in actorSchedules
+    // 3. Match via actorSchedules table by shareToken or actorName slug
     const allSchedules = await ctx.db.query("actorSchedules").collect();
     const matchingSchedules = allSchedules.filter((s) => {
-      const slug = toSlug(s.actorName);
-      return slug === normalizedInput || (slug.length > 3 && (slug.includes(normalizedInput) || normalizedInput.includes(slug)));
+      if (s.shareToken === token) return true;
+      const sSlug = toSlug(s.actorName);
+      return sSlug === normalizedInput;
     });
 
     if (matchingSchedules.length > 0) {
+      // Check if any schedule is linked to an existing actor by actorId
+      for (const s of matchingSchedules) {
+        if (s.actorId) {
+          const linkedActor = allActors.find((a) => a._id === s.actorId);
+          if (linkedActor) return linkedActor;
+        }
+      }
+
+      // Check if schedule actorName matches an actor in allActors by slug
       const rawName = matchingSchedules[0].actorName;
       const { name, characterName } = extractNameAndCharacter(rawName, matchingSchedules[0].characterName);
 
-      const matchedByName = allActors.find((a) => 
-        toSlug(a.name) === toSlug(name)
-      );
+      const matchedByName = allActors.find((a) => toSlug(a.name) === toSlug(name));
       if (matchedByName) return matchedByName;
 
+      // Synthetic fallback if actor record does not exist in actors table
       return {
-        _id: "synthetic-" + token as any,
+        _id: ("synthetic-" + token) as any,
         _creationTime: Date.now(),
         name,
         characterName,

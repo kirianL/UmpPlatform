@@ -42,11 +42,12 @@ export const getByShareToken = query({
 
     const normalizedInput = toSlug(token);
     const allActors = await ctx.db.query("actors").collect();
+    
+    // Strict actor matching
     const matchedActor = allActors.find((a) => {
       if (a.shareToken === token || a._id === token) return true;
       if (!normalizedInput) return false;
-      const slug = toSlug(a.name);
-      return slug === normalizedInput || (slug.length > 3 && (slug.includes(normalizedInput) || normalizedInput.includes(slug)));
+      return toSlug(a.name) === normalizedInput;
     });
 
     const actorSlug = matchedActor ? toSlug(matchedActor.name) : normalizedInput;
@@ -63,8 +64,6 @@ export const getByShareToken = query({
       if (!sSlug) return false;
       if (normalizedInput && sSlug === normalizedInput) return true;
       if (actorSlug && sSlug === actorSlug) return true;
-      if (normalizedInput && normalizedInput.length > 3 && (sSlug.includes(normalizedInput) || normalizedInput.includes(sSlug))) return true;
-      if (actorSlug && actorSlug.length > 3 && (sSlug.includes(actorSlug) || actorSlug.includes(sSlug))) return true;
 
       return false;
     });
@@ -100,7 +99,7 @@ export const create = mutation({
     shareToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const shareToken = toSlug(args.actorName) || args.shareToken || "general";
+    const shareToken = args.shareToken || toSlug(args.actorName) || "general";
     return await ctx.db.insert("actorSchedules", { ...args, shareToken });
   },
 });
@@ -127,7 +126,7 @@ export const update = mutation({
     shareToken: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
-    const shareToken = toSlug(args.actorName) || args.shareToken || "general";
+    const shareToken = args.shareToken || toSlug(args.actorName) || "general";
     await ctx.db.patch(id, { ...args, shareToken });
   },
 });

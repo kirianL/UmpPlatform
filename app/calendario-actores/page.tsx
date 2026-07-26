@@ -234,10 +234,11 @@ export default function CalendarioActoresPage() {
     const targetSlug = getSlug(actorName);
     const matchedActor = actors.find(
       (a) =>
+        a._id === (form as any).actorId ||
         getSlug(a.name) === targetSlug ||
         a.name.toLowerCase().trim() === actorName.toLowerCase().trim()
     );
-    const shareToken = targetSlug;
+    const shareToken = matchedActor?.shareToken || targetSlug;
 
     const payload = {
       ...form,

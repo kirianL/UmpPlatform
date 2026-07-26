@@ -11,6 +11,8 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Logo from "@/components/Logo";
 
+import { useMemo, useState } from "react";
+
 const STATUS_BADGE = {
   scheduled: { label: "Programado", variant: "accent" as const },
   filmed: { label: "Grabado", variant: "green" as const },
@@ -53,6 +55,36 @@ function format12Hour(timeStr?: string): string {
 export default function PublicActorScheduleClient({ token }: { token: string }) {
   const schedules = useQuery(api.actorSchedules.getByShareToken, { shareToken: token });
   const actor = useQuery(api.actors.getByShareToken, { shareToken: token });
+
+  const [filterTab, setFilterTab] = useState<"upcoming" | "history" | "all">("upcoming");
+
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const upcomingSchedules = useMemo(() => {
+    if (!schedules) return [];
+    return schedules.filter((s) => s.date >= todayStr && s.status !== "filmed" && s.status !== "cancelled");
+  }, [schedules, todayStr]);
+
+  const historySchedules = useMemo(() => {
+    if (!schedules) return [];
+    return schedules.filter((s) => s.date < todayStr || s.status === "filmed" || s.status === "cancelled");
+  }, [schedules, todayStr]);
+
+  const displayedSchedules = useMemo(() => {
+    if (!schedules) return [];
+    if (filterTab === "upcoming") {
+      // If no upcoming events, fallback to all so actor is not confused
+      return upcomingSchedules.length > 0 ? upcomingSchedules : schedules;
+    }
+    if (filterTab === "history") return historySchedules;
+    return schedules;
+  }, [filterTab, upcomingSchedules, historySchedules, schedules]);
 
   if (schedules === undefined) {
     return (
@@ -141,17 +173,53 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
           </div>
         )}
 
-        {/* Call Sheet Header */}
-        <div className="flex items-center justify-between px-1">
+        {/* Call Sheet Header & Filter Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 border-b border-grayscale-3/60 pb-3 dark:border-grayscale-4/60">
           <h2 className="font-mono text-xs sm:text-sm font-bold uppercase text-grayscale-12 flex items-center gap-2">
             <CalendarCheckIcon size={18} className="text-accent-9" />
             Llamados de Rodaje
           </h2>
+
+          <div className="flex items-center gap-1 bg-grayscale-2 p-1 rounded-xl border border-grayscale-3 dark:bg-grayscale-3/60 dark:border-grayscale-4">
+            <button
+              type="button"
+              onClick={() => setFilterTab("upcoming")}
+              className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
+                filterTab === "upcoming"
+                  ? "bg-grayscale-1 text-accent-11 shadow-sm dark:bg-grayscale-2 dark:text-accent-9"
+                  : "text-grayscale-10 hover:text-grayscale-12"
+              }`}
+            >
+              Próximos ({upcomingSchedules.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTab("history")}
+              className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
+                filterTab === "history"
+                  ? "bg-grayscale-1 text-accent-11 shadow-sm dark:bg-grayscale-2 dark:text-accent-9"
+                  : "text-grayscale-10 hover:text-grayscale-12"
+              }`}
+            >
+              Historial ({historySchedules.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTab("all")}
+              className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
+                filterTab === "all"
+                  ? "bg-grayscale-1 text-accent-11 shadow-sm dark:bg-grayscale-2 dark:text-accent-9"
+                  : "text-grayscale-10 hover:text-grayscale-12"
+              }`}
+            >
+              Todos ({schedules.length})
+            </button>
+          </div>
         </div>
 
         {/* List of Shooting Schedules */}
         <div className="flex flex-col gap-4">
-          {schedules.map((ev) => (
+          {displayedSchedules.map((ev) => (
             <div
               key={ev._id}
               className="rounded-2xl border border-grayscale-3 bg-grayscale-1 p-4 sm:p-5 shadow-sm flex flex-col gap-3.5 dark:border-grayscale-4/80 dark:bg-grayscale-2"
