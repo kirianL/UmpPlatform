@@ -223,12 +223,14 @@ export default function PersonalPage() {
 
   function copyActorPublicLink(actorName: string, id: string) {
     const actorObj = actors.find((a) => a._id === id || a.name === actorName);
-    const slug = actorObj?.shareToken || actorName
+    const targetName = actorObj?.name || actorName;
+    const slug = targetName
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\(.*?\)/g, "")
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/^-+|-+$/g, "") || actorObj?.shareToken;
     const url = `${window.location.origin}/calendario-actores/public/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedLinkActorId(id);
