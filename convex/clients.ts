@@ -12,13 +12,19 @@ export const create = mutation({
   args: {
     name: v.string(),
     company: v.string(),
+    address: v.optional(v.string()),
     phone: v.string(),
     email: v.string(),
+    type: v.optional(v.union(v.literal("activo"), v.literal("potencial"))),
     lastInteraction: v.string(),
     projectCount: v.number(),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("clients", args);
+    return await ctx.db.insert("clients", {
+      ...args,
+      type: args.type ?? "activo",
+    });
   },
 });
 
@@ -27,13 +33,26 @@ export const update = mutation({
     id: v.id("clients"),
     name: v.string(),
     company: v.string(),
+    address: v.optional(v.string()),
     phone: v.string(),
     email: v.string(),
+    type: v.optional(v.union(v.literal("activo"), v.literal("potencial"))),
     lastInteraction: v.string(),
     projectCount: v.number(),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);
+  },
+});
+
+export const updateType = mutation({
+  args: {
+    id: v.id("clients"),
+    type: v.union(v.literal("activo"), v.literal("potencial")),
+  },
+  handler: async (ctx, { id, type }) => {
+    await ctx.db.patch(id, { type });
   },
 });
 

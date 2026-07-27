@@ -20,15 +20,38 @@ export default defineSchema({
     type: v.union(v.literal("income"), v.literal("expense")),
     status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
     local: v.optional(v.string()),
+    clientId: v.optional(v.string()),
   }),
   clients: defineTable({
     name: v.string(),
     company: v.string(),
+    address: v.optional(v.string()),
     phone: v.string(),
     email: v.string(),
+    type: v.optional(v.union(v.literal("activo"), v.literal("potencial"))),
     lastInteraction: v.string(), // ISO format
     projectCount: v.number(),
+    notes: v.optional(v.string()),
   }),
+  clientServices: defineTable({
+    clientId: v.id("clients"),
+    serviceName: v.string(),
+    amount: v.number(),
+    paymentStatus: v.union(v.literal("pagado"), v.literal("pendiente"), v.literal("parcial"), v.literal("sin_pago")),
+    contractDate: v.string(),
+  }).index("by_clientId", ["clientId"]),
+  clientPayments: defineTable({
+    clientId: v.id("clients"),
+    serviceId: v.optional(v.id("clientServices")),
+    transactionId: v.optional(v.id("transactions")),
+    amount: v.number(),
+    date: v.string(),
+    concept: v.string(),
+    status: v.union(v.literal("paid"), v.literal("pending")),
+  })
+    .index("by_clientId", ["clientId"])
+    .index("by_serviceId", ["serviceId"])
+    .index("by_transactionId", ["transactionId"]),
   equipment: defineTable({
     name: v.string(),
     serialNumber: v.string(),

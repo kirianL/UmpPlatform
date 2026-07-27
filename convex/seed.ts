@@ -229,10 +229,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed clients
     const clients = [
-      { name: "Laura Sánchez", company: "Streaming MX", phone: "555-0199", email: "laura@streamingmx.com", lastInteraction: "2026-06-25", projectCount: 3 },
-      { name: "Fernando Reyes", company: "Lumina Brands", phone: "555-0188", email: "fernando@lumina.mx", lastInteraction: "2026-06-22", projectCount: 2 },
-      { name: "Patricia Gómez", company: "Canal 7 Media", phone: "555-0177", email: "patricia@canal7.tv", lastInteraction: "2026-06-28", projectCount: 5 },
-      { name: "Andrés Morales", company: "Reyes Distribución", phone: "555-0166", email: "andres@reyesdist.com", lastInteraction: "2026-06-18", projectCount: 1 },
+      { name: "Laura Sánchez", company: "Streaming MX", address: "Av. Reforma #120, CDMX", phone: "555-0199", email: "laura@streamingmx.com", type: "activo" as const, lastInteraction: "2026-06-25", projectCount: 3 },
+      { name: "Fernando Reyes", company: "Lumina Brands", address: "Calle 10 Nte #45, Monterrey", phone: "555-0188", email: "fernando@lumina.mx", type: "activo" as const, lastInteraction: "2026-06-22", projectCount: 2 },
+      { name: "Patricia Gómez", company: "Canal 7 Media", address: "Blvd. Televisión #700, San José", phone: "555-0177", email: "patricia@canal7.tv", type: "activo" as const, lastInteraction: "2026-06-28", projectCount: 5 },
+      { name: "Andrés Morales", company: "Reyes Distribución", address: "Zona Industrial Lote 4, Alajuela", phone: "555-0166", email: "andres@reyesdist.com", type: "potencial" as const, lastInteraction: "2026-06-18", projectCount: 1 },
     ];
     for (const c of clients) {
       await ctx.db.insert("clients", c);

@@ -28,11 +28,10 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 function formatCurrency(n: number): string {
-  return new Intl.NumberFormat("es-CR", {
-    style: "currency",
-    currency: "CRC",
+  const formatted = new Intl.NumberFormat("es-CR", {
     maximumFractionDigits: 0,
   }).format(n);
+  return `₡ ${formatted}`;
 }
 
 function compressImage(file: File, maxWidth = 600, maxHeight = 800, quality = 0.82): Promise<string> {
@@ -98,8 +97,6 @@ const EMPTY_ACTOR = {
   status: "active" as const,
   episodeCount: 0,
 };
-
-
 
 export default function PersonalPage() {
   // Employees (Staff)
@@ -170,8 +167,8 @@ export default function PersonalPage() {
     setEmpModalOpen(true);
   }
 
-  function handleSaveEmp() {
-    const name = empForm.name.trim() || "Empleado Sin Nombre";
+  async function handleSaveEmp() {
+    const name = empForm.name.trim() || "Empleado sin nombre";
     const initials = name
       .split(" ")
       .map((n) => n[0])
@@ -182,17 +179,21 @@ export default function PersonalPage() {
     const payload = {
       ...empForm,
       name,
-      role: empForm.role.trim() || "Sin Rol Especificado",
+      role: empForm.role.trim() || "Sin rol especificado",
       avatarInitials: initials,
     };
 
-    if (editingEmpId) {
-      updateEmployee({
-        id: editingEmpId as any,
-        ...payload,
-      });
-    } else {
-      createEmployee(payload);
+    try {
+      if (editingEmpId && !editingEmpId.startsWith("synthetic-")) {
+        await updateEmployee({
+          id: editingEmpId as any,
+          ...payload,
+        });
+      } else {
+        await createEmployee(payload);
+      }
+    } catch (err) {
+      console.error("Error al guardar empleado:", err);
     }
     setEmpModalOpen(false);
   }
@@ -237,8 +238,8 @@ export default function PersonalPage() {
     setTimeout(() => setCopiedLinkActorId(null), 2500);
   }
 
-  function handleSaveActor() {
-    const actorName = actorForm.name.trim() || "Actor Sin Nombre";
+  async function handleSaveActor() {
+    const actorName = actorForm.name.trim() || "Actor sin nombre";
     const shareToken = actorName
       .toLowerCase()
       .normalize("NFD")
@@ -249,17 +250,21 @@ export default function PersonalPage() {
     const payload = {
       ...actorForm,
       name: actorName,
-      characterName: actorForm.characterName.trim() || "Personaje Sin Nombre",
+      characterName: actorForm.characterName.trim() || "Personaje sin nombre",
       shareToken,
     };
 
-    if (editingActorId) {
-      updateActor({
-        id: editingActorId as any,
-        ...payload,
-      });
-    } else {
-      createActor(payload);
+    try {
+      if (editingActorId && !editingActorId.startsWith("synthetic-")) {
+        await updateActor({
+          id: editingActorId as any,
+          ...payload,
+        });
+      } else {
+        await createActor(payload);
+      }
+    } catch (err) {
+      console.error("Error al guardar actor:", err);
     }
     setActorModalOpen(false);
   }
@@ -280,9 +285,9 @@ export default function PersonalPage() {
       header: "Contacto",
       className: "hidden sm:table-cell",
       render: (e) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-mono text-grayscale-11">{e.email}</span>
-          <span className="text-xs text-grayscale-9">{e.phone}</span>
+        <div className="flex flex-col text-xs">
+          <span className="text-grayscale-11 font-mono">{e.email}</span>
+          <span className="text-grayscale-9">{e.phone}</span>
         </div>
       ),
     },
@@ -290,16 +295,20 @@ export default function PersonalPage() {
       key: "salary",
       header: "Salario",
       className: "hidden md:table-cell",
-      render: (e) => <span className="text-sm font-medium text-grayscale-12">{formatCurrency(e.salary)}</span>,
+      render: (e) => (
+        <span className="font-mono text-xs font-bold text-grayscale-12">
+          {formatCurrency(e.salary)}
+        </span>
+      ),
     },
     {
-      key: "episodes",
+      key: "episodeCount",
       header: "Capítulos",
       className: "hidden md:table-cell",
       render: (e) => (
-        <div className="flex items-center gap-1.5 font-mono text-xs text-grayscale-11">
-          <FilmStripIcon size={14} className="text-grayscale-8" />
-          <span>{e.episodeCount}</span>
+        <div className="flex items-center gap-1 font-mono text-xs text-grayscale-11 font-bold">
+          <FilmStripIcon size={14} className="text-sky-500" />
+          <span>{e.episodeCount} cap.</span>
         </div>
       ),
     },
@@ -317,18 +326,20 @@ export default function PersonalPage() {
       header: "",
       className: "w-20",
       render: (e) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-end gap-1">
           <button
             type="button"
+            title="Editar empleado"
             onClick={() => openEditEmp(e)}
-            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-11"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-11 transition-colors"
           >
             <PencilSimpleIcon size={14} />
           </button>
           <button
             type="button"
+            title="Eliminar empleado"
             onClick={() => removeEmployee({ id: e._id })}
-            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 hover:bg-red-3 hover:text-red-11"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-red-3 hover:text-red-11 transition-colors"
           >
             <TrashIcon size={14} />
           </button>
@@ -343,69 +354,72 @@ export default function PersonalPage() {
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-            Personal
+            Gestión de personal
           </h1>
           <p className="text-sm text-grayscale-10">
-            Gestión del equipo de producción y elenco de actores
+            Administra el equipo técnico de producción, actores del elenco, fichas de personaje y enlaces públicos de llamados.
           </p>
         </div>
 
-        {/* Stats */}
+        {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatCard
-            label="Equipo de Producción"
-            value={employees.length}
-            detail={`${activeEmpCount} miembros activos`}
+            label="Equipo de producción"
+            value={activeEmpCount}
+            detail={`${employees.length} miembros registrados`}
             icon={<UsersIcon size={18} weight="fill" />}
             index={0}
           />
           <StatCard
-            label="Elenco de Actores"
-            value={actors.length}
-            detail={`${activeActorCount} actores activos`}
+            label="Elenco y personajes"
+            value={activeActorCount}
+            detail={`${actors.length} actores registrados`}
             icon={<UserCheckIcon size={18} weight="fill" />}
             index={1}
           />
           <StatCard
-            label="Participación Total"
+            label="Llamados a rodaje"
             value={totalEpisodes}
-            detail="Capítulos acumulados"
+            detail="Participaciones acumuladas"
             icon={<FilmStripIcon size={18} weight="fill" />}
             index={2}
           />
         </div>
 
-        {/* Tabs System (Igual a la línea de Finanzas) */}
+        {/* Tabs System */}
         <Tabs.Root defaultValue="staff" className="w-full flex flex-col gap-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
               <Tabs.Tab value="staff" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
-                Equipo de Producción ({employees.length})
+                Equipo de producción ({employees.length})
               </Tabs.Tab>
               <Tabs.Tab value="actors" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
-                Elenco & Personajes ({actors.length})
+                Elenco y personajes ({actors.length})
               </Tabs.Tab>
               <Tabs.Indicator />
             </Tabs.List>
           </div>
 
-          {/* Tab 1: Equipo de Producción */}
+          {/* Tab Panel 1: Equipo de producción */}
           <Tabs.Panel value="staff">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative">
-                  <MagnifyingGlassIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8" />
+                  <MagnifyingGlassIcon
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+                  />
                   <input
                     type="text"
-                    placeholder="Buscar por nombre o puesto..."
+                    placeholder="Buscar personal o puesto..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-72"
+                    className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-80"
                   />
                 </div>
                 <Button variant="primary" className="text-xs" onClick={openCreateEmp}>
                   <PlusIcon size={16} weight="bold" />
-                  Agregar Empleado
+                  Agregar empleado de producción
                 </Button>
               </div>
 
@@ -416,13 +430,13 @@ export default function PersonalPage() {
                 emptyState={
                   <EmptyState
                     icon={<UsersIcon size={40} weight="duotone" />}
-                    title="Sin empleados"
-                    description={search ? "Sin resultados para la búsqueda." : "No hay empleados registrados."}
+                    title="Sin personal de producción"
+                    description={search ? "Sin resultados para la búsqueda." : "Aún no has agregado miembros al equipo."}
                     action={
                       !search && (
                         <Button variant="primary" className="text-xs" onClick={openCreateEmp}>
                           <PlusIcon size={16} weight="bold" />
-                          Agregar Empleado
+                          Agregar primer empleado
                         </Button>
                       )
                     }
@@ -432,12 +446,15 @@ export default function PersonalPage() {
             </div>
           </Tabs.Panel>
 
-          {/* Tab 2: Elenco & Personajes (Tarjetas Minimalistas Modernas con Foto Destacada) */}
+          {/* Tab Panel 2: Elenco y personajes */}
           <Tabs.Panel value="actors">
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative">
-                  <MagnifyingGlassIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8" />
+                  <MagnifyingGlassIcon
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+                  />
                   <input
                     type="text"
                     placeholder="Buscar actor, personaje o biografía..."
@@ -448,19 +465,19 @@ export default function PersonalPage() {
                 </div>
                 <Button variant="primary" className="text-xs" onClick={openCreateActor}>
                   <PlusIcon size={16} weight="bold" />
-                  Agregar Actor / Personaje
+                  Agregar actor / personaje
                 </Button>
               </div>
 
-              {/* Grid de Tarjetas de Elenco a 2 Columnas en Móviles y 3-4 en Pantallas Grandes */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+              {/* Grid de Tarjetas de Elenco */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filteredActors.map((actor) => (
                   <div
                     key={actor._id}
-                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-grayscale-3 bg-grayscale-1 p-2.5 sm:p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent-6 hover:shadow-xl dark:border-grayscale-4/80 dark:bg-grayscale-2"
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-grayscale-3 bg-grayscale-1 p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent-6 hover:shadow-lg dark:border-grayscale-4/80 dark:bg-grayscale-2"
                   >
-                    <div className="flex flex-col gap-2.5 sm:gap-3">
-                      {/* Vertical Portrait Photo Frame (Clean 3:4 aspect ratio) */}
+                    <div className="flex flex-col gap-3">
+                      {/* Vertical Portrait Photo Frame */}
                       <div className="relative w-full aspect-[3/4] overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3/40 border border-grayscale-3/60 dark:border-grayscale-4/60 shadow-inner">
                         {actor.photoUrl ? (
                           <img
@@ -469,7 +486,7 @@ export default function PersonalPage() {
                             className="size-full object-cover object-center"
                           />
                         ) : (
-                          <div className="flex size-full items-center justify-center font-mono text-xl sm:text-2xl font-bold text-accent-11 bg-accent-3">
+                          <div className="flex size-full items-center justify-center font-mono text-2xl font-bold text-accent-11 bg-accent-3">
                             {actor.characterName.slice(0, 2).toUpperCase()}
                           </div>
                         )}
@@ -477,47 +494,48 @@ export default function PersonalPage() {
 
                       {/* Character & Actor Name Block */}
                       <div className="flex flex-col gap-0.5 px-0.5">
-                        <span className="font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest text-accent-10 dark:text-accent-9 truncate">
-                          {actor.characterName}
-                        </span>
-                        <h3 className="text-xs sm:text-base font-extrabold tracking-tight text-grayscale-12 dark:text-grayscale-12 truncate">
+                        <div className="flex items-center justify-between gap-1.5 min-w-0">
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent-10 dark:text-accent-9 truncate">
+                            {actor.characterName}
+                          </span>
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-grayscale-11 bg-grayscale-2 dark:bg-grayscale-3/80 px-1.5 py-0.5 rounded border border-grayscale-3 dark:border-grayscale-4/80 shrink-0">
+                            <FilmStripIcon size={11} className="text-sky-500 shrink-0" />
+                            <span>{actor.episodeCount} cap.</span>
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-extrabold tracking-tight text-grayscale-12 truncate">
                           {actor.name}
                         </h3>
                         {actor.characterBio ? (
-                          <p className="text-[11px] sm:text-xs text-grayscale-10 dark:text-grayscale-11 leading-snug line-clamp-2 mt-0.5 sm:mt-1">
+                          <p className="text-xs text-grayscale-10 dark:text-grayscale-11 leading-snug line-clamp-2 mt-0.5">
                             {actor.characterBio}
                           </p>
                         ) : (
-                          <p className="text-[11px] sm:text-xs text-grayscale-8 italic mt-0.5 sm:mt-1">
+                          <p className="text-xs text-grayscale-8 italic mt-0.5">
                             Sin descripción.
                           </p>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Footer: Metadata & Action Buttons */}
-                    <div className="mt-2.5 sm:mt-3 flex items-center justify-between border-t border-grayscale-3 pt-2 sm:pt-3 dark:border-grayscale-4/60">
-                      <div className="flex items-center gap-1 font-mono text-[10px] sm:text-xs text-grayscale-12 dark:text-grayscale-11 font-bold">
-                        <FilmStripIcon size={14} className="text-sky-500 dark:text-sky-400 shrink-0" />
-                        <span>{actor.episodeCount} <span className="hidden sm:inline">cap.</span></span>
-                      </div>
-
-                      <div className="flex items-center gap-1 sm:gap-1.5">
+                    {/* Card Footer */}
+                    <div className="mt-3 flex items-center justify-between border-t border-grayscale-3 pt-2.5 gap-1.5 dark:border-grayscale-4/60">
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => copyActorPublicLink(actor.name, actor._id)}
-                          className="inline-flex items-center gap-1 rounded-lg sm:rounded-xl border border-accent-6/40 bg-accent-2/10 px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/30 transition-all cursor-pointer"
-                          title="Copiar Enlace Público de Agenda"
+                          className="inline-flex items-center gap-1 rounded-lg border border-accent-6/40 bg-accent-2/10 px-2 py-1 text-[11px] font-mono font-bold text-accent-11 hover:bg-accent-2/30 transition-all cursor-pointer"
+                          title="Copiar enlace público de agenda"
                         >
                           {copiedLinkActorId === actor._id ? (
                             <>
                               <CheckCircleIcon size={13} className="text-green-9 shrink-0" />
-                              <span className="hidden sm:inline">¡Copiado!</span>
+                              <span>Copiado</span>
                             </>
                           ) : (
                             <>
                               <ShareNetworkIcon size={13} className="text-accent-9 shrink-0" />
-                              <span className="hidden sm:inline">Enlace</span>
+                              <span>Enlace</span>
                             </>
                           )}
                         </button>
@@ -528,29 +546,31 @@ export default function PersonalPage() {
                             setSelectedFichaActor(actor);
                             setFichaModalOpen(true);
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg sm:rounded-xl border border-grayscale-3 bg-grayscale-2 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-mono font-bold text-grayscale-12 hover:border-accent-6 hover:text-accent-11 transition-all cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:text-grayscale-12 dark:hover:bg-grayscale-4 dark:hover:border-accent-6"
-                          title="Ver Ficha Completa del Personaje"
+                          className="inline-flex items-center gap-1 rounded-lg border border-grayscale-3 bg-grayscale-2 px-2 py-1 text-[11px] font-mono font-bold text-grayscale-12 hover:border-accent-6 hover:text-accent-11 transition-all cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                          title="Ver ficha completa del personaje"
                         >
-                          <IdentificationCardIcon size={13} className="text-sky-500 dark:text-sky-400 shrink-0" />
+                          <IdentificationCardIcon size={13} className="text-sky-500 shrink-0" />
                           <span>Ficha</span>
                         </button>
+                      </div>
 
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => openEditActor(actor)}
-                          className="flex size-6 sm:size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-12 dark:text-grayscale-8 dark:hover:bg-grayscale-4 dark:hover:text-grayscale-12 transition-colors"
+                          className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-12 dark:text-grayscale-8 dark:hover:bg-grayscale-4 transition-colors"
                           title="Editar actor"
                         >
-                          <PencilSimpleIcon size={13} />
+                          <PencilSimpleIcon size={14} />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => removeActor({ id: actor._id })}
-                          className="flex size-6 sm:size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-red-3 hover:text-red-11 dark:text-grayscale-8 dark:hover:bg-red-4/30 dark:hover:text-red-11 transition-colors"
+                          className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-red-3 hover:text-red-11 dark:text-grayscale-8 dark:hover:bg-red-4/30 transition-colors"
                           title="Eliminar actor"
                         >
-                          <TrashIcon size={13} />
+                          <TrashIcon size={14} />
                         </button>
                       </div>
                     </div>
@@ -567,7 +587,7 @@ export default function PersonalPage() {
                         !search && (
                           <Button variant="primary" className="text-xs" onClick={openCreateActor}>
                             <PlusIcon size={16} weight="bold" />
-                            Agregar Primer Actor
+                            Agregar primer actor
                           </Button>
                         )
                       }
@@ -583,7 +603,7 @@ export default function PersonalPage() {
         <Modal
           open={empModalOpen}
           onOpenChange={setEmpModalOpen}
-          title={editingEmpId ? "Editar Empleado" : "Agregar Empleado de Producción"}
+          title={editingEmpId ? "Editar empleado" : "Agregar empleado de producción"}
         >
           <form
             onSubmit={(e) => {
@@ -593,7 +613,7 @@ export default function PersonalPage() {
             className="flex flex-col gap-4"
           >
             <Input
-              label="Nombre Completo"
+              label="Nombre completo"
               id="emp-name"
               value={empForm.name}
               onChange={(e) => setEmpForm((f) => ({ ...f, name: e.target.value }))}
@@ -601,11 +621,11 @@ export default function PersonalPage() {
             />
 
             <Input
-              label="Puesto / Rol"
+              label="Puesto / rol"
               id="emp-role"
               value={empForm.role}
               onChange={(e) => setEmpForm((f) => ({ ...f, role: e.target.value }))}
-              placeholder="Ej: Directora de Fotografía"
+              placeholder="Ej: Directora de fotografía"
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -617,7 +637,7 @@ export default function PersonalPage() {
                 placeholder="+506 8888-0000"
               />
               <Input
-                label="Correo Electrónico"
+                label="Correo electrónico"
                 id="emp-email"
                 type="email"
                 value={empForm.email}
@@ -635,7 +655,7 @@ export default function PersonalPage() {
                 onChange={(e) => setEmpForm((f) => ({ ...f, salary: Number(e.target.value) }))}
               />
               <Input
-                label="Capítulos de Participación"
+                label="Capítulos de participación"
                 id="emp-episodes"
                 type="number"
                 value={empForm.episodeCount}
@@ -659,7 +679,7 @@ export default function PersonalPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
-                {editingEmpId ? "Guardar Cambios" : "Agregar Empleado"}
+                {editingEmpId ? "Guardar cambios" : "Agregar empleado"}
               </Button>
             </div>
           </form>
@@ -669,7 +689,7 @@ export default function PersonalPage() {
         <Modal
           open={actorModalOpen}
           onOpenChange={setActorModalOpen}
-          title={editingActorId ? "Editar Actor / Personaje" : "Agregar Actor al Elenco"}
+          title={editingActorId ? "Editar actor" : "Agregar actor / personaje"}
         >
           <form
             onSubmit={(e) => {
@@ -680,14 +700,14 @@ export default function PersonalPage() {
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="Nombre Real del Actor"
+                label="Nombre real del actor"
                 id="actor-name-real"
                 value={actorForm.name}
                 onChange={(e) => setActorForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Ej: Carlos Rivera"
               />
               <Input
-                label="Nombre del Personaje"
+                label="Nombre del personaje"
                 id="actor-character"
                 value={actorForm.characterName}
                 onChange={(e) => setActorForm((f) => ({ ...f, characterName: e.target.value }))}
@@ -697,7 +717,7 @@ export default function PersonalPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
-                Fotografía del Actor / Retrato
+                Fotografía del actor / retrato
               </label>
               {actorForm.photoUrl ? (
                 <div className="flex items-center gap-4 rounded-xl border border-grayscale-3 bg-grayscale-1 p-3 dark:border-grayscale-4 dark:bg-grayscale-3/60">
@@ -711,7 +731,7 @@ export default function PersonalPage() {
                   <div className="flex flex-col justify-between h-28 py-1 min-w-0 flex-1">
                     <div>
                       <span className="font-mono text-[10px] font-bold uppercase text-emerald-11 bg-emerald-2/40 border border-green-4/30 px-2 py-0.5 rounded-full inline-block mb-1">
-                        Retrato Cargado
+                        Retrato cargado
                       </span>
                       <p className="text-xs font-semibold text-grayscale-12 truncate">Fotografía seleccionada</p>
                       <p className="text-[11px] text-grayscale-8">Optimizada para pantalla</p>
@@ -740,7 +760,7 @@ export default function PersonalPage() {
                           className="absolute inset-0 opacity-0 cursor-pointer"
                         />
                         <PencilSimpleIcon size={14} />
-                        <span>Cambiar Foto</span>
+                        <span>Cambiar foto</span>
                       </label>
 
                       <button
@@ -788,18 +808,16 @@ export default function PersonalPage() {
               )}
             </div>
 
-
-
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
-                Biografía / Ficha Técnica del Personaje
+                Biografía / ficha técnica del personaje
               </label>
               <textarea
                 value={actorForm.characterBio}
                 onChange={(e) => setActorForm((f) => ({ ...f, characterBio: e.target.value }))}
                 placeholder="Detalles sobre la psicología del personaje, contexto en la trama o llamado de rodaje..."
                 rows={3}
-                className="w-full rounded-xl border border-grayscale-4 bg-grayscale-1 p-3 text-xs text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3"
+                className="w-full rounded-xl border border-grayscale-4 bg-grayscale-1 p-3 text-xs text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 resize-none"
               />
             </div>
 
@@ -812,7 +830,7 @@ export default function PersonalPage() {
                 placeholder="+506 8700-0000"
               />
               <Input
-                label="Correo Electrónico"
+                label="Correo electrónico"
                 id="actor-email"
                 type="email"
                 value={actorForm.email}
@@ -822,7 +840,7 @@ export default function PersonalPage() {
             </div>
 
             <Input
-              label="Capítulos de Participación"
+              label="Capítulos de participación"
               id="actor-episodes"
               type="number"
               value={actorForm.episodeCount}
@@ -834,23 +852,21 @@ export default function PersonalPage() {
                 Cancelar
               </Button>
               <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
-                {editingActorId ? "Guardar Cambios" : "Agregar Actor"}
+                {editingActorId ? "Guardar cambios" : "Agregar actor"}
               </Button>
             </div>
           </form>
         </Modal>
 
-        {/* Modal Ficha Completa del Personaje (Diseño Dossier Cinematográfico Minimalista) */}
+        {/* Modal Ficha Completa del Personaje */}
         {selectedFichaActor && (
           <Modal
             open={fichaModalOpen}
             onOpenChange={setFichaModalOpen}
-            title="Ficha del Personaje"
+            title="Ficha del personaje"
           >
             <div className="flex flex-col gap-6 pt-1">
-              {/* Header Grid: Large Portrait Photo + Character Details */}
               <div className="flex flex-col sm:flex-row gap-5 items-start">
-                {/* Large Hero Portrait Photo */}
                 <div className="relative w-full sm:w-52 aspect-[3/4] shrink-0 overflow-hidden rounded-2xl border border-grayscale-3 bg-grayscale-2 dark:border-grayscale-4/80 shadow-md">
                   {selectedFichaActor.photoUrl ? (
                     <img
@@ -865,74 +881,31 @@ export default function PersonalPage() {
                   )}
                 </div>
 
-                {/* Main Information */}
-                <div className="flex flex-col justify-between flex-1 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs font-bold uppercase tracking-widest text-accent-10 dark:text-accent-9">
+                <div className="flex flex-col gap-3 flex-1">
+                  <div>
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent-10">
                       {selectedFichaActor.characterName}
                     </span>
-                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-grayscale-12 dark:text-grayscale-12">
-                      Interpretado por {selectedFichaActor.name}
+                    <h2 className="text-xl font-extrabold text-grayscale-12">
+                      {selectedFichaActor.name}
                     </h2>
                   </div>
 
-                  {/* Badges / Quick Stats */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-4/40 bg-sky-2/60 dark:border-sky-7/30 dark:bg-sky-9/20 px-3 py-1 font-mono text-xs font-bold text-sky-11 dark:text-sky-300">
-                      <FilmStripIcon size={14} className="text-sky-500 dark:text-sky-400" />
-                      {selectedFichaActor.episodeCount} Capítulos
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-4/40 bg-emerald-2/60 dark:border-emerald-7/30 dark:bg-emerald-9/20 px-3 py-1 font-mono text-xs font-bold text-emerald-11 dark:text-emerald-300">
-                      Elenco {selectedFichaActor.status === "active" ? "Activo" : "Inactivo"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => copyActorPublicLink(selectedFichaActor.name, selectedFichaActor._id)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-accent-6/40 bg-accent-2/10 px-3 py-1 font-mono text-xs font-bold text-accent-11 hover:bg-accent-2/30 transition-colors cursor-pointer"
-                    >
-                      {copiedLinkActorId === selectedFichaActor._id ? (
-                        <>
-                          <CheckCircleIcon size={14} className="text-green-9" />
-                          <span>¡Enlace Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShareNetworkIcon size={14} className="text-accent-9" />
-                          <span>Copiar Enlace de Agenda</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Biografía Preview inside Header */}
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-8">
-                      Biografía & Perfil Psicológico
-                    </span>
-                    <p className="text-xs text-grayscale-11 dark:text-grayscale-11 leading-relaxed rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/70 dark:bg-grayscale-3/40">
-                      {selectedFichaActor.characterBio || "Sin descripción de biografía registrada para este personaje."}
+                  {selectedFichaActor.characterBio && (
+                    <p className="text-xs text-grayscale-10 leading-relaxed">
+                      {selectedFichaActor.characterBio}
                     </p>
-                  </div>
-                </div>
-              </div>
+                  )}
 
-              {/* Contact Data Section */}
-              <div className="flex flex-col gap-2 border-t border-grayscale-3 pt-4 dark:border-grayscale-4/60">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-8">
-                  Datos de Contacto del Actor
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-0.5 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/70 dark:bg-grayscale-3/40">
-                    <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Teléfono</span>
-                    <span className="text-xs font-mono font-semibold text-grayscale-12 dark:text-grayscale-11">
-                      {selectedFichaActor.phone || "No registrado"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-0.5 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/70 dark:bg-grayscale-3/40">
-                    <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Correo Electrónico</span>
-                    <span className="text-xs font-mono font-semibold text-grayscale-12 dark:text-grayscale-11 truncate">
-                      {selectedFichaActor.email || "No registrado"}
-                    </span>
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-grayscale-3 dark:border-grayscale-4 text-xs font-mono">
+                    <div>
+                      <span className="text-grayscale-9 text-[10px] uppercase block">Teléfono</span>
+                      <span className="font-bold text-grayscale-12">{selectedFichaActor.phone || "No especificado"}</span>
+                    </div>
+                    <div>
+                      <span className="text-grayscale-9 text-[10px] uppercase block">Correo</span>
+                      <span className="font-bold text-grayscale-12 truncate block">{selectedFichaActor.email || "No especificado"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
