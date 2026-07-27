@@ -12,6 +12,14 @@ export default defineSchema({
     episodeCount: v.number(),
     avatarInitials: v.string(),
   }),
+  castingLeads: defineTable({
+    name: v.string(),
+    phone: v.string(),
+    description: v.optional(v.string()),
+    email: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("nuevo"), v.literal("contactado"), v.literal("evaluado"), v.literal("descartado"))),
+    createdAt: v.string(),
+  }),
   transactions: defineTable({
     concept: v.string(),
     amount: v.number(),

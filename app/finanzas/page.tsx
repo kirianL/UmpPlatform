@@ -35,11 +35,19 @@ function formatCurrency(n: number): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  if (!iso) return "N/A";
+  const dateStr = iso.slice(0, 10);
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+  }
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "N/A";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 const CATEGORIES = [

@@ -11,6 +11,7 @@
 import type * as actorSchedules from "../actorSchedules.js";
 import type * as actors from "../actors.js";
 import type * as analytics from "../analytics.js";
+import type * as castingLeads from "../castingLeads.js";
 import type * as clientPayments from "../clientPayments.js";
 import type * as clientServices from "../clientServices.js";
 import type * as clients from "../clients.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   actorSchedules: typeof actorSchedules;
   actors: typeof actors;
   analytics: typeof analytics;
+  castingLeads: typeof castingLeads;
   clientPayments: typeof clientPayments;
   clientServices: typeof clientServices;
   clients: typeof clients;

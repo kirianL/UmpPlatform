@@ -20,16 +20,14 @@ const STATUS_BADGE = {
   cancelled: { label: "Cancelado", variant: "red" as const },
 };
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string): string {
   if (!dateStr) return "";
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("es-CR", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const parts = dateStr.slice(0, 10).split("-");
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+  }
+  return dateStr;
 }
 
 function format12Hour(timeStr?: string): string {

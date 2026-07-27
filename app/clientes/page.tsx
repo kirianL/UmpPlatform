@@ -36,11 +36,27 @@ function formatCurrency(n: number): string {
 
 function formatDate(iso: string): string {
   if (!iso) return "N/A";
-  return new Date(iso + "T00:00:00").toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const dateStr = iso.slice(0, 10);
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+  }
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "N/A";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function getWhatsAppLink(phone: string): string {
+  if (!phone) return "#";
+  let cleanNumber = phone.replace(/[^\d]/g, "");
+  if (cleanNumber.length === 8) {
+    cleanNumber = `506${cleanNumber}`;
+  }
+  return `https://wa.me/${cleanNumber}`;
 }
 
 const EMPTY_CLIENT = {
@@ -339,7 +355,19 @@ export default function ClientesPage() {
       render: (c) => (
         <div className="flex flex-col gap-0.5 text-xs">
           <span className="text-grayscale-11 font-mono">{c.email}</span>
-          <span className="text-grayscale-9">{c.phone}</span>
+          {c.phone ? (
+            <a
+              href={getWhatsAppLink(c.phone)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-grayscale-9 hover:text-green-11 hover:underline transition-colors font-mono"
+              title="Abrir chat de WhatsApp"
+            >
+              {c.phone}
+            </a>
+          ) : (
+            <span className="text-grayscale-8">Sin teléfono</span>
+          )}
           {c.address && (
             <div className="flex items-center gap-1 text-[11px] text-grayscale-8 mt-0.5">
               <HouseLineIcon size={12} className="shrink-0" />
