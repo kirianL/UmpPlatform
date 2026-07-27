@@ -10,6 +10,8 @@ import {
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Logo from "@/components/Logo";
+import { Tabs } from "@/components/public/Tabs";
+import Badge from "@/components/public/Badge";
 
 import { useMemo, useState } from "react";
 
@@ -77,7 +79,6 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
   const displayedSchedules = useMemo(() => {
     if (!schedules) return [];
     if (filterTab === "upcoming") {
-      // If no upcoming events, fallback to all so actor is not confused
       return upcomingSchedules.length > 0 ? upcomingSchedules : schedules;
     }
     if (filterTab === "history") return historySchedules;
@@ -104,7 +105,7 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
             </span>
           </div>
           <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-grayscale-10">
-            Agenda del Actor
+            Agenda del actor
           </span>
         </div>
 
@@ -130,7 +131,7 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
             <div className="flex-1 p-5 sm:p-7 flex flex-col justify-center gap-3 bg-gradient-to-br from-grayscale-1 via-grayscale-1 to-grayscale-2/60 dark:from-grayscale-2 dark:via-grayscale-2 dark:to-grayscale-3/40">
               <div>
                 <span className="font-mono text-xs font-bold uppercase tracking-widest text-accent-10 dark:text-accent-9">
-                  {actor.characterName || "Personaje Principal"}
+                  {actor.characterName || "Personaje principal"}
                 </span>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-grayscale-12 tracking-tight mt-0.5">
                   {actor.name}
@@ -141,12 +142,12 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
               <div className="flex flex-wrap items-center gap-3 font-mono text-xs font-bold uppercase tracking-wider text-grayscale-11 border-t border-b border-grayscale-3/60 dark:border-grayscale-4/60 py-2.5 my-0.5">
                 <div className="flex items-center gap-1.5 text-grayscale-12">
                   <FilmStripIcon size={15} className="text-accent-9" />
-                  <span>{actor.episodeCount ?? schedules.length ?? 0} Capítulos</span>
+                  <span>{actor.episodeCount ?? schedules.length ?? 0} capítulos</span>
                 </div>
                 <span className="size-1 rounded-full bg-grayscale-6" />
                 <div className="flex items-center gap-1.5 text-emerald-11 dark:text-emerald-400">
                   <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Elenco {actor.status === "active" ? "Activo" : "Inactivo"}</span>
+                  <span>Elenco {actor.status === "active" ? "activo" : "inactivo"}</span>
                 </div>
               </div>
 
@@ -160,10 +161,10 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
         ) : (
           <div className="rounded-3xl border border-grayscale-3 bg-grayscale-1 p-6 sm:p-7 shadow-md dark:border-grayscale-4/80 dark:bg-grayscale-2 flex flex-col gap-2 bg-gradient-to-br from-grayscale-1 to-grayscale-2/40 dark:from-grayscale-2 dark:to-grayscale-3/30">
             <span className="font-mono text-xs font-bold uppercase tracking-widest text-accent-10 dark:text-accent-9">
-              Elenco de Producción UMP
+              Elenco de producción UMP
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-grayscale-12 tracking-tight">
-              {token === "general" || token === "all" ? "Agenda General de Rodajes" : `Agenda de Citaciones (${token})`}
+              {token === "general" || token === "all" ? "Agenda general de rodajes" : `Agenda de citaciones (${token})`}
             </h1>
             <p className="text-xs text-grayscale-11 leading-relaxed">
               Consulta oficial de citaciones, fechas de grabación y locaciones de rodaje.
@@ -171,122 +172,105 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
           </div>
         )}
 
-        {/* Call Sheet Header & Filter Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 border-b border-grayscale-3/60 pb-3 dark:border-grayscale-4/60">
-          <h2 className="font-mono text-xs sm:text-sm font-bold uppercase text-grayscale-12 flex items-center gap-2">
-            <CalendarCheckIcon size={18} className="text-accent-9" />
-            Llamados de Rodaje
-          </h2>
+        {/* Tabs System usando componente Tabs institucional */}
+        <Tabs.Root
+          value={filterTab}
+          onValueChange={(val) => setFilterTab(val as any)}
+          className="w-full flex flex-col gap-6"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2 gap-3">
+            <h2 className="font-mono text-xs sm:text-sm font-bold uppercase text-grayscale-12 flex items-center gap-2">
+              <CalendarCheckIcon size={18} className="text-accent-9" />
+              Llamados de rodaje
+            </h2>
 
-          <div className="flex items-center gap-1 bg-grayscale-2 p-1 rounded-xl border border-grayscale-3 dark:bg-grayscale-3/60 dark:border-grayscale-4">
-            <button
-              type="button"
-              onClick={() => setFilterTab("upcoming")}
-              className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
-                filterTab === "upcoming"
-                  ? "bg-grayscale-1 text-accent-11 shadow-sm dark:bg-grayscale-2 dark:text-accent-9"
-                  : "text-grayscale-10 hover:text-grayscale-12"
-              }`}
-            >
-              Próximos ({upcomingSchedules.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterTab("history")}
-              className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
-                filterTab === "history"
-                  ? "bg-grayscale-1 text-accent-11 shadow-sm dark:bg-grayscale-2 dark:text-accent-9"
-                  : "text-grayscale-10 hover:text-grayscale-12"
-              }`}
-            >
-              Historial ({historySchedules.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterTab("all")}
-              className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
-                filterTab === "all"
-                  ? "bg-grayscale-1 text-accent-11 shadow-sm dark:bg-grayscale-2 dark:text-accent-9"
-                  : "text-grayscale-10 hover:text-grayscale-12"
-              }`}
-            >
-              Todos ({schedules.length})
-            </button>
+            <Tabs.List className="border-0 pb-0 gap-1.5">
+              <Tabs.Tab value="upcoming" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+                Próximos ({upcomingSchedules.length})
+              </Tabs.Tab>
+              <Tabs.Tab value="history" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+                Historial ({historySchedules.length})
+              </Tabs.Tab>
+              <Tabs.Tab value="all" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+                Todos ({schedules.length})
+              </Tabs.Tab>
+              <Tabs.Indicator />
+            </Tabs.List>
           </div>
-        </div>
 
-        {/* List of Shooting Schedules */}
-        <div className="flex flex-col gap-4">
-          {displayedSchedules.map((ev) => (
-            <div
-              key={ev._id}
-              className="rounded-2xl border border-grayscale-3 bg-grayscale-1 p-4 sm:p-5 shadow-sm flex flex-col gap-3.5 dark:border-grayscale-4/80 dark:bg-grayscale-2"
-            >
-              {/* Card Header: Date & Status */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-grayscale-3/70 pb-3 dark:border-grayscale-4/60">
-                <span className="font-mono text-xs font-bold text-accent-10 dark:text-accent-9 capitalize">
-                  {formatDate(ev.date)}
-                </span>
-                <span className="self-start sm:self-auto font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-11 dark:text-emerald-400 bg-emerald-2/60 dark:bg-emerald-9/20 border border-emerald-4/30 px-2.5 py-0.5 rounded-md">
-                  {STATUS_BADGE[ev.status as "scheduled"]?.label || ev.status}
-                </span>
-              </div>
-
-              {/* Title & Cast Info */}
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base sm:text-lg font-extrabold text-grayscale-12 tracking-tight">
-                  {ev.title}
-                </h3>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-grayscale-11">
-                  <span className="font-bold text-grayscale-12">{ev.actorName}</span>
-                  <span className="text-accent-10 dark:text-accent-9 font-semibold">({ev.characterName})</span>
-                </div>
-              </div>
-
-              {/* Call Time & Location Box */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                <div className="flex items-center gap-3 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/40">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-2/60 text-accent-10 dark:bg-accent-9/20 dark:text-accent-9">
-                    <ClockIcon size={18} />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Hora de Citación</span>
-                    <span className="text-sm font-mono font-bold text-accent-11 dark:text-accent-9 leading-tight">{format12Hour(ev.callTime)}</span>
-                    <span className="text-[10px] text-grayscale-9 font-mono truncate">Rodaje: {format12Hour(ev.startTime)} - {format12Hour(ev.endTime)}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/40">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-2/60 text-red-9 dark:bg-red-9/20 dark:text-red-4">
-                    <MapPinIcon size={18} />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Locación</span>
-                    <span className="text-xs font-bold text-grayscale-12 leading-snug">{ev.location}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scene & Costume Notes */}
-              {ev.sceneDetails && (
-                <div className="flex flex-col gap-1 rounded-xl border border-grayscale-3 bg-grayscale-2/40 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/30 text-xs">
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
-                    Notas de la Escena / Vestuario
+          {/* List of Shooting Schedules */}
+          <div className="flex flex-col gap-4">
+            {displayedSchedules.map((ev) => (
+              <div
+                key={ev._id}
+                className="rounded-2xl border border-grayscale-3 bg-grayscale-1 p-4 sm:p-5 shadow-sm flex flex-col gap-3.5 dark:border-grayscale-4/80 dark:bg-grayscale-2"
+              >
+                {/* Card Header: Date & Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-grayscale-3/70 pb-3 dark:border-grayscale-4/60">
+                  <span className="font-mono text-xs font-bold text-accent-10 dark:text-accent-9">
+                    {formatDate(ev.date)}
                   </span>
-                  <p className="text-grayscale-11 leading-relaxed">{ev.sceneDetails}</p>
+                  <Badge variant={STATUS_BADGE[ev.status as "scheduled"]?.variant || "gray"}>
+                    {STATUS_BADGE[ev.status as "scheduled"]?.label || ev.status}
+                  </Badge>
                 </div>
-              )}
-            </div>
-          ))}
 
-          {schedules.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-grayscale-3 p-8 sm:p-16 text-center dark:border-grayscale-4">
-              <UserCheckIcon size={44} className="text-grayscale-8 mb-3 shrink-0" />
-              <h3 className="font-mono text-sm font-bold text-grayscale-11 uppercase tracking-wide">Sin llamadas pendientes</h3>
-              <p className="text-xs text-grayscale-9 mt-1.5 max-w-sm">Actualmente no tienes fechas de rodaje agendadas en la plataforma.</p>
-            </div>
-          )}
-        </div>
+                {/* Title & Cast Info */}
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-base sm:text-lg font-extrabold text-grayscale-12 tracking-tight">
+                    {ev.title}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-grayscale-11">
+                    <span className="font-bold text-grayscale-12">{ev.actorName}</span>
+                    <span className="text-accent-10 dark:text-accent-9 font-semibold">({ev.characterName})</span>
+                  </div>
+                </div>
+
+                {/* Call Time & Location Box */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <div className="flex items-center gap-3 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/40">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-2/60 text-accent-10 dark:bg-accent-9/20 dark:text-accent-9">
+                      <ClockIcon size={18} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Hora de citación</span>
+                      <span className="text-sm font-mono font-bold text-accent-11 dark:text-accent-9 leading-tight">{format12Hour(ev.callTime)}</span>
+                      <span className="text-[10px] text-grayscale-9 font-mono truncate">Rodaje: {format12Hour(ev.startTime)} - {format12Hour(ev.endTime)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 rounded-xl border border-grayscale-3 bg-grayscale-2/60 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/40">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-2/60 text-red-9 dark:bg-red-9/20 dark:text-red-4">
+                      <MapPinIcon size={18} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Locación</span>
+                      <span className="text-xs font-bold text-grayscale-12 leading-snug">{ev.location}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scene & Costume Notes */}
+                {ev.sceneDetails && (
+                  <div className="flex flex-col gap-1 rounded-xl border border-grayscale-3 bg-grayscale-2/40 p-3 dark:border-grayscale-4/60 dark:bg-grayscale-3/30 text-xs">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
+                      Notas de la escena / vestuario
+                    </span>
+                    <p className="text-grayscale-11 leading-relaxed">{ev.sceneDetails}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {displayedSchedules.length === 0 && (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-grayscale-3 p-8 sm:p-16 text-center dark:border-grayscale-4">
+                <UserCheckIcon size={44} className="text-grayscale-8 mb-3 shrink-0" />
+                <h3 className="font-mono text-sm font-bold text-grayscale-11 uppercase tracking-wide">Sin llamadas pendientes</h3>
+                <p className="text-xs text-grayscale-9 mt-1.5 max-w-sm">Actualmente no tienes fechas de rodaje agendadas en la plataforma.</p>
+              </div>
+            )}
+          </div>
+        </Tabs.Root>
       </div>
     </div>
   );

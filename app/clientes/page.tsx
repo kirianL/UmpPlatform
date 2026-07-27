@@ -1001,17 +1001,27 @@ export default function ClientesPage() {
 
                                 {/* Financial Metrics Grid */}
                                 <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-grayscale-1/80 dark:bg-grayscale-4/50 border border-grayscale-3 dark:border-grayscale-5 text-xs">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[10px] font-mono uppercase text-grayscale-10">Monto pactado</span>
-                                    <span className="font-mono font-bold text-grayscale-12">{formatCurrency(s.amount)}</span>
+                                  <div className="flex flex-col justify-between h-full min-w-0">
+                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
+                                      Monto pactado
+                                    </span>
+                                    <span className="font-mono font-bold text-grayscale-12 mt-1 truncate">
+                                      {formatCurrency(s.amount)}
+                                    </span>
                                   </div>
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[10px] font-mono uppercase text-grayscale-10">Abonado</span>
-                                    <span className="font-mono font-bold text-green-11">{formatCurrency(paidForService)}</span>
+                                  <div className="flex flex-col justify-between h-full min-w-0">
+                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
+                                      Abonado
+                                    </span>
+                                    <span className="font-mono font-bold text-green-11 mt-1 truncate">
+                                      {formatCurrency(paidForService)}
+                                    </span>
                                   </div>
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[10px] font-mono uppercase text-grayscale-10">Saldo pendiente</span>
-                                    <span className={`font-mono font-bold ${balanceService > 0 ? "text-orange-11" : "text-grayscale-11"}`}>
+                                  <div className="flex flex-col justify-between h-full min-w-0">
+                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
+                                      Saldo pendiente
+                                    </span>
+                                    <span className={`font-mono font-bold mt-1 truncate ${balanceService > 0 ? "text-orange-11" : "text-grayscale-11"}`}>
                                       {formatCurrency(balanceService)}
                                     </span>
                                   </div>
@@ -1151,44 +1161,45 @@ export default function ClientesPage() {
                           No se han registrado pagos para este cliente.
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                        <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto">
                           {clientPayments.map((p: any) => {
                             const linkedService = allServices.find((s: any) => s._id === p.serviceId);
 
                             return (
                               <div
                                 key={p._id}
-                                className="flex items-center justify-between p-3 rounded-lg border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-1 dark:bg-grayscale-3/60 transition-colors hover:border-grayscale-6"
+                                className="flex flex-col gap-2 p-3 rounded-xl border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-1 dark:bg-grayscale-3/60 transition-colors hover:border-grayscale-6"
                               >
-                                <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                                  <span className="font-semibold text-sm text-grayscale-12 truncate">
-                                    {p.concept}
-                                  </span>
-                                  <div className="flex items-center gap-1.5 text-xs text-grayscale-9 font-mono truncate">
-                                    <span>Fecha: {formatDate(p.date)}</span>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="font-bold text-xs sm:text-sm text-grayscale-12 truncate">
+                                      {p.concept}
+                                    </span>
                                     {linkedService && (
-                                      <>
-                                        <span>•</span>
-                                        <span className="text-grayscale-10 font-sans font-medium">{linkedService.serviceName}</span>
-                                      </>
+                                      <span className="text-[11px] font-medium text-grayscale-10 truncate mt-0.5">
+                                        Servicio: {linkedService.serviceName}
+                                      </span>
                                     )}
                                   </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-xs font-bold font-mono text-grayscale-12 bg-grayscale-2 dark:bg-grayscale-4 px-2 py-0.5 rounded border border-grayscale-4 dark:border-grayscale-5">
+                                      {formatCurrency(p.amount)}
+                                    </span>
+                                    <Badge variant={p.status === "paid" ? "green" : "orange"}>
+                                      {p.status === "paid" ? "Pagado" : "Pendiente"}
+                                    </Badge>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeletePayment(p._id)}
+                                      className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
+                                      title="Eliminar pago"
+                                    >
+                                      <TrashIcon size={14} />
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2.5 shrink-0">
-                                  <span className="text-xs font-semibold font-mono text-grayscale-12 bg-grayscale-2 dark:bg-grayscale-4 px-2.5 py-1 rounded border border-grayscale-4 dark:border-grayscale-5">
-                                    {formatCurrency(p.amount)}
-                                  </span>
-                                  <Badge variant={p.status === "paid" ? "green" : "orange"}>
-                                    {p.status === "paid" ? "Pagado" : "Pendiente"}
-                                  </Badge>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeletePayment(p._id)}
-                                    className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
-                                    title="Eliminar pago y desvincular de finanzas"
-                                  >
-                                    <TrashIcon size={15} />
-                                  </button>
+                                <div className="flex items-center justify-between text-[10px] font-mono text-grayscale-9 border-t border-grayscale-3/60 dark:border-grayscale-5/40 pt-1.5 mt-0.5">
+                                  <span>Fecha de pago: {formatDate(p.date)}</span>
                                 </div>
                               </div>
                             );
