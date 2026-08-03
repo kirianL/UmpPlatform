@@ -67,13 +67,13 @@ export default function InventarioPage() {
   const filtered = equipment.filter(
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
-      (EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category)
+      (e.serialNumber && e.serialNumber.toLowerCase().includes(search.toLowerCase())) ||
+      (EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category || "")
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
 
-  const available = equipment.filter((e) => e.status === "available").length;
+  const available = equipment.filter((e) => (e.status || "available") === "available").length;
   const inUse = equipment.filter((e) => e.status === "in-use").length;
   const maintenance = equipment.filter(
     (e) => e.status === "maintenance",
@@ -88,26 +88,33 @@ export default function InventarioPage() {
   function openEdit(e: any) {
     setEditingId(e._id);
     setForm({
-      name: e.name,
-      serialNumber: e.serialNumber,
-      category: e.category,
-      status: e.status,
-      location: e.location,
-      acquisitionDate: e.acquisitionDate,
+      name: e.name || "",
+      serialNumber: e.serialNumber || "",
+      category: e.category || "accessory",
+      status: e.status || "available",
+      location: e.location || "",
+      acquisitionDate: e.acquisitionDate || "",
     });
     setModalOpen(true);
   }
 
   function handleSave() {
-    if (!form.name.trim()) return;
+    const payload = {
+      name: form.name.trim() || "Nuevo Equipo",
+      serialNumber: form.serialNumber.trim() || undefined,
+      category: form.category || "accessory",
+      status: form.status || "available",
+      location: form.location.trim() || undefined,
+      acquisitionDate: form.acquisitionDate || undefined,
+    };
 
     if (editingId) {
       updateEquipment({
         id: editingId as any,
-        ...form,
+        ...payload,
       });
     } else {
-      createEquipment(form);
+      createEquipment(payload);
     }
     setModalOpen(false);
   }
@@ -125,7 +132,7 @@ export default function InventarioPage() {
           <p className="text-sm font-medium text-grayscale-12 truncate">
             {e.name}
           </p>
-          <p className="text-xs text-grayscale-9 font-mono">{e.serialNumber}</p>
+          <p className="text-xs text-grayscale-9 font-mono">{e.serialNumber || "Sin S/N"}</p>
         </div>
       ),
     },
@@ -145,7 +152,7 @@ export default function InventarioPage() {
       getFilterValue: (e) => e.category,
       render: (e) => (
         <span className="text-sm text-grayscale-11">
-          {EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category}
+          {EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category || "Accesorios"}
         </span>
       ),
     },
@@ -155,7 +162,7 @@ export default function InventarioPage() {
       className: "hidden md:table-cell",
       render: (e) => (
         <span className="text-sm text-grayscale-11 truncate max-w-[150px] block">
-          {e.location}
+          {e.location || "Sin ubicación"}
         </span>
       ),
     },
@@ -179,7 +186,7 @@ export default function InventarioPage() {
       className: "hidden md:table-cell",
       render: (e) => (
         <span className="text-xs text-grayscale-9">
-          {formatDate(e.acquisitionDate)}
+          {e.acquisitionDate ? formatDate(e.acquisitionDate) : "N/A"}
         </span>
       ),
     },
@@ -318,18 +325,16 @@ export default function InventarioPage() {
                 setForm((f) => ({ ...f, name: e.target.value }))
               }
               placeholder="Ej: Sony FX3 Cinema Line"
-              required
             />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="Número de Serie"
+                label="Número de Serie (opcional)"
                 id="eq-serial"
                 value={form.serialNumber}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, serialNumber: e.target.value }))
                 }
                 placeholder="Ej: S/N 198227"
-                required
               />
               <Select
                 label="Categoría"
@@ -367,25 +372,23 @@ export default function InventarioPage() {
                 ]}
               />
               <Input
-                label="Ubicación / Casillero"
+                label="Ubicación / Casillero (opcional)"
                 id="eq-loc"
                 value={form.location}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, location: e.target.value }))
                 }
                 placeholder="Ej: Casillero A3"
-                required
               />
             </div>
             <Input
-              label="Fecha de Adquisición"
+              label="Fecha de Adquisición (opcional)"
               id="eq-date"
               type="date"
               value={form.acquisitionDate}
               onChange={(e) =>
                 setForm((f) => ({ ...f, acquisitionDate: e.target.value }))
               }
-              required
             />
             <div className="flex justify-end gap-2 pt-2">
               <Button

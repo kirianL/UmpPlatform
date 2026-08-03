@@ -65,11 +65,11 @@ export default defineSchema({
     .index("by_transactionId", ["transactionId"]),
   equipment: defineTable({
     name: v.string(),
-    serialNumber: v.string(),
-    category: v.string(),
-    status: v.union(v.literal("available"), v.literal("in-use"), v.literal("maintenance")),
-    location: v.string(),
-    acquisitionDate: v.string(), // ISO format
+    serialNumber: v.optional(v.string()),
+    category: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("available"), v.literal("in-use"), v.literal("maintenance"))),
+    location: v.optional(v.string()),
+    acquisitionDate: v.optional(v.string()),
   }),
   deals: defineTable({
     title: v.string(),
