@@ -86,17 +86,22 @@ export default function FinanzasPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDateRange, setFilterDateRange] = useState<string>("all");
+  const [filterExactDate, setFilterExactDate] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      // Search filter (concept, local/vendor, category)
+      // Search filter (concept, local/vendor, category, formatted date or YYYY-MM-DD date)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
+        const formattedDate = formatDate(t.date).toLowerCase();
+        const rawDate = t.date.toLowerCase();
         const matchesConcept = t.concept.toLowerCase().includes(q);
         const matchesLocal = t.local ? t.local.toLowerCase().includes(q) : false;
         const matchesCategory = t.category.toLowerCase().includes(q);
-        if (!matchesConcept && !matchesLocal && !matchesCategory) {
+        const matchesDate = formattedDate.includes(q) || rawDate.includes(q);
+
+        if (!matchesConcept && !matchesLocal && !matchesCategory && !matchesDate) {
           return false;
         }
       }
@@ -106,34 +111,40 @@ export default function FinanzasPage() {
         return false;
       }
       
-      // Date range filter
+      // Date range / Specific date filter
       if (filterDateRange !== "all") {
-        const txDate = new Date(t.date + "T00:00:00");
-        const today = new Date();
-        const txTime = txDate.getTime();
-        
-        if (filterDateRange === "7days") {
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(today.getDate() - 7);
-          if (txTime < sevenDaysAgo.getTime()) return false;
-        } else if (filterDateRange === "thisMonth") {
-          if (txDate.getFullYear() !== today.getFullYear() || txDate.getMonth() !== today.getMonth()) {
+        if (filterDateRange === "specific") {
+          if (filterExactDate && t.date !== filterExactDate) {
             return false;
           }
-        } else if (filterDateRange === "lastMonth") {
-          const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-          const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          if (txTime < firstOfLastMonth.getTime() || txTime >= firstOfThisMonth.getTime()) {
-            return false;
+        } else {
+          const txDate = new Date(t.date + "T00:00:00");
+          const today = new Date();
+          const txTime = txDate.getTime();
+          
+          if (filterDateRange === "7days") {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            if (txTime < sevenDaysAgo.getTime()) return false;
+          } else if (filterDateRange === "thisMonth") {
+            if (txDate.getFullYear() !== today.getFullYear() || txDate.getMonth() !== today.getMonth()) {
+              return false;
+            }
+          } else if (filterDateRange === "lastMonth") {
+            const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            if (txTime < firstOfLastMonth.getTime() || txTime >= firstOfThisMonth.getTime()) {
+              return false;
+            }
+          } else if (filterDateRange === "thisYear") {
+            if (txDate.getFullYear() !== today.getFullYear()) return false;
           }
-        } else if (filterDateRange === "thisYear") {
-          if (txDate.getFullYear() !== today.getFullYear()) return false;
         }
       }
       
       return true;
     });
-  }, [transactions, searchQuery, filterStatus, filterDateRange]);
+  }, [transactions, searchQuery, filterStatus, filterDateRange, filterExactDate]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -472,7 +483,12 @@ export default function FinanzasPage() {
                 <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Periodo:</span>
                 <select
                   value={filterDateRange}
-                  onChange={(e) => setFilterDateRange(e.target.value)}
+                  onChange={(e) => {
+                    setFilterDateRange(e.target.value);
+                    if (e.target.value !== "specific") {
+                      setFilterExactDate("");
+                    }
+                  }}
                   className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
                 >
                   <option value="all">Todos</option>
@@ -480,8 +496,31 @@ export default function FinanzasPage() {
                   <option value="thisMonth">Este Mes</option>
                   <option value="lastMonth">Mes Anterior</option>
                   <option value="thisYear">Este Año</option>
+                  <option value="specific">Fecha Específica 📅</option>
                 </select>
               </div>
+
+              {/* Exact Date Picker Input (shown when Periodo === 'specific') */}
+              {filterDateRange === "specific" && (
+                <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                  <input
+                    type="date"
+                    value={filterExactDate}
+                    onChange={(e) => setFilterExactDate(e.target.value)}
+                    className="rounded-lg border border-accent-6/60 bg-accent-2/10 px-2.5 py-1 font-mono text-[10px] font-bold text-grayscale-12 outline-none transition-all focus:border-accent-8 dark:border-accent-6/60 dark:bg-grayscale-3"
+                  />
+                  {filterExactDate && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterExactDate("")}
+                      className="text-[10px] font-mono text-grayscale-9 hover:text-grayscale-12 px-1 cursor-pointer"
+                      title="Limpiar fecha"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Status filter */}
               <div className="flex items-center gap-1.5">
