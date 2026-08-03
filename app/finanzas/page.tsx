@@ -96,11 +96,18 @@ export default function FinanzasPage() {
         const formattedDate = formatDate(t.date).toLowerCase();
         const rawDate = t.date.toLowerCase();
         const matchesConcept = t.concept.toLowerCase().includes(q);
-        const matchesLocal = t.local ? t.local.toLowerCase().includes(q) : false;
+        const matchesLocal = t.local
+          ? t.local.toLowerCase().includes(q)
+          : false;
         const matchesCategory = t.category.toLowerCase().includes(q);
         const matchesDate = formattedDate.includes(q) || rawDate.includes(q);
 
-        if (!matchesConcept && !matchesLocal && !matchesCategory && !matchesDate) {
+        if (
+          !matchesConcept &&
+          !matchesLocal &&
+          !matchesCategory &&
+          !matchesDate
+        ) {
           return false;
         }
       }
@@ -109,32 +116,46 @@ export default function FinanzasPage() {
       if (filterStatus !== "all" && t.status !== filterStatus) {
         return false;
       }
-      
+
       // Date range filter
       if (filterDateRange !== "all") {
         const txDate = new Date(t.date + "T00:00:00");
         const today = new Date();
         const txTime = txDate.getTime();
-        
+
         if (filterDateRange === "7days") {
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(today.getDate() - 7);
           if (txTime < sevenDaysAgo.getTime()) return false;
         } else if (filterDateRange === "thisMonth") {
-          if (txDate.getFullYear() !== today.getFullYear() || txDate.getMonth() !== today.getMonth()) {
+          if (
+            txDate.getFullYear() !== today.getFullYear() ||
+            txDate.getMonth() !== today.getMonth()
+          ) {
             return false;
           }
         } else if (filterDateRange === "lastMonth") {
-          const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-          const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          if (txTime < firstOfLastMonth.getTime() || txTime >= firstOfThisMonth.getTime()) {
+          const firstOfThisMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1,
+          );
+          const firstOfLastMonth = new Date(
+            today.getFullYear(),
+            today.getMonth() - 1,
+            1,
+          );
+          if (
+            txTime < firstOfLastMonth.getTime() ||
+            txTime >= firstOfThisMonth.getTime()
+          ) {
             return false;
           }
         } else if (filterDateRange === "thisYear") {
           if (txDate.getFullYear() !== today.getFullYear()) return false;
         }
       }
-      
+
       return true;
     });
   }, [transactions, searchQuery, filterStatus, filterDateRange]);
@@ -227,22 +248,34 @@ export default function FinanzasPage() {
 
     if (data.items.length <= 1) {
       const item = data.items[0];
-      const amount = item 
-        ? (isForeign ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate)) : item.amount)
-        : (data.total ? (isForeign ? (data.convertedTotal ?? Math.round(data.total * data.exchangeRate)) : data.total) : 0);
-      
-      const conceptPrefix = isForeign && item 
-        ? `[${data.currency} ${item.amount.toFixed(2)} @ T.C. ₡${data.exchangeRate}] `
-        : (isForeign && data.total 
+      const amount = item
+        ? isForeign
+          ? (item.convertedAmount ??
+            Math.round(item.amount * data.exchangeRate))
+          : item.amount
+        : data.total
+          ? isForeign
+            ? (data.convertedTotal ??
+              Math.round(data.total * data.exchangeRate))
+            : data.total
+          : 0;
+
+      const conceptPrefix =
+        isForeign && item
+          ? `[${data.currency} ${item.amount.toFixed(2)} @ T.C. ₡${data.exchangeRate}] `
+          : isForeign && data.total
             ? `[${data.currency} ${data.total.toFixed(2)} @ T.C. ₡${data.exchangeRate}] `
-            : ""
-          );
+            : "";
 
       setEditingId(null);
       setForm({
         ...EMPTY_TRANSACTION,
         type,
-        concept: item ? `${conceptPrefix}${item.description}` : (data.total ? `${conceptPrefix}Compra` : ""),
+        concept: item
+          ? `${conceptPrefix}${item.description}`
+          : data.total
+            ? `${conceptPrefix}Compra`
+            : "",
         local: data.vendor ?? "",
         amount,
         date,
@@ -257,12 +290,12 @@ export default function FinanzasPage() {
 
     // Multiple items → batch create all transactions at once
     const newTransactions = data.items.map((item) => {
-      const amount = isForeign 
-        ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate)) 
+      const amount = isForeign
+        ? (item.convertedAmount ?? Math.round(item.amount * data.exchangeRate))
         : item.amount;
-      
-      const conceptPrefix = isForeign 
-        ? `[${data.currency} ${item.amount.toFixed(2)} @ T.C. ₡${data.exchangeRate}] ` 
+
+      const conceptPrefix = isForeign
+        ? `[${data.currency} ${item.amount.toFixed(2)} @ T.C. ₡${data.exchangeRate}] `
         : "";
 
       return {
@@ -282,7 +315,9 @@ export default function FinanzasPage() {
     } catch (err) {
       console.error("Error creating transactions from scanned invoice:", err);
       throw new Error(
-        err instanceof Error ? err.message : "Error al registrar las transacciones",
+        err instanceof Error
+          ? err.message
+          : "Error al registrar las transacciones",
       );
     }
   }
@@ -293,7 +328,8 @@ export default function FinanzasPage() {
       pending: { variant: "orange" as const, label: "Pendiente" },
       cancelled: { variant: "red" as const, label: "Anulado" },
     };
-    const { variant, label } = map[status as "paid" | "pending" | "cancelled"] || map.pending;
+    const { variant, label } =
+      map[status as "paid" | "pending" | "cancelled"] || map.pending;
     return <Badge variant={variant}>{label}</Badge>;
   };
 
@@ -311,7 +347,10 @@ export default function FinanzasPage() {
             {t.local && (
               <>
                 <span className="text-grayscale-6 text-[10px]">•</span>
-                <span className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded truncate max-w-[120px]" title={t.local}>
+                <span
+                  className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded truncate max-w-[120px]"
+                  title={t.local}
+                >
                   {t.local}
                 </span>
               </>
@@ -409,14 +448,18 @@ export default function FinanzasPage() {
             label="Ingresos Totales"
             value={formatCurrency(income)}
             detail={`${incomeData.length} transacciones`}
-            icon={<TrendUpIcon size={18} weight="bold" className="text-green-9" />}
+            icon={
+              <TrendUpIcon size={18} weight="bold" className="text-green-9" />
+            }
             index={1}
           />
           <StatCard
             label="Egresos Totales"
             value={formatCurrency(expenses)}
             detail={`${expenseData.length} transacciones`}
-            icon={<TrendDownIcon size={18} weight="bold" className="text-red-9" />}
+            icon={
+              <TrendDownIcon size={18} weight="bold" className="text-red-9" />
+            }
             index={2}
           />
         </div>
@@ -424,11 +467,19 @@ export default function FinanzasPage() {
         {/* Toolbar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2">
-            <Button variant="primary" className="text-xs" onClick={() => openCreate("income")}>
+            <Button
+              variant="primary"
+              className="text-xs"
+              onClick={() => openCreate("income")}
+            >
               <PlusIcon size={16} weight="bold" />
               Registrar ingreso
             </Button>
-            <Button variant="secondary" className="text-xs" onClick={() => openCreate("expense")}>
+            <Button
+              variant="secondary"
+              className="text-xs"
+              onClick={() => openCreate("expense")}
+            >
               <PlusIcon size={16} weight="bold" />
               Registrar gasto
             </Button>
@@ -448,9 +499,24 @@ export default function FinanzasPage() {
         <Tabs.Root defaultValue="all" className="w-full flex flex-col">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
-              <Tabs.Tab value="all" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">Todos</Tabs.Tab>
-              <Tabs.Tab value="income" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">Ingresos</Tabs.Tab>
-              <Tabs.Tab value="expense" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">Egresos</Tabs.Tab>
+              <Tabs.Tab
+                value="all"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
+                Todos
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="income"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
+                Ingresos
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="expense"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
+                Egresos
+              </Tabs.Tab>
               <Tabs.Indicator />
             </Tabs.List>
 
@@ -473,7 +539,9 @@ export default function FinanzasPage() {
 
               {/* Date range filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Periodo:</span>
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                  Periodo:
+                </span>
                 <select
                   value={filterDateRange}
                   onChange={(e) => setFilterDateRange(e.target.value)}
@@ -489,7 +557,9 @@ export default function FinanzasPage() {
 
               {/* Status filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Estado:</span>
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                  Estado:
+                </span>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
@@ -504,10 +574,14 @@ export default function FinanzasPage() {
 
               {/* Sorting order */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Orden:</span>
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                  Orden:
+                </span>
                 <button
                   type="button"
-                  onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                  onClick={() =>
+                    setSortOrder(sortOrder === "desc" ? "asc" : "desc")
+                  }
                   className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
                 >
                   <span>{sortOrder === "desc" ? "Recientes" : "Antiguos"}</span>
