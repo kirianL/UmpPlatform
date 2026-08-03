@@ -158,6 +158,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         status: "active" as const,
         episodeCount: 8,
         shareToken: "carlos-rivera",
+        birthDate: "1984-09-12",
       });
 
       const actor2Id = await ctx.db.insert("actors", {
@@ -170,6 +171,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         status: "active" as const,
         episodeCount: 6,
         shareToken: "mariana-rojas",
+        birthDate: "1991-08-05",
       });
 
       await ctx.db.insert("actors", {
@@ -182,6 +184,7 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         status: "active" as const,
         episodeCount: 5,
         shareToken: "esteban-castro",
+        birthDate: "1988-10-30",
       });
 
       // Seed actorSchedules
@@ -218,10 +221,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed employees
     const employees = [
-      { name: "Andrés Monge", role: "Director de Fotografía", phone: "8899-7766", email: "andres@umpproducciones.com", salary: 750000, status: "active" as const, episodeCount: 12, avatarInitials: "AM" },
-      { name: "Valeria Quirós", role: "Productora General", phone: "8765-4321", email: "valeria@umpproducciones.com", salary: 850000, status: "active" as const, episodeCount: 15, avatarInitials: "VQ" },
-      { name: "Gabriel Soto", role: "Editor / Colorista", phone: "8333-2211", email: "gabriel@umpproducciones.com", salary: 600000, status: "active" as const, episodeCount: 8, avatarInitials: "GS" },
-      { name: "Lucía Méndez", role: "Sonidista", phone: "8555-4433", email: "lucia@gmail.com", salary: 500000, status: "inactive" as const, episodeCount: 4, avatarInitials: "LM" },
+      { name: "Andrés Monge", role: "Director de Fotografía", phone: "8899-7766", email: "andres@umpproducciones.com", salary: 750000, status: "active" as const, episodeCount: 12, avatarInitials: "AM", birthDate: "1992-08-08" },
+      { name: "Valeria Quirós", role: "Productora General", phone: "8765-4321", email: "valeria@umpproducciones.com", salary: 850000, status: "active" as const, episodeCount: 15, avatarInitials: "VQ", birthDate: "1994-08-03" },
+      { name: "Gabriel Soto", role: "Editor / Colorista", phone: "8333-2211", email: "gabriel@umpproducciones.com", salary: 600000, status: "active" as const, episodeCount: 8, avatarInitials: "GS", birthDate: "1996-08-15" },
+      { name: "Lucía Méndez", role: "Sonidista", phone: "8555-4433", email: "lucia@gmail.com", salary: 500000, status: "inactive" as const, episodeCount: 4, avatarInitials: "LM", birthDate: "1990-11-20" },
     ];
     for (const e of employees) {
       await ctx.db.insert("employees", e);

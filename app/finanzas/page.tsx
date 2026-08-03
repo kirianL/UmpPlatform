@@ -9,6 +9,7 @@ import {
   TrendUpIcon,
   TrashIcon,
   EyeIcon,
+  MagnifyingGlassIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useState, useMemo } from "react";
 import Badge from "@/components/public/Badge";
@@ -85,9 +86,21 @@ export default function FinanzasPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDateRange, setFilterDateRange] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
+      // Search filter (concept, local/vendor, category)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesConcept = t.concept.toLowerCase().includes(q);
+        const matchesLocal = t.local ? t.local.toLowerCase().includes(q) : false;
+        const matchesCategory = t.category.toLowerCase().includes(q);
+        if (!matchesConcept && !matchesLocal && !matchesCategory) {
+          return false;
+        }
+      }
+
       // Status filter
       if (filterStatus !== "all" && t.status !== filterStatus) {
         return false;
@@ -120,7 +133,7 @@ export default function FinanzasPage() {
       
       return true;
     });
-  }, [transactions, filterStatus, filterDateRange]);
+  }, [transactions, searchQuery, filterStatus, filterDateRange]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -439,6 +452,21 @@ export default function FinanzasPage() {
 
             {/* Filtering and Sorting controls */}
             <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
+              {/* Search input for Invoices / Transactions */}
+              <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                <MagnifyingGlassIcon
+                  size={15}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar factura o concepto..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                />
+              </div>
+
               {/* Date range filter */}
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">Periodo:</span>
@@ -494,9 +522,19 @@ export default function FinanzasPage() {
               keyExtractor={(t) => t._id}
               emptyState={
                 <EmptyState
-                  icon={<CurrencyDollarIcon size={40} weight="duotone" />}
-                  title="Sin transacciones"
-                  description="Aún no hay ingresos o egresos registrados en este periodo."
+                  icon={
+                    searchQuery ? (
+                      <MagnifyingGlassIcon size={40} weight="duotone" />
+                    ) : (
+                      <CurrencyDollarIcon size={40} weight="duotone" />
+                    )
+                  }
+                  title={searchQuery ? "Sin resultados" : "Sin transacciones"}
+                  description={
+                    searchQuery
+                      ? `No se encontraron facturas que coincidan con "${searchQuery}".`
+                      : "Aún no hay ingresos o egresos registrados en este periodo."
+                  }
                 />
               }
             />
@@ -508,9 +546,19 @@ export default function FinanzasPage() {
               keyExtractor={(t) => t._id}
               emptyState={
                 <EmptyState
-                  icon={<TrendUpIcon size={40} weight="duotone" />}
-                  title="Sin ingresos"
-                  description="Aún no hay transacciones de tipo ingreso registradas."
+                  icon={
+                    searchQuery ? (
+                      <MagnifyingGlassIcon size={40} weight="duotone" />
+                    ) : (
+                      <TrendUpIcon size={40} weight="duotone" />
+                    )
+                  }
+                  title={searchQuery ? "Sin resultados" : "Sin ingresos"}
+                  description={
+                    searchQuery
+                      ? `No se encontraron ingresos que coincidan con "${searchQuery}".`
+                      : "Aún no hay transacciones de tipo ingreso registradas."
+                  }
                 />
               }
             />
@@ -522,9 +570,19 @@ export default function FinanzasPage() {
               keyExtractor={(t) => t._id}
               emptyState={
                 <EmptyState
-                  icon={<TrendDownIcon size={40} weight="duotone" />}
-                  title="Sin egresos"
-                  description="Aún no hay transacciones de tipo egreso registradas."
+                  icon={
+                    searchQuery ? (
+                      <MagnifyingGlassIcon size={40} weight="duotone" />
+                    ) : (
+                      <TrendDownIcon size={40} weight="duotone" />
+                    )
+                  }
+                  title={searchQuery ? "Sin resultados" : "Sin egresos"}
+                  description={
+                    searchQuery
+                      ? `No se encontraron egresos o facturas que coincidan con "${searchQuery}".`
+                      : "Aún no hay transacciones de tipo egreso registradas."
+                  }
                 />
               }
             />

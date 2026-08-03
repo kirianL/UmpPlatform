@@ -18,6 +18,7 @@ export const create = mutation({
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
     avatarInitials: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const initials = args.avatarInitials || args.name.slice(0, 2).toUpperCase();
@@ -36,6 +37,7 @@ export const update = mutation({
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
     avatarInitials: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
     const initials = args.avatarInitials || args.name.slice(0, 2).toUpperCase();

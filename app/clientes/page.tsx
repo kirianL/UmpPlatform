@@ -417,7 +417,7 @@ export default function ClientesPage() {
     },
     {
       key: "lastInteraction",
-      header: "Última interacción",
+      header: "Primera interacción",
       className: "hidden lg:table-cell",
       render: (c) => (
         <span className="text-xs text-grayscale-10 font-mono">
@@ -704,7 +704,7 @@ export default function ClientesPage() {
               />
 
               <Input
-                label="Última interacción"
+                label="Primera interacción"
                 id="client-date"
                 type="date"
                 value={form.lastInteraction}

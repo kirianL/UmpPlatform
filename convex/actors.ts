@@ -111,6 +111,7 @@ export const create = mutation({
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
     shareToken: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const token = args.shareToken || toSlug(args.name) || "actor-" + Date.now();
@@ -130,6 +131,7 @@ export const update = mutation({
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
     shareToken: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
     const shareToken = args.shareToken || toSlug(args.name);

@@ -336,13 +336,13 @@ export default function CalendarioActoresPage() {
         </div>
 
         {/* Toolbar & Actor Share links */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-xl border border-grayscale-3 bg-grayscale-2 p-4 dark:border-grayscale-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-xl border border-grayscale-3 bg-grayscale-2 p-4 dark:border-grayscale-4 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full lg:w-auto min-w-0">
             <span className="text-xs font-mono font-bold uppercase text-grayscale-10 shrink-0">Filtrar por Actor:</span>
             <select
               value={selectedActorFilter}
               onChange={(e) => setSelectedActorFilter(e.target.value)}
-              className="rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-1.5 text-xs text-grayscale-12 outline-none dark:border-grayscale-5 dark:bg-grayscale-3"
+              className="w-full sm:w-auto max-w-full min-w-0 rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-1.5 text-xs text-grayscale-12 outline-none dark:border-grayscale-5 dark:bg-grayscale-3 truncate"
             >
               <option value="all">Todos los Actores</option>
               {actors.map((a) => (

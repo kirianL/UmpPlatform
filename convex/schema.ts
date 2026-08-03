@@ -11,6 +11,7 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
     avatarInitials: v.string(),
+    birthDate: v.optional(v.string()),
   }),
   castingLeads: defineTable({
     name: v.string(),
@@ -19,6 +20,8 @@ export default defineSchema({
     email: v.optional(v.string()),
     status: v.optional(v.union(v.literal("nuevo"), v.literal("contactado"), v.literal("evaluado"), v.literal("descartado"))),
     createdAt: v.string(),
+    birthDate: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
   }),
   transactions: defineTable({
     concept: v.string(),
@@ -173,6 +176,7 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     episodeCount: v.number(),
     shareToken: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
   }).index("by_shareToken", ["shareToken"]),
   actorSchedules: defineTable({
     title: v.string(),
