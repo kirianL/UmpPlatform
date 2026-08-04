@@ -10,7 +10,7 @@ export const get = query({
 
 export const create = mutation({
   args: {
-    name: v.string(),
+    name: v.optional(v.string()),
     phone: v.optional(v.string()),
     description: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -33,7 +33,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("castingLeads"),
-    name: v.string(),
+    name: v.optional(v.string()),
     phone: v.optional(v.string()),
     description: v.optional(v.string()),
     email: v.optional(v.string()),

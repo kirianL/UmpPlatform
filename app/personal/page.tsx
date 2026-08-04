@@ -329,7 +329,7 @@ export default function PersonalPage() {
   // Casting Leads Filters
   const filteredLeads = castingLeads.filter(
     (l: any) =>
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
+      (l.name && l.name.toLowerCase().includes(search.toLowerCase())) ||
       (l.phone && l.phone.toLowerCase().includes(search.toLowerCase())) ||
       (l.description &&
         l.description.toLowerCase().includes(search.toLowerCase())),
@@ -492,11 +492,9 @@ export default function PersonalPage() {
   }
 
   async function handleSaveLead() {
-    if (!leadForm.name.trim()) return;
-
     try {
       const payload = {
-        name: leadForm.name.trim(),
+        name: leadForm.name.trim() || "Persona interesada",
         phone: leadForm.phone.trim() || undefined,
         email: leadForm.email.trim() || undefined,
         description: leadForm.description.trim() || undefined,
@@ -1162,13 +1160,13 @@ export default function PersonalPage() {
                             />
                           ) : (
                             <div className="flex size-full items-center justify-center font-mono text-xs sm:text-sm font-bold text-accent-11 bg-accent-3">
-                              {lead.name.slice(0, 2).toUpperCase()}
+                              {(lead.name || "Persona").slice(0, 2).toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="font-extrabold text-xs sm:text-sm text-grayscale-12 truncate">
-                            {lead.name}
+                            {lead.name || "Persona interesada"}
                           </span>
                           <a
                             href={lead.phone ? getWhatsAppLink(lead.phone) : "#"}
@@ -1668,14 +1666,13 @@ export default function PersonalPage() {
             className="flex flex-col gap-4"
           >
             <Input
-              label="Nombre completo"
+              label="Nombre completo (opcional)"
               id="lead-name"
               value={leadForm.name}
               onChange={(e) =>
                 setLeadForm((f) => ({ ...f, name: e.target.value }))
               }
               placeholder="Ej: Mario Alvarado"
-              required
             />
 
             {/* Fotografía de la persona interesada */}
