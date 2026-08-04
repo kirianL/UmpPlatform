@@ -330,7 +330,7 @@ export default function PersonalPage() {
   const filteredLeads = castingLeads.filter(
     (l: any) =>
       l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.phone.toLowerCase().includes(search.toLowerCase()) ||
+      (l.phone && l.phone.toLowerCase().includes(search.toLowerCase())) ||
       (l.description &&
         l.description.toLowerCase().includes(search.toLowerCase())),
   );
@@ -492,14 +492,14 @@ export default function PersonalPage() {
   }
 
   async function handleSaveLead() {
-    if (!leadForm.name.trim() || !leadForm.phone.trim()) return;
+    if (!leadForm.name.trim()) return;
 
     try {
       const payload = {
         name: leadForm.name.trim(),
-        phone: leadForm.phone.trim(),
-        email: leadForm.email.trim(),
-        description: leadForm.description.trim(),
+        phone: leadForm.phone.trim() || undefined,
+        email: leadForm.email.trim() || undefined,
+        description: leadForm.description.trim() || undefined,
         status: leadForm.status,
         birthDate: leadForm.birthDate.trim() || undefined,
         photoUrl: leadForm.photoUrl.trim() || undefined,
@@ -513,10 +513,10 @@ export default function PersonalPage() {
       } else {
         await createCastingLead(payload);
       }
+      setLeadModalOpen(false);
     } catch (err) {
       console.error("Error al guardar interesado:", err);
     }
-    setLeadModalOpen(false);
   }
 
   function handleDeleteLead(id: string) {
@@ -681,7 +681,7 @@ export default function PersonalPage() {
       name: l.name,
       role: "Persona interesada",
       category: "Candidato",
-      phone: l.phone,
+      phone: l.phone || "",
       birthDate: l.birthDate,
       info: getBirthdayInfo(l.birthDate),
     })),
@@ -1171,14 +1171,14 @@ export default function PersonalPage() {
                             {lead.name}
                           </span>
                           <a
-                            href={getWhatsAppLink(lead.phone)}
+                            href={lead.phone ? getWhatsAppLink(lead.phone) : "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-[10px] sm:text-xs text-grayscale-10 font-mono hover:text-green-11 hover:underline transition-colors group/wa"
-                            title="Abrir chat de WhatsApp"
+                            title={lead.phone ? "Abrir chat de WhatsApp" : "Sin teléfono registrado"}
                           >
                             <PhoneIcon size={11} className="text-accent-9 group-hover/wa:text-green-11 shrink-0 transition-colors" />
-                            <span className="truncate">{lead.phone}</span>
+                            <span className="truncate">{lead.phone || "Sin teléfono"}</span>
                           </a>
                         </div>
                       </div>
@@ -1786,14 +1786,13 @@ export default function PersonalPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="Número de teléfono / WhatsApp"
+                label="Número de teléfono / WhatsApp (opcional)"
                 id="lead-phone"
                 value={leadForm.phone}
                 onChange={(e) =>
                   setLeadForm((f) => ({ ...f, phone: e.target.value }))
                 }
                 placeholder="+506 8800-0000"
-                required
               />
 
               <Select
