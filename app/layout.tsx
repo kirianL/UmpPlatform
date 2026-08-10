@@ -105,10 +105,10 @@ export default async function RootLayout({
             {isPublicPage ? (
               children
             ) : (
-              <div className="root">
-                <Sidebar userRole={userRole} />
+              <div className="root min-h-screen flex flex-col xl:block">
                 <MobileHeader userRole={userRole} />
-                <main className="min-h-screen xl:pl-56">
+                <Sidebar userRole={userRole} />
+                <main className="min-h-screen flex-1 xl:pl-56">
                   <ViewTransition enter="page-enter" exit="page-exit">
                     {children}
                   </ViewTransition>

@@ -55,43 +55,43 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
 
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => setOpen(nextOpen)}>
-      <header className="mobile-header pointer-events-none fixed inset-x-0 top-0 z-100 flex h-14 xl:hidden">
-        <div className="pointer-events-auto relative mx-auto flex h-full w-full items-center justify-between border-b border-grayscale-3 bg-grayscale-1/95 px-4 backdrop-blur dark:border-grayscale-2">
-          <Dialog.Trigger
-            aria-label="Open navigation"
-            title="Open navigation"
-            className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-b-2 border-grayscale-3 bg-white text-grayscale-11 transition-colors hover:bg-grayscale-2 hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 dark:hover:border-grayscale-5"
-          >
-            <ListIcon size={18} weight="bold" />
-          </Dialog.Trigger>
-          <Link
-            href={userRole === "produccion" ? "/inventario" : "/"}
-            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
-          >
-            <Logo className="h-4.5 w-auto" />
-            <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
-              |
-            </span>
-            <span className="tracking-wider">Platform</span>
-          </Link>
-          <div className="flex items-center gap-2 text-grayscale-10">
-            <MoonStarsIcon
-              aria-hidden="true"
-              size={17}
-              weight="fill"
-              className="text-grayscale-10"
-            />
-            <ThemeToggle size={16} />
-          </div>
+      {/* PERSISTENT STICKY MOBILE HEADER */}
+      <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-grayscale-3 bg-grayscale-1/95 px-4 backdrop-blur xl:hidden dark:border-grayscale-2">
+        <Dialog.Trigger
+          aria-label="Open navigation"
+          title="Open navigation"
+          className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-b-2 border-grayscale-3 bg-white text-grayscale-11 transition-colors hover:bg-grayscale-2 hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 dark:hover:border-grayscale-5"
+        >
+          <ListIcon size={18} weight="bold" />
+        </Dialog.Trigger>
+
+        <Link
+          href={userRole === "produccion" ? "/inventario" : "/"}
+          className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
+        >
+          <Logo className="h-4.5 w-auto" />
+          <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+            |
+          </span>
+          <span className="tracking-wider">Platform</span>
+        </Link>
+
+        <div className="flex items-center gap-2 text-grayscale-10">
+          <MoonStarsIcon
+            aria-hidden="true"
+            size={17}
+            weight="fill"
+            className="text-grayscale-10"
+          />
+          <ThemeToggle size={16} />
         </div>
       </header>
 
+      {/* FULLSCREEN NAVIGATION OVERLAY */}
       <Dialog.Portal>
-        {/* Fullscreen backdrop */}
-        <Dialog.Backdrop className="fixed inset-0 z-100 bg-grayscale-1/80 backdrop-blur-xl transition-opacity duration-300 ease-out data-[state=closed]:opacity-0 data-[state=open]:opacity-100 xl:hidden dark:bg-grayscale-1/90" />
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-grayscale-1/80 backdrop-blur-xl transition-opacity duration-200 ease-out data-[state=closed]:opacity-0 data-[state=open]:opacity-100 xl:hidden dark:bg-grayscale-1/90" />
 
-        {/* Fullscreen centered menu */}
-        <Dialog.Popup className="fixed inset-0 z-100 flex flex-col h-dvh w-full bg-grayscale-1 outline-none xl:hidden dark:bg-grayscale-1 transition-opacity duration-300 ease-out data-[state=closed]:opacity-0 data-[state=open]:opacity-100">
+        <Dialog.Popup className="fixed inset-0 z-50 flex flex-col h-dvh w-full bg-grayscale-1 outline-none xl:hidden dark:bg-grayscale-1 transition-opacity duration-200 ease-out data-[state=closed]:opacity-0 data-[state=open]:opacity-100">
           <Dialog.Title className="sr-only">Navigation</Dialog.Title>
 
           {/* Top bar — logo + close */}
@@ -132,7 +132,7 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
                       : "text-grayscale-10 active:bg-grayscale-2 dark:active:bg-grayscale-2",
                   )}
                   style={{
-                    animationDelay: `${index * 35}ms`,
+                    animationDelay: `${index * 25}ms`,
                   }}
                 >
                   <Icon
@@ -161,14 +161,13 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
               <button
                 onClick={async () => {
                   try {
-                    const res = await fetch("/api/auth/logout", {
-                      method: "POST",
-                    });
-                    if (res.ok) {
-                      window.location.href = "/login";
-                    }
+                    document.cookie =
+                      "session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                    await fetch("/api/auth/logout", { method: "POST" });
                   } catch (err) {
                     console.error("Error al cerrar sesión:", err);
+                  } finally {
+                    window.location.href = "/login";
                   }
                 }}
                 className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 font-mono text-xs font-bold uppercase text-red-9 active:bg-red-2/30 dark:active:bg-red-9/10 transition-colors"
