@@ -8,45 +8,61 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
 
   if (error) {
-    return NextResponse.json({ error: `Error de autorización: ${error}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Error de autorización: ${error}` },
+      { status: 400 },
+    );
   }
 
   if (!code) {
-    return NextResponse.json({ error: "No se recibió código de autorización" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No se recibió código de autorización" },
+      { status: 400 },
+    );
   }
 
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  
+
   // Determinar la base URL de forma dinámica
   const { origin } = new URL(request.url);
   const redirectUri = `${origin}/api/auth/youtube/callback`;
 
-    try {
-      const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: clientId || "",
-          client_secret: clientSecret || "",
-          code,
-          redirect_uri: redirectUri,
-          grant_type: "authorization_code",
-        }).toString(),
-      });
+  try {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId || "",
+        client_secret: clientSecret || "",
+        code,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }).toString(),
+    });
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      return NextResponse.json({ error: "Fallo al intercambiar el código por tokens", details: errBody }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Fallo al intercambiar el código por tokens",
+          details: errBody,
+        },
+        { status: 400 },
+      );
     }
 
     const data = await res.json();
     const refreshToken = data.refresh_token;
 
     if (!refreshToken) {
-      return NextResponse.json({ 
-        error: "Google no devolvió un Refresh Token. Intenta revocar los permisos de la aplicación en tu cuenta de Google y vuelve a intentar para forzar el consentimiento." 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error:
+            "Google no devolvió un Refresh Token. Intenta revocar los permisos de la aplicación en tu cuenta de Google y vuelve a intentar para forzar el consentimiento.",
+        },
+        { status: 400 },
+      );
     }
 
     // Intentar escribir el token automáticamente en el archivo .env.local
@@ -57,7 +73,10 @@ export async function GET(request: NextRequest) {
         let envContent = fs.readFileSync(envPath, "utf-8");
         if (envContent.includes("YOUTUBE_REFRESH_TOKEN=")) {
           // Reemplazar la línea existente
-          envContent = envContent.replace(/YOUTUBE_REFRESH_TOKEN=.*/, `YOUTUBE_REFRESH_TOKEN=${refreshToken}`);
+          envContent = envContent.replace(
+            /YOUTUBE_REFRESH_TOKEN=.*/,
+            `YOUTUBE_REFRESH_TOKEN=${refreshToken}`,
+          );
         } else {
           // Añadirla al final
           envContent += `\nYOUTUBE_REFRESH_TOKEN=${refreshToken}\n`;
@@ -66,10 +85,14 @@ export async function GET(request: NextRequest) {
         autoSaved = true;
       }
     } catch (fsErr) {
-      console.error("Error al intentar autoguardar el token en .env.local:", fsErr);
+      console.error(
+        "Error al intentar autoguardar el token en .env.local:",
+        fsErr,
+      );
     }
 
-    return new NextResponse(`
+    return new NextResponse(
+      `
       <html>
         <head>
           <title>Autorización de YouTube Exitosa</title>
@@ -81,15 +104,17 @@ export async function GET(request: NextRequest) {
             </div>
             <h1 style="color: #34d399; margin-top: 0; margin-bottom: 12px; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">¡Conexión Exitosa con YouTube!</h1>
             <p style="margin-bottom: 24px; font-size: 15px; color: #94a3b8; line-height: 1.6;">
-              ${autoSaved 
-                ? "Hemos configurado automáticamente el <strong>Refresh Token</strong> en tu archivo <strong>.env.local</strong> local."
-                : "Google ha autorizado la conexión de manera segura. Copia el siguiente Refresh Token y agrégalo a tu archivo <strong>.env.local</strong>:"
+              ${
+                autoSaved
+                  ? "Hemos configurado automáticamente el <strong>Refresh Token</strong> en tu archivo <strong>.env.local</strong> local."
+                  : "Google ha autorizado la conexión de manera segura. Copia el siguiente Refresh Token y agrégalo a tu archivo <strong>.env.local</strong>:"
               }
             </p>
             
-            ${autoSaved 
-              ? `<p style="background-color: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; color: #34d399; font-size: 13px; font-family: monospace; margin-bottom: 24px;">YOUTUBE_REFRESH_TOKEN=guardado_exitosamente_en_env.local</p>`
-              : `<textarea readonly style="width: 100%; height: 90px; padding: 12px; border-radius: 8px; border: 1px solid #475569; background-color: #0f172a; color: #f1f5f9; font-family: monospace; font-size: 14px; resize: none; margin-bottom: 20px; box-sizing: border-box; outline: none; cursor: text;" onclick="this.select()">${refreshToken}</textarea>`
+            ${
+              autoSaved
+                ? `<p style="background-color: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; color: #34d399; font-size: 13px; font-family: monospace; margin-bottom: 24px;">YOUTUBE_REFRESH_TOKEN=guardado_exitosamente_en_env.local</p>`
+                : `<textarea readonly style="width: 100%; height: 90px; padding: 12px; border-radius: 8px; border: 1px solid #475569; background-color: #0f172a; color: #f1f5f9; font-family: monospace; font-size: 14px; resize: none; margin-bottom: 20px; box-sizing: border-box; outline: none; cursor: text;" onclick="this.select()">${refreshToken}</textarea>`
             }
 
             <a href="/analytics" style="display: inline-block; background-color: #3b82f6; hover:background-color: #2563eb; color: white; padding: 12px 28px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px; transition: background-color 0.2s; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
@@ -102,8 +127,13 @@ export async function GET(request: NextRequest) {
           </div>
         </body>
       </html>
-    `, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    `,
+      { headers: { "Content-Type": "text/html; charset=utf-8" } },
+    );
   } catch (err: any) {
-    return NextResponse.json({ error: "Error de servidor en el callback", message: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error de servidor en el callback", message: err.message },
+      { status: 500 },
+    );
   }
 }

@@ -4,50 +4,65 @@ export const run = mutation({
   args: {},
   handler: async (ctx) => {
     // Ensure test users exist with correct roles
-    const adminUser = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", "admin@ultimate.cr")).first();
+    const adminUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "admin@ultimate.cr"))
+      .first();
     if (adminUser) {
       await ctx.db.patch(adminUser._id, {
         name: "Administrador UMP",
-        passwordHash: "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
+        passwordHash:
+          "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
         role: "admin",
       });
     } else {
       await ctx.db.insert("users", {
         email: "admin@ultimate.cr",
         name: "Administrador UMP",
-        passwordHash: "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
+        passwordHash:
+          "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
         role: "admin",
       });
     }
 
-    const prodUser = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", "produccion@ultimate.cr")).first();
+    const prodUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "produccion@ultimate.cr"))
+      .first();
     if (prodUser) {
       await ctx.db.patch(prodUser._id, {
         name: "Producción UMP",
-        passwordHash: "f22ff8824c832bf9a32853e3b51d8a6ddc4b02042716dd41d085dcc1173952ac",
+        passwordHash:
+          "f22ff8824c832bf9a32853e3b51d8a6ddc4b02042716dd41d085dcc1173952ac",
         role: "produccion",
       });
     } else {
       await ctx.db.insert("users", {
         email: "produccion@ultimate.cr",
         name: "Producción UMP",
-        passwordHash: "f22ff8824c832bf9a32853e3b51d8a6ddc4b02042716dd41d085dcc1173952ac",
+        passwordHash:
+          "f22ff8824c832bf9a32853e3b51d8a6ddc4b02042716dd41d085dcc1173952ac",
         role: "produccion",
       });
     }
 
-    const eymarUser = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", "eymar@ultimate.cr")).first();
+    const eymarUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "eymar@ultimate.cr"))
+      .first();
     if (eymarUser) {
       await ctx.db.patch(eymarUser._id, {
         name: "Eymar",
-        passwordHash: "703f07d7bb546836ef8f7beb4109453f6ce51123ac2f3cb8ba48f0f1c664b1d0",
+        passwordHash:
+          "703f07d7bb546836ef8f7beb4109453f6ce51123ac2f3cb8ba48f0f1c664b1d0",
         role: "produccion",
       });
     } else {
       await ctx.db.insert("users", {
         email: "eymar@ultimate.cr",
         name: "Eymar",
-        passwordHash: "703f07d7bb546836ef8f7beb4109453f6ce51123ac2f3cb8ba48f0f1c664b1d0",
+        passwordHash:
+          "703f07d7bb546836ef8f7beb4109453f6ce51123ac2f3cb8ba48f0f1c664b1d0",
         role: "produccion",
       });
     }
@@ -66,7 +81,8 @@ export const run = mutation({
         uploadedAt: "2026-07-15T10:30:00Z",
         uploadedBy: "Valeria Quirós",
         shareId: "guion-ep1-horizontes",
-        description: "Guión técnico revisado para el episodio piloto. Incluye llamados de escena 1 a 14.",
+        description:
+          "Guión técnico revisado para el episodio piloto. Incluye llamados de escena 1 a 14.",
         content: `ESCENA 1. INTERIOR. OFICINA INSPECTOR MORALES - NOCHE
 
 Lluvia intensa golpea los cristales de la ventana. La oficina está a oscuras salvo por la luz tenue de una lámpara de escritorio.
@@ -112,7 +128,8 @@ Elena le entrega un sobre sellado. Morales observa el reverso con preocupación.
         uploadedAt: "2026-07-18T14:15:00Z",
         uploadedBy: "Andrés Monge",
         shareId: "guion-ep2-horizontes",
-        description: "Segunda revisión del guión. Pendiente ajustar diálogo de la escena 5 con el actor principal.",
+        description:
+          "Segunda revisión del guión. Pendiente ajustar diálogo de la escena 5 con el actor principal.",
         content: `ESCENA 3. INTERIOR. LABORATORIO FORENSE CENTRAL - DÍA
 
 Luz fluorescente blanca. Mesas de acero inoxidable. 
@@ -132,7 +149,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         scriptId: script1Id,
         shareId: "guion-ep1-horizontes",
         authorName: "Carlos Rivera (Inspector Morales)",
-        comment: "¡Excelente guión! En la escena 3, la línea del diálogo sobre el teléfono queda perfecta.",
+        comment:
+          "¡Excelente guión! En la escena 3, la línea del diálogo sobre el teléfono queda perfecta.",
         createdAt: "2026-07-16T09:12:00Z",
       });
 
@@ -140,7 +158,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         scriptId: script1Id,
         shareId: "guion-ep1-horizontes",
         authorName: "Mariana Rojas (Dra. Elena)",
-        comment: "Confirmado mi llamado para las escenas 4 y 7. ¿El vestuario será el abrigo azul?",
+        comment:
+          "Confirmado mi llamado para las escenas 4 y 7. ¿El vestuario será el abrigo azul?",
         createdAt: "2026-07-17T11:45:00Z",
       });
     }
@@ -151,8 +170,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       const actor1Id = await ctx.db.insert("actors", {
         name: "Carlos Rivera",
         characterName: "Inspector Morales",
-        characterBio: "Detective meticuloso de 42 años, perspicaz y reservado. Lidera la investigación principal de la serie.",
-        photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+        characterBio:
+          "Detective meticuloso de 42 años, perspicaz y reservado. Lidera la investigación principal de la serie.",
+        photoUrl:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
         phone: "8888-1122",
         email: "carlos.rivera@actores.cr",
         status: "active" as const,
@@ -164,8 +185,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       const actor2Id = await ctx.db.insert("actors", {
         name: "Mariana Rojas",
         characterName: "Dra. Elena Vargas",
-        characterBio: "Médica forense y científica experta. Aliada estratégica del Inspector Morales.",
-        photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        characterBio:
+          "Médica forense y científica experta. Aliada estratégica del Inspector Morales.",
+        photoUrl:
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
         phone: "8777-3344",
         email: "mariana.rojas@actores.cr",
         status: "active" as const,
@@ -177,8 +200,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       await ctx.db.insert("actors", {
         name: "Esteban Castro",
         characterName: "Rodrigo 'El Sombra'",
-        characterBio: "Antagonista principal de la temporada. Personaje enigmático de pasado militar.",
-        photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+        characterBio:
+          "Antagonista principal de la temporada. Personaje enigmático de pasado militar.",
+        photoUrl:
+          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
         phone: "8666-5577",
         email: "esteban.castro@actores.cr",
         status: "active" as const,
@@ -198,7 +223,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         actorId: actor1Id,
         actorName: "Carlos Rivera",
         characterName: "Inspector Morales",
-        sceneDetails: "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
+        sceneDetails:
+          "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
         status: "scheduled" as const,
         shareToken: "carlos-rivera",
       });
@@ -213,7 +239,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
         actorId: actor2Id,
         actorName: "Mariana Rojas",
         characterName: "Dra. Elena Vargas",
-        sceneDetails: "Revisión de pruebas médicas y llamada de urgencia. Traer bata médica y credencial props.",
+        sceneDetails:
+          "Revisión de pruebas médicas y llamada de urgencia. Traer bata médica y credencial props.",
         status: "scheduled" as const,
         shareToken: "mariana-rojas-4412",
       });
@@ -221,10 +248,50 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed employees
     const employees = [
-      { name: "Andrés Monge", role: "Director de Fotografía", phone: "8899-7766", email: "andres@umpproducciones.com", salary: 750000, status: "active" as const, episodeCount: 12, avatarInitials: "AM", birthDate: "1992-08-08" },
-      { name: "Valeria Quirós", role: "Productora General", phone: "8765-4321", email: "valeria@umpproducciones.com", salary: 850000, status: "active" as const, episodeCount: 15, avatarInitials: "VQ", birthDate: "1994-08-03" },
-      { name: "Gabriel Soto", role: "Editor / Colorista", phone: "8333-2211", email: "gabriel@umpproducciones.com", salary: 600000, status: "active" as const, episodeCount: 8, avatarInitials: "GS", birthDate: "1996-08-15" },
-      { name: "Lucía Méndez", role: "Sonidista", phone: "8555-4433", email: "lucia@gmail.com", salary: 500000, status: "inactive" as const, episodeCount: 4, avatarInitials: "LM", birthDate: "1990-11-20" },
+      {
+        name: "Andrés Monge",
+        role: "Director de Fotografía",
+        phone: "8899-7766",
+        email: "andres@umpproducciones.com",
+        salary: 750000,
+        status: "active" as const,
+        episodeCount: 12,
+        avatarInitials: "AM",
+        birthDate: "1992-08-08",
+      },
+      {
+        name: "Valeria Quirós",
+        role: "Productora General",
+        phone: "8765-4321",
+        email: "valeria@umpproducciones.com",
+        salary: 850000,
+        status: "active" as const,
+        episodeCount: 15,
+        avatarInitials: "VQ",
+        birthDate: "1994-08-03",
+      },
+      {
+        name: "Gabriel Soto",
+        role: "Editor / Colorista",
+        phone: "8333-2211",
+        email: "gabriel@umpproducciones.com",
+        salary: 600000,
+        status: "active" as const,
+        episodeCount: 8,
+        avatarInitials: "GS",
+        birthDate: "1996-08-15",
+      },
+      {
+        name: "Lucía Méndez",
+        role: "Sonidista",
+        phone: "8555-4433",
+        email: "lucia@gmail.com",
+        salary: 500000,
+        status: "inactive" as const,
+        episodeCount: 4,
+        avatarInitials: "LM",
+        birthDate: "1990-11-20",
+      },
     ];
     for (const e of employees) {
       await ctx.db.insert("employees", e);
@@ -232,10 +299,46 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed clients
     const clients = [
-      { name: "Laura Sánchez", company: "Streaming MX", address: "Av. Reforma #120, CDMX", phone: "555-0199", email: "laura@streamingmx.com", type: "activo" as const, lastInteraction: "2026-06-25", projectCount: 3 },
-      { name: "Fernando Reyes", company: "Lumina Brands", address: "Calle 10 Nte #45, Monterrey", phone: "555-0188", email: "fernando@lumina.mx", type: "activo" as const, lastInteraction: "2026-06-22", projectCount: 2 },
-      { name: "Patricia Gómez", company: "Canal 7 Media", address: "Blvd. Televisión #700, San José", phone: "555-0177", email: "patricia@canal7.tv", type: "activo" as const, lastInteraction: "2026-06-28", projectCount: 5 },
-      { name: "Andrés Morales", company: "Reyes Distribución", address: "Zona Industrial Lote 4, Alajuela", phone: "555-0166", email: "andres@reyesdist.com", type: "potencial" as const, lastInteraction: "2026-06-18", projectCount: 1 },
+      {
+        name: "Laura Sánchez",
+        company: "Streaming MX",
+        address: "Av. Reforma #120, CDMX",
+        phone: "555-0199",
+        email: "laura@streamingmx.com",
+        type: "activo" as const,
+        lastInteraction: "2026-06-25",
+        projectCount: 3,
+      },
+      {
+        name: "Fernando Reyes",
+        company: "Lumina Brands",
+        address: "Calle 10 Nte #45, Monterrey",
+        phone: "555-0188",
+        email: "fernando@lumina.mx",
+        type: "activo" as const,
+        lastInteraction: "2026-06-22",
+        projectCount: 2,
+      },
+      {
+        name: "Patricia Gómez",
+        company: "Canal 7 Media",
+        address: "Blvd. Televisión #700, San José",
+        phone: "555-0177",
+        email: "patricia@canal7.tv",
+        type: "activo" as const,
+        lastInteraction: "2026-06-28",
+        projectCount: 5,
+      },
+      {
+        name: "Andrés Morales",
+        company: "Reyes Distribución",
+        address: "Zona Industrial Lote 4, Alajuela",
+        phone: "555-0166",
+        email: "andres@reyesdist.com",
+        type: "potencial" as const,
+        lastInteraction: "2026-06-18",
+        projectCount: 1,
+      },
     ];
     for (const c of clients) {
       await ctx.db.insert("clients", c);
@@ -243,10 +346,38 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed equipment
     const equipment = [
-      { name: "Sony FX6 Cinema Line", serialNumber: "FX6-99281A", category: "camera", status: "available" as const, location: "Casillero A1", acquisitionDate: "2024-05-15" },
-      { name: "Lente Sony 24-70mm f/2.8 GM II", serialNumber: "SEL2470GM2-01", category: "lens", status: "available" as const, location: "Casillero B3", acquisitionDate: "2024-06-10" },
-      { name: "Aputure LS 600d Pro", serialNumber: "AP-600D-8812", category: "lighting", status: "in-use" as const, location: "Rodaje 'Horizontes'", acquisitionDate: "2025-01-20" },
-      { name: "Sennheiser MKH416 Shotgun Mic", serialNumber: "SEN-416-092", category: "audio", status: "available" as const, location: "Casillero C2", acquisitionDate: "2023-11-05" },
+      {
+        name: "Sony FX6 Cinema Line",
+        serialNumber: "FX6-99281A",
+        category: "camera",
+        status: "available" as const,
+        location: "Casillero A1",
+        acquisitionDate: "2024-05-15",
+      },
+      {
+        name: "Lente Sony 24-70mm f/2.8 GM II",
+        serialNumber: "SEL2470GM2-01",
+        category: "lens",
+        status: "available" as const,
+        location: "Casillero B3",
+        acquisitionDate: "2024-06-10",
+      },
+      {
+        name: "Aputure LS 600d Pro",
+        serialNumber: "AP-600D-8812",
+        category: "lighting",
+        status: "in-use" as const,
+        location: "Rodaje 'Horizontes'",
+        acquisitionDate: "2025-01-20",
+      },
+      {
+        name: "Sennheiser MKH416 Shotgun Mic",
+        serialNumber: "SEN-416-092",
+        category: "audio",
+        status: "available" as const,
+        location: "Casillero C2",
+        acquisitionDate: "2023-11-05",
+      },
     ];
     for (const eq of equipment) {
       await ctx.db.insert("equipment", eq);
@@ -254,10 +385,38 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed transactions
     const transactions = [
-      { concept: "Pago de cliente: Streaming MX — Serie Ep. 3", amount: 1500000, date: "2026-06-25", category: "Producción", type: "income" as const, status: "paid" as const },
-      { concept: "Alquiler de Luces Adicionales — Rodaje Ep. 4", amount: 120000, date: "2026-06-24", category: "Alquileres", type: "expense" as const, status: "paid" as const },
-      { concept: "Servicios Profesionales: Sonidista Externo", amount: 80000, date: "2026-06-28", category: "Honorarios", type: "expense" as const, status: "pending" as const },
-      { concept: "Cobro Anticipado: Spot Lumina Brands", amount: 500000, date: "2026-06-20", category: "Publicidad", type: "income" as const, status: "paid" as const },
+      {
+        concept: "Pago de cliente: Streaming MX — Serie Ep. 3",
+        amount: 1500000,
+        date: "2026-06-25",
+        category: "Producción",
+        type: "income" as const,
+        status: "paid" as const,
+      },
+      {
+        concept: "Alquiler de Luces Adicionales — Rodaje Ep. 4",
+        amount: 120000,
+        date: "2026-06-24",
+        category: "Alquileres",
+        type: "expense" as const,
+        status: "paid" as const,
+      },
+      {
+        concept: "Servicios Profesionales: Sonidista Externo",
+        amount: 80000,
+        date: "2026-06-28",
+        category: "Honorarios",
+        type: "expense" as const,
+        status: "pending" as const,
+      },
+      {
+        concept: "Cobro Anticipado: Spot Lumina Brands",
+        amount: 500000,
+        date: "2026-06-20",
+        category: "Publicidad",
+        type: "income" as const,
+        status: "paid" as const,
+      },
     ];
     for (const t of transactions) {
       await ctx.db.insert("transactions", t);
@@ -265,9 +424,39 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed deals
     const deals = [
-      { title: "Serie 'Ecos del Mar' — T1", client: "Streaming MX", value: 1200000, stage: "negotiation" as const, priority: "high" as const, createdAt: "2026-05-10", expectedClose: "2026-07-15", description: "Serie dramática de 8 episodios.", contactEmail: "laura@streamingmx.com" },
-      { title: "Comercial Navidad — Lumina", client: "Lumina Brands", value: 150000, stage: "proposal" as const, priority: "medium" as const, createdAt: "2026-06-01", expectedClose: "2026-07-01", description: "Spot de 30s para campaña navideña.", contactEmail: "fernando@lumina.mx" },
-      { title: "Documental 'Voces Urbanas'", client: "Canal 7 Media", value: 450000, stage: "won" as const, priority: "high" as const, createdAt: "2026-04-20", expectedClose: "2026-06-20", description: "Documental de 3 episodios.", contactEmail: "patricia@canal7.tv" },
+      {
+        title: "Serie 'Ecos del Mar' — T1",
+        client: "Streaming MX",
+        value: 1200000,
+        stage: "negotiation" as const,
+        priority: "high" as const,
+        createdAt: "2026-05-10",
+        expectedClose: "2026-07-15",
+        description: "Serie dramática de 8 episodios.",
+        contactEmail: "laura@streamingmx.com",
+      },
+      {
+        title: "Comercial Navidad — Lumina",
+        client: "Lumina Brands",
+        value: 150000,
+        stage: "proposal" as const,
+        priority: "medium" as const,
+        createdAt: "2026-06-01",
+        expectedClose: "2026-07-01",
+        description: "Spot de 30s para campaña navideña.",
+        contactEmail: "fernando@lumina.mx",
+      },
+      {
+        title: "Documental 'Voces Urbanas'",
+        client: "Canal 7 Media",
+        value: 450000,
+        stage: "won" as const,
+        priority: "high" as const,
+        createdAt: "2026-04-20",
+        expectedClose: "2026-06-20",
+        description: "Documental de 3 episodios.",
+        contactEmail: "patricia@canal7.tv",
+      },
     ];
     for (const d of deals) {
       await ctx.db.insert("deals", d);
@@ -275,9 +464,30 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed events
     const events = [
-      { title: "Rodaje Ep. 5 — Horizontes", date: "2026-06-12", time: "08:00", type: "shooting" as const, description: "Locación exterior en Heredia.", status: "completed" as const },
-      { title: "Reunión con Canal 7", date: "2026-06-15", time: "11:00", type: "meeting" as const, description: "Presentación de propuesta.", status: "completed" as const },
-      { title: "Rodaje Ep. 6 — Horizontes", date: "2026-06-18", time: "06:30", type: "shooting" as const, description: "Llamado temprano.", status: "upcoming" as const },
+      {
+        title: "Rodaje Ep. 5 — Horizontes",
+        date: "2026-06-12",
+        time: "08:00",
+        type: "shooting" as const,
+        description: "Locación exterior en Heredia.",
+        status: "completed" as const,
+      },
+      {
+        title: "Reunión con Canal 7",
+        date: "2026-06-15",
+        time: "11:00",
+        type: "meeting" as const,
+        description: "Presentación de propuesta.",
+        status: "completed" as const,
+      },
+      {
+        title: "Rodaje Ep. 6 — Horizontes",
+        date: "2026-06-18",
+        time: "06:30",
+        type: "shooting" as const,
+        description: "Llamado temprano.",
+        status: "upcoming" as const,
+      },
     ];
     for (const ev of events) {
       await ctx.db.insert("events", ev);
@@ -285,11 +495,71 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed analyticsStats
     const analyticsStats = [
-      { platform: "all" as const, followers: 325300, followersGrowth: "+9.1%", views: 1485000, viewsGrowth: "+26.8%", engagement: "8.2%", engagementGrowth: "+1.5%", shares: 61400, sharesGrowth: "+17.2%", watchTime: "52,400 h", avgRetention: "58.4%" },
-      { platform: "youtube" as const, followers: 120000, followersGrowth: "+6.1%", views: 450000, viewsGrowth: "+18.5%", engagement: "9.2%", engagementGrowth: "+0.8%", shares: 12500, sharesGrowth: "+10.2%", watchTime: "31,200 h", avgRetention: "64.2%" },
-      { platform: "instagram" as const, followers: 85000, followersGrowth: "+12.4%", views: 380000, viewsGrowth: "+35.1%", engagement: "6.8%", engagementGrowth: "+2.1%", shares: 18400, sharesGrowth: "+22.5%", watchTime: "8,500 h", avgRetention: "48.5%" },
-      { platform: "tiktok" as const, followers: 40300, followersGrowth: "+22.8%", views: 375000, viewsGrowth: "+45.2%", engagement: "14.2%", engagementGrowth: "+4.5%", shares: 18000, sharesGrowth: "+38.4%", watchTime: "6,200 h", avgRetention: "42.1%" },
-      { platform: "facebook" as const, followers: 80000, followersGrowth: "+5.3%", views: 280000, viewsGrowth: "+14.8%", engagement: "5.4%", engagementGrowth: "+0.5%", shares: 12500, sharesGrowth: "+12.1%", watchTime: "6,500 h", avgRetention: "51.8%" }
+      {
+        platform: "all" as const,
+        followers: 325300,
+        followersGrowth: "+9.1%",
+        views: 1485000,
+        viewsGrowth: "+26.8%",
+        engagement: "8.2%",
+        engagementGrowth: "+1.5%",
+        shares: 61400,
+        sharesGrowth: "+17.2%",
+        watchTime: "52,400 h",
+        avgRetention: "58.4%",
+      },
+      {
+        platform: "youtube" as const,
+        followers: 120000,
+        followersGrowth: "+6.1%",
+        views: 450000,
+        viewsGrowth: "+18.5%",
+        engagement: "9.2%",
+        engagementGrowth: "+0.8%",
+        shares: 12500,
+        sharesGrowth: "+10.2%",
+        watchTime: "31,200 h",
+        avgRetention: "64.2%",
+      },
+      {
+        platform: "instagram" as const,
+        followers: 85000,
+        followersGrowth: "+12.4%",
+        views: 380000,
+        viewsGrowth: "+35.1%",
+        engagement: "6.8%",
+        engagementGrowth: "+2.1%",
+        shares: 18400,
+        sharesGrowth: "+22.5%",
+        watchTime: "8,500 h",
+        avgRetention: "48.5%",
+      },
+      {
+        platform: "tiktok" as const,
+        followers: 40300,
+        followersGrowth: "+22.8%",
+        views: 375000,
+        viewsGrowth: "+45.2%",
+        engagement: "14.2%",
+        engagementGrowth: "+4.5%",
+        shares: 18000,
+        sharesGrowth: "+38.4%",
+        watchTime: "6,200 h",
+        avgRetention: "42.1%",
+      },
+      {
+        platform: "facebook" as const,
+        followers: 80000,
+        followersGrowth: "+5.3%",
+        views: 280000,
+        viewsGrowth: "+14.8%",
+        engagement: "5.4%",
+        engagementGrowth: "+0.5%",
+        shares: 12500,
+        sharesGrowth: "+12.1%",
+        watchTime: "6,500 h",
+        avgRetention: "51.8%",
+      },
     ];
     for (const stat of analyticsStats) {
       await ctx.db.insert("analyticsStats", stat);
@@ -297,11 +567,56 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
 
     // Seed topContent
     const topContent = [
-      { title: "Detrás de Cámaras: Serie 'Horizontes' — Ep. 5", platform: "youtube" as const, views: 185000, likes: 15400, watchTime: "12,400 h", retention: "64.2%", duration: "14:20", date: "Hace 5 días" },
-      { title: "Sony FX6 vs Red Komodo: Comparativa Real", platform: "youtube" as const, views: 142000, likes: 12100, watchTime: "9,800 h", retention: "58.4%", duration: "18:45", date: "Hace 12 días" },
-      { title: "Reel: Iluminación de Cine en Espacios Pequeños", platform: "instagram" as const, views: 245000, likes: 28400, watchTime: "4,200 h", retention: "72.5%", duration: "0:58", date: "Hace 3 días" },
-      { title: "Cómo grabar audio limpio en exteriores", platform: "tiktok" as const, views: 310000, likes: 35200, watchTime: "3,800 h", retention: "68.2%", duration: "0:45", date: "Hace 2 días" },
-      { title: "Anuncio de Estreno: Documental 'Voces'", platform: "facebook" as const, views: 98000, likes: 6200, watchTime: "2,100 h", retention: "45.8%", duration: "2:15", date: "Hace 8 días" }
+      {
+        title: "Detrás de Cámaras: Serie 'Horizontes' — Ep. 5",
+        platform: "youtube" as const,
+        views: 185000,
+        likes: 15400,
+        watchTime: "12,400 h",
+        retention: "64.2%",
+        duration: "14:20",
+        date: "Hace 5 días",
+      },
+      {
+        title: "Sony FX6 vs Red Komodo: Comparativa Real",
+        platform: "youtube" as const,
+        views: 142000,
+        likes: 12100,
+        watchTime: "9,800 h",
+        retention: "58.4%",
+        duration: "18:45",
+        date: "Hace 12 días",
+      },
+      {
+        title: "Reel: Iluminación de Cine en Espacios Pequeños",
+        platform: "instagram" as const,
+        views: 245000,
+        likes: 28400,
+        watchTime: "4,200 h",
+        retention: "72.5%",
+        duration: "0:58",
+        date: "Hace 3 días",
+      },
+      {
+        title: "Cómo grabar audio limpio en exteriores",
+        platform: "tiktok" as const,
+        views: 310000,
+        likes: 35200,
+        watchTime: "3,800 h",
+        retention: "68.2%",
+        duration: "0:45",
+        date: "Hace 2 días",
+      },
+      {
+        title: "Anuncio de Estreno: Documental 'Voces'",
+        platform: "facebook" as const,
+        views: 98000,
+        likes: 6200,
+        watchTime: "2,100 h",
+        retention: "45.8%",
+        duration: "2:15",
+        date: "Hace 8 días",
+      },
     ];
     for (const item of topContent) {
       await ctx.db.insert("topContent", item);
@@ -319,7 +634,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       uploadedAt: "2026-07-15T10:30:00Z",
       uploadedBy: "Valeria Quirós",
       shareId: "guion-ep1-horizontes",
-      description: "Guión técnico revisado para el episodio piloto. Incluye llamados de escena 1 a 14.",
+      description:
+        "Guión técnico revisado para el episodio piloto. Incluye llamados de escena 1 a 14.",
     });
 
     await ctx.db.insert("scripts", {
@@ -333,7 +649,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       uploadedAt: "2026-07-18T14:15:00Z",
       uploadedBy: "Andrés Monge",
       shareId: "guion-ep2-horizontes",
-      description: "Segunda revisión del guión. Pendiente ajustar diálogo de la escena 5 con el actor principal.",
+      description:
+        "Segunda revisión del guión. Pendiente ajustar diálogo de la escena 5 con el actor principal.",
     });
 
     // Seed scriptComments
@@ -341,7 +658,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       scriptId: script1Id,
       shareId: "guion-ep1-horizontes",
       authorName: "Carlos Rivera (Inspector Morales)",
-      comment: "¡Excelente guión! En la escena 3, la línea del diálogo sobre el teléfono queda perfecta.",
+      comment:
+        "¡Excelente guión! En la escena 3, la línea del diálogo sobre el teléfono queda perfecta.",
       createdAt: "2026-07-16T09:12:00Z",
     });
 
@@ -349,7 +667,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       scriptId: script1Id,
       shareId: "guion-ep1-horizontes",
       authorName: "Mariana Rojas (Dra. Elena)",
-      comment: "Confirmado mi llamado para las escenas 4 y 7. ¿El vestuario será el abrigo azul?",
+      comment:
+        "Confirmado mi llamado para las escenas 4 y 7. ¿El vestuario será el abrigo azul?",
       createdAt: "2026-07-17T11:45:00Z",
     });
 
@@ -357,8 +676,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
     const actor1Id = await ctx.db.insert("actors", {
       name: "Carlos Rivera",
       characterName: "Inspector Morales",
-      characterBio: "Detective meticuloso de 42 años, perspicaz y reservado. Lidera la investigación principal de la serie.",
-      photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+      characterBio:
+        "Detective meticuloso de 42 años, perspicaz y reservado. Lidera la investigación principal de la serie.",
+      photoUrl:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
       phone: "8888-1122",
       email: "carlos.rivera@actores.cr",
       status: "active" as const,
@@ -369,8 +690,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
     await ctx.db.insert("actors", {
       name: "Mariana Rojas",
       characterName: "Dra. Elena Vargas",
-      characterBio: "Médica forense y científica experta. Aliada estratégica del Inspector Morales.",
-      photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+      characterBio:
+        "Médica forense y científica experta. Aliada estratégica del Inspector Morales.",
+      photoUrl:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
       phone: "8777-3344",
       email: "mariana.rojas@actores.cr",
       status: "active" as const,
@@ -381,8 +704,10 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
     await ctx.db.insert("actors", {
       name: "Esteban Castro",
       characterName: "Rodrigo 'El Sombra'",
-      characterBio: "Antagonista principal de la temporada. Personaje enigmático de pasado militar.",
-      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+      characterBio:
+        "Antagonista principal de la temporada. Personaje enigmático de pasado militar.",
+      photoUrl:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
       phone: "8666-5577",
       email: "esteban.castro@actores.cr",
       status: "active" as const,
@@ -401,7 +726,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       actorId: actor1Id,
       actorName: "Carlos Rivera",
       characterName: "Inspector Morales",
-      sceneDetails: "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
+      sceneDetails:
+        "Escena de alta tensión con diálogo extenso. Se requiere vestuario formal detective.",
       status: "scheduled" as const,
       shareToken: "carlos-rivera-9921",
     });
@@ -416,7 +742,8 @@ RODRIGO "EL SOMBRA" (45) observa desde la ventana superior del pasillo sin ser v
       actorId: actor1Id,
       actorName: "Mariana Rojas",
       characterName: "Dra. Elena Vargas",
-      sceneDetails: "Revisión de pruebas médicas y llamada de urgencia. Traer bata médica y credencial props.",
+      sceneDetails:
+        "Revisión de pruebas médicas y llamada de urgencia. Traer bata médica y credencial props.",
       status: "scheduled" as const,
       shareToken: "mariana-rojas-4412",
     });

@@ -3,8 +3,9 @@ import { GoogleGenAI } from "@google/genai";
 
 export async function GET() {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  const channelIdentifier = process.env.YOUTUBE_CHANNEL_ID || "@UltimateMediaProduction";
-  
+  const channelIdentifier =
+    process.env.YOUTUBE_CHANNEL_ID || "@UltimateMediaProduction";
+
   // OAuth credentials
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
@@ -28,8 +29,12 @@ export async function GET() {
       if (!tokenRes.ok) {
         const errBody = await tokenRes.json().catch(() => ({}));
         return NextResponse.json(
-          { error: "Error al refrescar token de Google para analíticas privadas", details: errBody },
-          { status: 401 }
+          {
+            error:
+              "Error al refrescar token de Google para analíticas privadas",
+            details: errBody,
+          },
+          { status: 401 },
         );
       }
 
@@ -40,13 +45,13 @@ export async function GET() {
         "https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails,statistics&mine=true",
         {
           headers: { Authorization: `Bearer ${access_token}` },
-        }
+        },
       );
 
       if (!channelRes.ok) {
         return NextResponse.json(
           { error: "Error al consultar metadatos del canal privado" },
-          { status: channelRes.status }
+          { status: channelRes.status },
         );
       }
 
@@ -54,21 +59,28 @@ export async function GET() {
       const channel = channelData.items?.[0];
 
       if (!channel) {
-        return NextResponse.json({ error: "Canal no encontrado" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Canal no encontrado" },
+          { status: 404 },
+        );
       }
 
       const channelName = channel.snippet?.title || "Canal de YouTube";
-      const followers = parseInt(channel.statistics?.subscriberCount ?? "0", 10);
+      const followers = parseInt(
+        channel.statistics?.subscriberCount ?? "0",
+        10,
+      );
 
       // 3. Consultar la API de Informes de YouTube Analytics (Métricas Reales e Inalteradas)
       const today = new Date().toISOString().slice(0, 10);
-      
+
       // Consultamos los últimos 30 días para métricas del dashboard
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const startDate = thirtyDaysAgo.toISOString().slice(0, 10);
 
-      const analyticsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?` + 
+      const analyticsUrl =
+        `https://youtubeanalytics.googleapis.com/v2/reports?` +
         new URLSearchParams({
           ids: "channel==MINE",
           startDate,
@@ -96,7 +108,7 @@ export async function GET() {
           shares = parseInt(row[3] ?? "0", 10);
 
           // Usar vistas reales del reporte del mes si corresponde, o de vida del canal
-          views = reportViews || views; 
+          views = reportViews || views;
 
           // Minutos a horas legibles
           const hours = Math.round(minutesWatched / 60);
@@ -136,9 +148,13 @@ export async function GET() {
               const videosStatsData = await videosStatsRes.json();
 
               // Intentar consultar estadísticas específicas de cada video usando YouTube Analytics API
-              let videoStatsMap: Record<string, { watchTime: string; retention: string }> = {};
+              let videoStatsMap: Record<
+                string,
+                { watchTime: string; retention: string }
+              > = {};
               try {
-                const videoAnalyticsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?` + 
+                const videoAnalyticsUrl =
+                  `https://youtubeanalytics.googleapis.com/v2/reports?` +
                   new URLSearchParams({
                     ids: "channel==MINE",
                     startDate: "2010-01-01",
@@ -161,7 +177,8 @@ export async function GET() {
                       const avgSecs = parseFloat(avgDurationSecs ?? "0");
 
                       const hours = Math.round(minutes / 60);
-                      const watchTime = hours > 0 ? `${hours} h` : `${Math.round(minutes)} min`;
+                      const watchTime =
+                        hours > 0 ? `${hours} h` : `${Math.round(minutes)} min`;
 
                       const mins = Math.floor(avgSecs / 60);
                       const secs = Math.round(avgSecs % 60);
@@ -172,16 +189,25 @@ export async function GET() {
                   }
                 }
               } catch (e) {
-                console.error("Error al obtener estadísticas de video por Analytics API:", e);
+                console.error(
+                  "Error al obtener estadísticas de video por Analytics API:",
+                  e,
+                );
               }
 
               topVideos = (videosStatsData.items ?? []).map((vData: any) => {
                 const durationStr = vData.contentDetails?.duration ?? "";
-                const match = durationStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+                const match = durationStr.match(
+                  /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/,
+                );
                 let duration = "0:00";
                 if (match) {
                   const hours = match[1] ? `${match[1]}:` : "";
-                  const minutes = match[2] ? (match[1] ? match[2].padStart(2, "0") : match[2]) : "0";
+                  const minutes = match[2]
+                    ? match[1]
+                      ? match[2].padStart(2, "0")
+                      : match[2]
+                    : "0";
                   const seconds = match[3] ? match[3].padStart(2, "0") : "00";
                   duration = `${hours}${minutes}:${seconds}`;
                 }
@@ -197,8 +223,13 @@ export async function GET() {
                   watchTime: statsFromApi?.watchTime || "0 min",
                   retention: statsFromApi?.retention || "0:00",
                   duration,
-                  date: new Date(vData.snippet?.publishedAt).toLocaleDateString("es-CR"),
-                  thumbnailUrl: vData.snippet?.thumbnails?.medium?.url || vData.snippet?.thumbnails?.high?.url || vData.snippet?.thumbnails?.default?.url,
+                  date: new Date(vData.snippet?.publishedAt).toLocaleDateString(
+                    "es-CR",
+                  ),
+                  thumbnailUrl:
+                    vData.snippet?.thumbnails?.medium?.url ||
+                    vData.snippet?.thumbnails?.high?.url ||
+                    vData.snippet?.thumbnails?.default?.url,
                 };
               });
             }
@@ -213,7 +244,8 @@ export async function GET() {
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         const start6MonthsDate = sixMonthsAgo.toISOString().slice(0, 10);
 
-        const monthlyReportsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?` + 
+        const monthlyReportsUrl =
+          `https://youtubeanalytics.googleapis.com/v2/reports?` +
           new URLSearchParams({
             ids: "channel==MINE",
             startDate: start6MonthsDate,
@@ -229,7 +261,20 @@ export async function GET() {
         if (monthlyRes.ok) {
           const monthlyData = await monthlyRes.json();
           if (monthlyData.rows) {
-            const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"];
+            const monthNames = [
+              "Ene",
+              "Feb",
+              "Mar",
+              "Abr",
+              "May",
+              "Jun",
+              "Jul",
+              "Ago",
+              "Set",
+              "Oct",
+              "Nov",
+              "Dic",
+            ];
             monthlyViews = monthlyData.rows.map((row: any) => {
               const [yearMonth, viewsVal] = row;
               const monthNum = parseInt(yearMonth.split("-")[1], 10) - 1;
@@ -241,7 +286,10 @@ export async function GET() {
           }
         }
       } catch (e) {
-        console.error("Error al obtener vistas mensuales de YouTube Analytics:", e);
+        console.error(
+          "Error al obtener vistas mensuales de YouTube Analytics:",
+          e,
+        );
       }
 
       // 6. Demografía (edad, género, ubicaciones principales)
@@ -250,7 +298,8 @@ export async function GET() {
       let locations: { label: string; value: number }[] = [];
 
       try {
-        const demoUrl = `https://youtubeanalytics.googleapis.com/v2/reports?` + 
+        const demoUrl =
+          `https://youtubeanalytics.googleapis.com/v2/reports?` +
           new URLSearchParams({
             ids: "channel==MINE",
             startDate: "2010-01-01",
@@ -283,7 +332,11 @@ export async function GET() {
               }
 
               let displayAge = ageLabel;
-              if (ageGroup === "age45-54" || ageGroup === "age55-64" || ageGroup === "age65-") {
+              if (
+                ageGroup === "age45-54" ||
+                ageGroup === "age55-64" ||
+                ageGroup === "age65-"
+              ) {
                 displayAge = "45+ años";
               } else if (ageGroup === "age13-17") {
                 displayAge = "13-17 años";
@@ -299,12 +352,25 @@ export async function GET() {
             }));
 
             genders = [
-              { label: "Femenino", value: Math.round((genderMap["female"] ?? 0) * 10) / 10, color: "bg-accent-9" },
-              { label: "Masculino", value: Math.round((genderMap["male"] ?? 0) * 10) / 10, color: "bg-grayscale-10" },
+              {
+                label: "Femenino",
+                value: Math.round((genderMap["female"] ?? 0) * 10) / 10,
+                color: "bg-accent-9",
+              },
+              {
+                label: "Masculino",
+                value: Math.round((genderMap["male"] ?? 0) * 10) / 10,
+                color: "bg-grayscale-10",
+              },
             ];
-            const otherVal = 100 - (genderMap["female"] ?? 0) - (genderMap["male"] ?? 0);
+            const otherVal =
+              100 - (genderMap["female"] ?? 0) - (genderMap["male"] ?? 0);
             if (otherVal > 0.5) {
-              genders.push({ label: "Otro", value: Math.round(otherVal * 10) / 10, color: "bg-grayscale-6" });
+              genders.push({
+                label: "Otro",
+                value: Math.round(otherVal * 10) / 10,
+                color: "bg-grayscale-6",
+              });
             }
           }
         }
@@ -313,7 +379,8 @@ export async function GET() {
       }
 
       try {
-        const locUrl = `https://youtubeanalytics.googleapis.com/v2/reports?` + 
+        const locUrl =
+          `https://youtubeanalytics.googleapis.com/v2/reports?` +
           new URLSearchParams({
             ids: "channel==MINE",
             startDate: "2010-01-01",
@@ -331,7 +398,10 @@ export async function GET() {
         if (locRes.ok) {
           const locData = await locRes.json();
           if (locData.rows && locData.rows.length > 0) {
-            const totalLocViews = locData.rows.reduce((sum: number, r: any) => sum + parseInt(r[1] ?? "0", 10), 0);
+            const totalLocViews = locData.rows.reduce(
+              (sum: number, r: any) => sum + parseInt(r[1] ?? "0", 10),
+              0,
+            );
             const countryNames: Record<string, string> = {
               CR: "Costa Rica",
               US: "Estados Unidos",
@@ -363,7 +433,8 @@ export async function GET() {
       try {
         const topVideoId = topVideos[0]?.id;
         if (topVideoId) {
-          const retUrl = `https://youtubeanalytics.googleapis.com/v2/reports?` + 
+          const retUrl =
+            `https://youtubeanalytics.googleapis.com/v2/reports?` +
             new URLSearchParams({
               ids: "channel==MINE",
               startDate: "2010-01-01",
@@ -387,7 +458,9 @@ export async function GET() {
 
               if (rawPoints.length > 20) {
                 const step = Math.floor(rawPoints.length / 15);
-                retentionCurve = rawPoints.filter((_: any, idx: number) => idx % step === 0);
+                retentionCurve = rawPoints.filter(
+                  (_: any, idx: number) => idx % step === 0,
+                );
               } else {
                 retentionCurve = rawPoints;
               }
@@ -399,16 +472,21 @@ export async function GET() {
       }
 
       // Solo retornar el objeto demographics si contiene datos reales para evitar pisar con ceros
-      const demographicsPayload = (ageGroups.length > 0 || locations.length > 0 || genders.length > 0)
-        ? {
-            age: ageGroups,
-            location: locations,
-            gender: genders,
-          }
-        : undefined;
+      const demographicsPayload =
+        ageGroups.length > 0 || locations.length > 0 || genders.length > 0
+          ? {
+              age: ageGroups,
+              location: locations,
+              gender: genders,
+            }
+          : undefined;
 
       // 8. Generar AI Insights usando Gemini
-      let insights: { title: string; description: string; type: "warning" | "tip" | "info" }[] = [];
+      let insights: {
+        title: string;
+        description: string;
+        type: "warning" | "tip" | "info";
+      }[] = [];
       const geminiApiKey = process.env.GEMINI_API_KEY;
       if (geminiApiKey) {
         try {
@@ -457,12 +535,13 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
           },
           {
             title: "Oportunidad de Audiencia",
-            description: "Tus principales vistas provienen de áreas con alta interacción. Incentiva los comentarios lanzando preguntas al final de cada video.",
+            description:
+              "Tus principales vistas provienen de áreas con alta interacción. Incentiva los comentarios lanzando preguntas al final de cada video.",
             type: "tip",
           },
           {
             title: "Rendimiento del Contenido",
-            description: `Tu video más popular está impulsando el ${((topVideos[0]?.views ?? 0) / (views || 1) * 100).toFixed(1)}% de las vistas totales. Crea una secuela o tema relacionado.`,
+            description: `Tu video más popular está impulsando el ${(((topVideos[0]?.views ?? 0) / (views || 1)) * 100).toFixed(1)}% de las vistas totales. Crea una secuela o tema relacionado.`,
             type: "info",
           },
         ];
@@ -484,16 +563,19 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
           avgRetention,
           monthlyViews,
           demographics: demographicsPayload,
-          retentionCurve: retentionCurve.length > 0 ? retentionCurve : undefined,
+          retentionCurve:
+            retentionCurve.length > 0 ? retentionCurve : undefined,
           insights,
         },
         topContent: topVideos,
       });
-
     } catch (err: any) {
       return NextResponse.json(
-        { error: "Error de servidor en sincronización privada", details: err.message },
-        { status: 500 }
+        {
+          error: "Error de servidor en sincronización privada",
+          details: err.message,
+        },
+        { status: 500 },
       );
     }
   }
@@ -502,7 +584,7 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
   if (!apiKey) {
     return NextResponse.json(
       { error: "Falta la clave YOUTUBE_API_KEY en .env.local" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -511,7 +593,9 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
     if (channelIdentifier.startsWith("UC")) {
       channelQueryParam = `id=${channelIdentifier}`;
     } else {
-      const handle = channelIdentifier.startsWith("@") ? channelIdentifier : `@${channelIdentifier}`;
+      const handle = channelIdentifier.startsWith("@")
+        ? channelIdentifier
+        : `@${channelIdentifier}`;
       channelQueryParam = `forHandle=${encodeURIComponent(handle)}`;
     }
 
@@ -521,8 +605,11 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
     if (!channelRes.ok) {
       const errorBody = await channelRes.json().catch(() => ({}));
       return NextResponse.json(
-        { error: "Error al consultar la API pública de YouTube", details: errorBody },
-        { status: channelRes.status }
+        {
+          error: "Error al consultar la API pública de YouTube",
+          details: errorBody,
+        },
+        { status: channelRes.status },
       );
     }
 
@@ -531,8 +618,10 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
 
     if (!channel) {
       return NextResponse.json(
-        { error: `No se encontró canal público con handle: ${channelIdentifier}` },
-        { status: 404 }
+        {
+          error: `No se encontró canal público con handle: ${channelIdentifier}`,
+        },
+        { status: 404 },
       );
     }
 
@@ -563,11 +652,17 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
             const videosStatsData = await videosStatsRes.json();
             topVideos = (videosStatsData.items ?? []).map((vData: any) => {
               const durationStr = vData.contentDetails?.duration ?? "";
-              const match = durationStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+              const match = durationStr.match(
+                /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/,
+              );
               let duration = "0:00";
               if (match) {
                 const hours = match[1] ? `${match[1]}:` : "";
-                const minutes = match[2] ? (match[1] ? match[2].padStart(2, "0") : match[2]) : "0";
+                const minutes = match[2]
+                  ? match[1]
+                    ? match[2].padStart(2, "0")
+                    : match[2]
+                  : "0";
                 const seconds = match[3] ? match[3].padStart(2, "0") : "00";
                 duration = `${hours}${minutes}:${seconds}`;
               }
@@ -580,7 +675,9 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
                 watchTime: "Requiere OAuth", // Transparente: marcamos que requiere inicio de sesión
                 retention: "Requiere OAuth",
                 duration,
-                date: new Date(vData.snippet?.publishedAt).toLocaleDateString("es-CR"),
+                date: new Date(vData.snippet?.publishedAt).toLocaleDateString(
+                  "es-CR",
+                ),
               };
             });
           }
@@ -607,8 +704,11 @@ No incluyas explicaciones adicionales ni bloques de código de tipo markdown.`;
     });
   } catch (error: any) {
     return NextResponse.json(
-      { error: "Error de servidor en sincronización pública", details: error.message },
-      { status: 500 }
+      {
+        error: "Error de servidor en sincronización pública",
+        details: error.message,
+      },
+      { status: 500 },
     );
   }
 }

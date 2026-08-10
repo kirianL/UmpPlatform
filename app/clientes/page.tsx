@@ -2,29 +2,34 @@
 
 import {
   AddressBookIcon,
+  ArrowsLeftRightIcon,
   BriefcaseIcon,
   CurrencyDollarIcon,
   HouseLineIcon,
+  LockKeyIcon,
   MagnifyingGlassIcon,
   PencilSimpleIcon,
   PlusIcon,
   ReceiptIcon,
+  ShareNetworkIcon,
   TrashIcon,
   UserPlusIcon,
-  ArrowsLeftRightIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useState, useMemo } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useMemo, useState } from "react";
+
+import ClientSocialMediaModal from "@/components/clients/ClientSocialMediaModal";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
+import ConfirmModal from "@/components/public/ConfirmModal";
 import DataTable, { type Column } from "@/components/public/DataTable";
 import EmptyState from "@/components/public/EmptyState";
 import Input from "@/components/public/Input";
 import Modal from "@/components/public/Modal";
+import PageContainer from "@/components/public/PageContainer";
 import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
-import PageContainer from "@/components/public/PageContainer";
 import { Tabs } from "@/components/public/Tabs";
-import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 function formatCurrency(n: number): string {
@@ -108,8 +113,23 @@ export default function ClientesPage() {
   const createPayment = useMutation(api.clientPayments.createPayment);
   const removePayment = useMutation(api.clientPayments.removePayment);
 
+  // Clear selection and active element focus on ESC key press
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        window.getSelection()?.removeAllRanges();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
   // States
   const [search, setSearch] = useState("");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_CLIENT);
@@ -118,20 +138,39 @@ export default function ClientesPage() {
   // Management Modal (Services & Payments for a client)
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
-  const [modalDefaultTab, setModalDefaultTab] = useState<"services" | "payments">("services");
+  const [modalDefaultTab, setModalDefaultTab] = useState<
+    "services" | "payments"
+  >("services");
 
   // Sub-forms inside Manage Modal
   const [serviceForm, setServiceForm] = useState(EMPTY_SERVICE);
   const [paymentForm, setPaymentForm] = useState(EMPTY_PAYMENT);
 
+  // Social Media & Credentials Vault Modal State
+  const [socialMediaModalOpen, setSocialMediaModalOpen] = useState(false);
+  const [socialMediaClient, setSocialMediaClient] = useState<any | null>(null);
+  const [socialMediaDefaultTab, setSocialMediaDefaultTab] = useState<
+    "overview" | "credentials" | "calendar" | "report"
+  >("overview");
+  const [clientToDeleteId, setClientToDeleteId] = useState<string | null>(null);
+
+  function openSocialMediaModal(
+    c: any,
+    tab: "overview" | "credentials" | "calendar" | "report" = "overview",
+  ) {
+    setSocialMediaClient(c);
+    setSocialMediaDefaultTab(tab);
+    setSocialMediaModalOpen(true);
+  }
+
   // Separate active vs potential clients
   const activeClients = useMemo(
     () => clients.filter((c: any) => (c.type ?? "activo") === "activo"),
-    [clients]
+    [clients],
   );
   const potentialClients = useMemo(
     () => clients.filter((c: any) => c.type === "potencial"),
-    [clients]
+    [clients],
   );
 
   // Filtered lists by search
@@ -141,7 +180,7 @@ export default function ClientesPage() {
       (c: any) =>
         c.name.toLowerCase().includes(s) ||
         c.company.toLowerCase().includes(s) ||
-        (c.address && c.address.toLowerCase().includes(s))
+        (c.address && c.address.toLowerCase().includes(s)),
     );
   }, [activeClients, search]);
 
@@ -151,7 +190,7 @@ export default function ClientesPage() {
       (c: any) =>
         c.name.toLowerCase().includes(s) ||
         c.company.toLowerCase().includes(s) ||
-        (c.address && c.address.toLowerCase().includes(s))
+        (c.address && c.address.toLowerCase().includes(s)),
     );
   }, [potentialClients, search]);
 
@@ -178,7 +217,8 @@ export default function ClientesPage() {
       phone: c.phone,
       email: c.email,
       type: c.type || "activo",
-      lastInteraction: c.lastInteraction || new Date().toISOString().slice(0, 10),
+      lastInteraction:
+        c.lastInteraction || new Date().toISOString().slice(0, 10),
       projectCount: c.projectCount || 0,
       notes: c.notes || "",
     });
@@ -202,7 +242,8 @@ export default function ClientesPage() {
           serviceName: initialService.serviceName.trim(),
           amount: Number(initialService.amount) || 0,
           paymentStatus: initialService.paymentStatus,
-          contractDate: form.lastInteraction || new Date().toISOString().slice(0, 10),
+          contractDate:
+            form.lastInteraction || new Date().toISOString().slice(0, 10),
         });
       }
     }
@@ -210,13 +251,7 @@ export default function ClientesPage() {
   }
 
   function handleDeleteClient(id: string) {
-    if (confirm("¿Estás seguro de eliminar este cliente?")) {
-      removeClient({ id: id as any });
-      if (selectedClient?._id === id) {
-        setManageModalOpen(false);
-        setSelectedClient(null);
-      }
-    }
+    setClientToDeleteId(id);
   }
 
   function handleToggleType(c: any) {
@@ -228,7 +263,10 @@ export default function ClientesPage() {
   }
 
   // Handlers for Manage Services & Payments
-  function openManageModal(c: any, initialTab: "services" | "payments" = "services") {
+  function openManageModal(
+    c: any,
+    initialTab: "services" | "payments" = "services",
+  ) {
     setSelectedClient(c);
     setServiceForm(EMPTY_SERVICE);
     setPaymentForm(EMPTY_PAYMENT);
@@ -253,10 +291,13 @@ export default function ClientesPage() {
   }
 
   function handleAddPayment() {
-    if (!selectedClient || !paymentForm.amount || paymentForm.amount <= 0) return;
+    if (!selectedClient || !paymentForm.amount || paymentForm.amount <= 0)
+      return;
     createPayment({
       clientId: selectedClient._id,
-      serviceId: paymentForm.serviceId ? (paymentForm.serviceId as any) : undefined,
+      serviceId: paymentForm.serviceId
+        ? (paymentForm.serviceId as any)
+        : undefined,
       amount: Number(paymentForm.amount),
       date: paymentForm.date,
       concept: paymentForm.concept.trim() || `Pago de ${selectedClient.name}`,
@@ -299,7 +340,10 @@ export default function ClientesPage() {
   }
 
   const clientTotalContracted = useMemo(() => {
-    return clientServices.reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+    return clientServices.reduce(
+      (sum: number, s: any) => sum + (s.amount || 0),
+      0,
+    );
   }, [clientServices]);
 
   const clientTotalPaid = useMemo(() => {
@@ -321,10 +365,16 @@ export default function ClientesPage() {
       return <Badge variant="gray">Sin servicios</Badge>;
     }
 
-    const hasPendingService = services.some((s: any) => s.paymentStatus !== "pagado");
+    const hasPendingService = services.some(
+      (s: any) => s.paymentStatus !== "pagado",
+    );
     const hasPendingPayment = payments.some((p: any) => p.status === "pending");
 
-    if (!hasPendingService && !hasPendingPayment && (services.length > 0 || payments.length > 0)) {
+    if (
+      !hasPendingService &&
+      !hasPendingPayment &&
+      (services.length > 0 || payments.length > 0)
+    ) {
       return <Badge variant="green">Al día</Badge>;
     }
 
@@ -339,12 +389,16 @@ export default function ClientesPage() {
       render: (c) => (
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-grayscale-12 truncate">{c.name}</span>
+            <span className="font-bold text-sm text-grayscale-12 truncate">
+              {c.name}
+            </span>
             <Badge variant={c.type === "potencial" ? "accent" : "gray"}>
               {c.type === "potencial" ? "Potencial" : "Activo"}
             </Badge>
           </div>
-          <span className="text-xs text-grayscale-9 font-medium">{c.company}</span>
+          <span className="text-xs text-grayscale-9 font-medium">
+            {c.company}
+          </span>
         </div>
       ),
     },
@@ -383,14 +437,20 @@ export default function ClientesPage() {
       className: "hidden md:table-cell",
       render: (c) => {
         const services = allServices.filter((s: any) => s.clientId === c._id);
-        const count = services.length > 0 ? services.length : c.projectCount || 0;
-        const totalValue = services.reduce((acc: number, s: any) => acc + s.amount, 0);
+        const count =
+          services.length > 0 ? services.length : c.projectCount || 0;
+        const totalValue = services.reduce(
+          (acc: number, s: any) => acc + s.amount,
+          0,
+        );
 
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-xs text-grayscale-11">
               <BriefcaseIcon size={14} className="text-grayscale-8" />
-              <span className="font-medium">{count} {count === 1 ? "servicio" : "servicios"}</span>
+              <span className="font-medium">
+                {count} {count === 1 ? "servicio" : "servicios"}
+              </span>
             </div>
             {totalValue > 0 && (
               <span className="text-[11px] text-accent-10 font-mono font-semibold">
@@ -433,15 +493,27 @@ export default function ClientesPage() {
         <div className="flex items-center justify-end gap-1">
           <button
             type="button"
+            title="Social Media, Contraseñas y Reporte PDF"
+            onClick={() => openSocialMediaModal(c, "overview")}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-accent-10 transition-colors hover:bg-accent-3 hover:text-accent-11"
+          >
+            <ShareNetworkIcon size={16} />
+          </button>
+          <button
+            type="button"
             title="Gestionar servicios y pagos"
             onClick={() => openManageModal(c, "services")}
-            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-accent-10 transition-colors hover:bg-accent-3 hover:text-accent-11"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
           >
             <ReceiptIcon size={16} />
           </button>
           <button
             type="button"
-            title={c.type === "potencial" ? "Mover a cliente activo" : "Mover a potencial"}
+            title={
+              c.type === "potencial"
+                ? "Mover a cliente activo"
+                : "Mover a potencial"
+            }
             onClick={() => handleToggleType(c)}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-12"
           >
@@ -477,7 +549,8 @@ export default function ClientesPage() {
             Directorio de clientes
           </h1>
           <p className="text-sm text-grayscale-10">
-            Administra clientes activos, potenciales clientes, sus servicios contratados y registro de pagos sincronizado con finanzas.
+            Administra clientes activos, potenciales clientes, sus servicios
+            contratados y registro de pagos sincronizado con finanzas.
           </p>
         </div>
 
@@ -507,13 +580,22 @@ export default function ClientesPage() {
         </div>
 
         {/* Tabs System (Igual a la estructura de Personal) */}
-        <Tabs.Root defaultValue="activos" className="w-full flex flex-col gap-6">
+        <Tabs.Root
+          defaultValue="activos"
+          className="w-full flex flex-col gap-6"
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
-              <Tabs.Tab value="activos" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+              <Tabs.Tab
+                value="activos"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
                 Clientes ({activeClients.length})
               </Tabs.Tab>
-              <Tabs.Tab value="potenciales" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+              <Tabs.Tab
+                value="potenciales"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
                 Potenciales clientes ({potentialClients.length})
               </Tabs.Tab>
               <Tabs.Indicator />
@@ -537,7 +619,11 @@ export default function ClientesPage() {
                     className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-80"
                   />
                 </div>
-                <Button variant="primary" className="text-xs" onClick={() => openCreate("activo")}>
+                <Button
+                  variant="primary"
+                  className="text-xs"
+                  onClick={() => openCreate("activo")}
+                >
                   <PlusIcon size={16} weight="bold" />
                   Agregar cliente activo
                 </Button>
@@ -591,7 +677,11 @@ export default function ClientesPage() {
                     className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-80"
                   />
                 </div>
-                <Button variant="primary" className="text-xs" onClick={() => openCreate("potencial")}>
+                <Button
+                  variant="primary"
+                  className="text-xs"
+                  onClick={() => openCreate("potencial")}
+                >
                   <PlusIcon size={16} weight="bold" />
                   Agregar cliente potencial
                 </Button>
@@ -647,7 +737,9 @@ export default function ClientesPage() {
                 label="Nombre del cliente"
                 id="client-name"
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
                 placeholder="Ej: Laura Sánchez"
                 required
               />
@@ -655,7 +747,9 @@ export default function ClientesPage() {
                 label="Empresa / compañía"
                 id="client-company"
                 value={form.company}
-                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, company: e.target.value }))
+                }
                 placeholder="Ej: Streaming MX"
                 required
               />
@@ -665,7 +759,9 @@ export default function ClientesPage() {
               label="Dirección física"
               id="client-address"
               value={form.address}
-              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, address: e.target.value }))
+              }
               placeholder="Ej: Av. Reforma #120, Piso 4, San José"
             />
 
@@ -675,7 +771,9 @@ export default function ClientesPage() {
                 id="client-email"
                 type="email"
                 value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
                 placeholder="correo@ejemplo.com"
                 required
               />
@@ -683,7 +781,9 @@ export default function ClientesPage() {
                 label="Teléfono de contacto"
                 id="client-phone"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value }))
+                }
                 placeholder="555-0100"
                 required
               />
@@ -695,7 +795,10 @@ export default function ClientesPage() {
                 id="client-type"
                 value={form.type}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, type: e.target.value as "activo" | "potencial" }))
+                  setForm((f) => ({
+                    ...f,
+                    type: e.target.value as "activo" | "potencial",
+                  }))
                 }
                 options={[
                   { value: "activo", label: "Cliente activo" },
@@ -708,7 +811,9 @@ export default function ClientesPage() {
                 id="client-date"
                 type="date"
                 value={form.lastInteraction}
-                onChange={(e) => setForm((f) => ({ ...f, lastInteraction: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, lastInteraction: e.target.value }))
+                }
                 required
               />
             </div>
@@ -725,7 +830,10 @@ export default function ClientesPage() {
                     id="init-service-name"
                     value={initialService.serviceName}
                     onChange={(e) =>
-                      setInitialService((s) => ({ ...s, serviceName: e.target.value }))
+                      setInitialService((s) => ({
+                        ...s,
+                        serviceName: e.target.value,
+                      }))
                     }
                     placeholder="Ej: Producción de comercial"
                   />
@@ -763,14 +871,19 @@ export default function ClientesPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="client-notes" className="text-xs font-medium text-grayscale-11">
+              <label
+                htmlFor="client-notes"
+                className="text-xs font-medium text-grayscale-11"
+              >
                 Notas / observaciones
               </label>
               <textarea
                 id="client-notes"
                 rows={2}
                 value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, notes: e.target.value }))
+                }
                 placeholder="Detalles sobre requerimientos o estado de negociación..."
                 className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 resize-none"
               />
@@ -811,8 +924,14 @@ export default function ClientesPage() {
                     <span className="font-bold text-grayscale-12 text-sm sm:text-base">
                       {selectedClient.name}
                     </span>
-                    <Badge variant={selectedClient.type === "potencial" ? "accent" : "gray"}>
-                      {selectedClient.type === "potencial" ? "Cliente potencial" : "Cliente activo"}
+                    <Badge
+                      variant={
+                        selectedClient.type === "potencial" ? "accent" : "gray"
+                      }
+                    >
+                      {selectedClient.type === "potencial"
+                        ? "Cliente potencial"
+                        : "Cliente activo"}
                     </Badge>
                   </div>
                 </div>
@@ -821,26 +940,36 @@ export default function ClientesPage() {
                   <span>Empresa: {selectedClient.company}</span>
                   <span>Correo: {selectedClient.email}</span>
                   <span>Teléfono: {selectedClient.phone}</span>
-                  {selectedClient.address && <span>Dirección: {selectedClient.address}</span>}
+                  {selectedClient.address && (
+                    <span>Dirección: {selectedClient.address}</span>
+                  )}
                 </div>
 
                 {/* Balance Summary Header Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
                   <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
-                    <span className="text-[10px] font-mono uppercase text-grayscale-10">Total contratado</span>
+                    <span className="text-[10px] font-mono uppercase text-grayscale-10">
+                      Total contratado
+                    </span>
                     <span className="font-mono text-sm font-bold text-grayscale-12">
                       {formatCurrency(clientTotalContracted)}
                     </span>
                   </div>
                   <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
-                    <span className="text-[10px] font-mono uppercase text-grayscale-10">Total abonado</span>
+                    <span className="text-[10px] font-mono uppercase text-grayscale-10">
+                      Total abonado
+                    </span>
                     <span className="font-mono text-sm font-bold text-green-11">
                       {formatCurrency(clientTotalPaid)}
                     </span>
                   </div>
                   <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
-                    <span className="text-[10px] font-mono uppercase text-grayscale-10">Saldo pendiente</span>
-                    <span className={`font-mono text-sm font-bold ${clientTotalBalance > 0 ? "text-orange-11" : "text-grayscale-11"}`}>
+                    <span className="text-[10px] font-mono uppercase text-grayscale-10">
+                      Saldo pendiente
+                    </span>
+                    <span
+                      className={`font-mono text-sm font-bold ${clientTotalBalance > 0 ? "text-orange-11" : "text-grayscale-11"}`}
+                    >
                       {formatCurrency(clientTotalBalance)}
                     </span>
                   </div>
@@ -848,13 +977,23 @@ export default function ClientesPage() {
               </div>
 
               {/* Tabs System en el Modal de Gestión */}
-              <Tabs.Root defaultValue={modalDefaultTab} key={modalDefaultTab} className="w-full flex flex-col gap-6">
+              <Tabs.Root
+                defaultValue={modalDefaultTab}
+                key={modalDefaultTab}
+                className="w-full flex flex-col gap-6"
+              >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
                   <Tabs.List className="border-0 pb-0 gap-1.5">
-                    <Tabs.Tab value="services" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+                    <Tabs.Tab
+                      value="services"
+                      className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                    >
                       Servicios contratados ({clientServices.length})
                     </Tabs.Tab>
-                    <Tabs.Tab value="payments" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+                    <Tabs.Tab
+                      value="payments"
+                      className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                    >
                       Pagos y finanzas ({clientPayments.length})
                     </Tabs.Tab>
                     <Tabs.Indicator />
@@ -881,7 +1020,10 @@ export default function ClientesPage() {
                           id="service-name"
                           value={serviceForm.serviceName}
                           onChange={(e) =>
-                            setServiceForm((f) => ({ ...f, serviceName: e.target.value }))
+                            setServiceForm((f) => ({
+                              ...f,
+                              serviceName: e.target.value,
+                            }))
                           }
                           placeholder="Ej: Desarrollo web / Manejo de redes"
                           required
@@ -893,7 +1035,10 @@ export default function ClientesPage() {
                           min="0"
                           value={serviceForm.amount || ""}
                           onChange={(e) => {
-                            const val = Math.max(0, Number(e.target.value) || 0);
+                            const val = Math.max(
+                              0,
+                              Number(e.target.value) || 0,
+                            );
                             setServiceForm((f) => ({ ...f, amount: val }));
                           }}
                           placeholder="0"
@@ -924,13 +1069,20 @@ export default function ClientesPage() {
                           type="date"
                           value={serviceForm.contractDate}
                           onChange={(e) =>
-                            setServiceForm((f) => ({ ...f, contractDate: e.target.value }))
+                            setServiceForm((f) => ({
+                              ...f,
+                              contractDate: e.target.value,
+                            }))
                           }
                           required
                         />
                       </div>
                       <div className="flex justify-end pt-1">
-                        <Button variant="primary" className="text-xs" type="submit">
+                        <Button
+                          variant="primary"
+                          className="text-xs"
+                          type="submit"
+                        >
                           <PlusIcon size={14} weight="bold" />
                           Agregar servicio
                         </Button>
@@ -950,8 +1102,19 @@ export default function ClientesPage() {
                         <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
                           {clientServices.map((s: any) => {
                             const paidForService = getServiceTotalPaid(s._id);
-                            const balanceService = Math.max(0, s.amount - paidForService);
-                            const percentPaid = s.amount > 0 ? Math.min(100, Math.round((paidForService / s.amount) * 100)) : 0;
+                            const balanceService = Math.max(
+                              0,
+                              s.amount - paidForService,
+                            );
+                            const percentPaid =
+                              s.amount > 0
+                                ? Math.min(
+                                    100,
+                                    Math.round(
+                                      (paidForService / s.amount) * 100,
+                                    ),
+                                  )
+                                : 0;
 
                             return (
                               <div
@@ -965,7 +1128,8 @@ export default function ClientesPage() {
                                       {s.serviceName}
                                     </span>
                                     <span className="text-xs text-grayscale-9 font-mono">
-                                      Fecha de contrato: {formatDate(s.contractDate)}
+                                      Fecha de contrato:{" "}
+                                      {formatDate(s.contractDate)}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
@@ -1021,7 +1185,9 @@ export default function ClientesPage() {
                                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
                                       Saldo pendiente
                                     </span>
-                                    <span className={`font-mono font-bold mt-1 truncate ${balanceService > 0 ? "text-orange-11" : "text-grayscale-11"}`}>
+                                    <span
+                                      className={`font-mono font-bold mt-1 truncate ${balanceService > 0 ? "text-orange-11" : "text-grayscale-11"}`}
+                                    >
                                       {formatCurrency(balanceService)}
                                     </span>
                                   </div>
@@ -1042,7 +1208,9 @@ export default function ClientesPage() {
                                   <div className="flex justify-end pt-1">
                                     <button
                                       type="button"
-                                      onClick={() => handlePrepareServicePayment(s)}
+                                      onClick={() =>
+                                        handlePrepareServicePayment(s)
+                                      }
                                       className="text-xs font-semibold text-accent-10 hover:text-accent-11 transition-colors flex items-center gap-1.5 py-1 px-2.5 rounded-md hover:bg-accent-3/50 cursor-pointer"
                                     >
                                       <PlusIcon size={14} weight="bold" />
@@ -1080,10 +1248,16 @@ export default function ClientesPage() {
                           id="payment-service-id"
                           value={paymentForm.serviceId}
                           onChange={(e) =>
-                            setPaymentForm((f) => ({ ...f, serviceId: e.target.value }))
+                            setPaymentForm((f) => ({
+                              ...f,
+                              serviceId: e.target.value,
+                            }))
                           }
                           options={[
-                            { value: "", label: "General / sin servicio específico" },
+                            {
+                              value: "",
+                              label: "General / sin servicio específico",
+                            },
                             ...clientServices.map((s: any) => ({
                               value: s._id,
                               label: `${s.serviceName} (Pactado: ${formatCurrency(s.amount)})`,
@@ -1095,7 +1269,10 @@ export default function ClientesPage() {
                           id="payment-concept"
                           value={paymentForm.concept}
                           onChange={(e) =>
-                            setPaymentForm((f) => ({ ...f, concept: e.target.value }))
+                            setPaymentForm((f) => ({
+                              ...f,
+                              concept: e.target.value,
+                            }))
                           }
                           placeholder="Ej: Abono 50% desarrollo web"
                           required
@@ -1110,7 +1287,10 @@ export default function ClientesPage() {
                           min="0"
                           value={paymentForm.amount || ""}
                           onChange={(e) => {
-                            const val = Math.max(0, Number(e.target.value) || 0);
+                            const val = Math.max(
+                              0,
+                              Number(e.target.value) || 0,
+                            );
                             setPaymentForm((f) => ({ ...f, amount: val }));
                           }}
                           placeholder="0"
@@ -1122,7 +1302,10 @@ export default function ClientesPage() {
                           type="date"
                           value={paymentForm.date}
                           onChange={(e) =>
-                            setPaymentForm((f) => ({ ...f, date: e.target.value }))
+                            setPaymentForm((f) => ({
+                              ...f,
+                              date: e.target.value,
+                            }))
                           }
                           required
                         />
@@ -1144,7 +1327,11 @@ export default function ClientesPage() {
                       </div>
 
                       <div className="flex justify-end pt-1">
-                        <Button variant="primary" className="text-xs" type="submit">
+                        <Button
+                          variant="primary"
+                          className="text-xs"
+                          type="submit"
+                        >
                           <CurrencyDollarIcon size={16} weight="bold" />
                           Registrar pago en clientes y finanzas
                         </Button>
@@ -1163,7 +1350,9 @@ export default function ClientesPage() {
                       ) : (
                         <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto">
                           {clientPayments.map((p: any) => {
-                            const linkedService = allServices.find((s: any) => s._id === p.serviceId);
+                            const linkedService = allServices.find(
+                              (s: any) => s._id === p.serviceId,
+                            );
 
                             return (
                               <div
@@ -1185,8 +1374,14 @@ export default function ClientesPage() {
                                     <span className="text-xs font-bold font-mono text-grayscale-12 bg-grayscale-2 dark:bg-grayscale-4 px-2 py-0.5 rounded border border-grayscale-4 dark:border-grayscale-5">
                                       {formatCurrency(p.amount)}
                                     </span>
-                                    <Badge variant={p.status === "paid" ? "green" : "orange"}>
-                                      {p.status === "paid" ? "Pagado" : "Pendiente"}
+                                    <Badge
+                                      variant={
+                                        p.status === "paid" ? "green" : "orange"
+                                      }
+                                    >
+                                      {p.status === "paid"
+                                        ? "Pagado"
+                                        : "Pendiente"}
                                     </Badge>
                                     <button
                                       type="button"
@@ -1199,7 +1394,9 @@ export default function ClientesPage() {
                                   </div>
                                 </div>
                                 <div className="flex items-center justify-between text-[10px] font-mono text-grayscale-9 border-t border-grayscale-3/60 dark:border-grayscale-5/40 pt-1.5 mt-0.5">
-                                  <span>Fecha de pago: {formatDate(p.date)}</span>
+                                  <span>
+                                    Fecha de pago: {formatDate(p.date)}
+                                  </span>
                                 </div>
                               </div>
                             );
@@ -1213,6 +1410,33 @@ export default function ClientesPage() {
             </div>
           )}
         </Modal>
+
+        {/* Social Media & Credentials Vault Modal */}
+        <ClientSocialMediaModal
+          open={socialMediaModalOpen}
+          onOpenChange={setSocialMediaModalOpen}
+          client={socialMediaClient}
+          defaultTab={socialMediaDefaultTab}
+        />
+
+        {/* Confirm Delete Client Modal */}
+        <ConfirmModal
+          open={!!clientToDeleteId}
+          onOpenChange={(open) => !open && setClientToDeleteId(null)}
+          title="¿Eliminar Cliente?"
+          description="¿Estás seguro de que deseas eliminar este cliente y todos sus datos asociados? Esta acción no se puede deshacer."
+          confirmText="Eliminar Cliente"
+          onConfirm={async () => {
+            if (clientToDeleteId) {
+              await removeClient({ id: clientToDeleteId as any });
+              if (selectedClient?._id === clientToDeleteId) {
+                setManageModalOpen(false);
+                setSelectedClient(null);
+              }
+              setClientToDeleteId(null);
+            }
+          }}
+        />
       </div>
     </PageContainer>
   );

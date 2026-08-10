@@ -75,7 +75,12 @@ export type CalendarEvent = {
   title: string;
   date: string; // ISO (YYYY-MM-DD)
   time: string; // HH:mm
-  type: "shooting" | "pre-production" | "post-production" | "meeting" | "delivery";
+  type:
+    | "shooting"
+    | "pre-production"
+    | "post-production"
+    | "meeting"
+    | "delivery";
   description: string;
   status: "upcoming" | "completed" | "cancelled";
 };
@@ -90,12 +95,7 @@ export const EVENT_TYPE_LABELS: Record<CalendarEvent["type"], string> = {
 
 // CRM
 
-export type DealStage =
-  | "lead"
-  | "proposal"
-  | "negotiation"
-  | "won"
-  | "lost";
+export type DealStage = "lead" | "proposal" | "negotiation" | "won" | "lost";
 
 export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
   lead: "Lead",
@@ -574,7 +574,8 @@ export const MOCK_DEALS: Deal[] = [
     priority: "high",
     createdAt: "2026-05-10",
     expectedClose: "2026-07-15",
-    description: "Serie dramática de 8 episodios. Presupuesto en negociación con plataforma.",
+    description:
+      "Serie dramática de 8 episodios. Presupuesto en negociación con plataforma.",
     contactEmail: "laura@streamingmx.com",
   },
   {
@@ -598,7 +599,8 @@ export const MOCK_DEALS: Deal[] = [
     priority: "high",
     createdAt: "2026-04-20",
     expectedClose: "2026-06-20",
-    description: "Documental de 3 episodios sobre cultura urbana. Contrato firmado.",
+    description:
+      "Documental de 3 episodios sobre cultura urbana. Contrato firmado.",
     contactEmail: "patricia@canal7.tv",
   },
   {
@@ -622,7 +624,8 @@ export const MOCK_DEALS: Deal[] = [
     priority: "medium",
     createdAt: "2026-06-10",
     expectedClose: "2026-07-10",
-    description: "Videoclip musical con concepto narrativo. Locaciones exteriores.",
+    description:
+      "Videoclip musical con concepto narrativo. Locaciones exteriores.",
     contactEmail: "hector.m@gmail.com",
   },
   {
@@ -634,7 +637,8 @@ export const MOCK_DEALS: Deal[] = [
     priority: "medium",
     createdAt: "2026-06-22",
     expectedClose: "2026-09-01",
-    description: "Mini-serie de 6 episodios para plataforma digital de marca deportiva.",
+    description:
+      "Mini-serie de 6 episodios para plataforma digital de marca deportiva.",
     contactEmail: "fernando@lumina.mx",
   },
   {
@@ -658,7 +662,8 @@ export const MOCK_DEALS: Deal[] = [
     priority: "high",
     createdAt: "2026-06-05",
     expectedClose: "2026-07-20",
-    description: "Episodio piloto para greenlight de serie thriller. 45 minutos.",
+    description:
+      "Episodio piloto para greenlight de serie thriller. 45 minutos.",
     contactEmail: "laura@streamingmx.com",
   },
 ];

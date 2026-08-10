@@ -4,7 +4,8 @@ import { useEffect } from "react";
 
 export default function PwaRegister() {
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof window === "undefined" || !("serviceWorker" in navigator))
+      return;
 
     // In development mode, unregister active service workers to prevent stale CSS caching
     if (process.env.NODE_ENV === "development") {
@@ -21,7 +22,10 @@ export default function PwaRegister() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
-          console.log("Service Worker registered successfully with scope: ", reg.scope);
+          console.log(
+            "Service Worker registered successfully with scope: ",
+            reg.scope,
+          );
         })
         .catch((err) => {
           console.error("Service Worker registration failed: ", err);
@@ -31,4 +35,3 @@ export default function PwaRegister() {
 
   return null;
 }
-

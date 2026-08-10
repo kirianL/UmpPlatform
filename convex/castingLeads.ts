@@ -14,7 +14,14 @@ export const create = mutation({
     phone: v.optional(v.string()),
     description: v.optional(v.string()),
     email: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("nuevo"), v.literal("contactado"), v.literal("evaluado"), v.literal("descartado"))),
+    status: v.optional(
+      v.union(
+        v.literal("nuevo"),
+        v.literal("contactado"),
+        v.literal("evaluado"),
+        v.literal("descartado"),
+      ),
+    ),
     createdAt: v.optional(v.string()),
     birthDate: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
@@ -37,7 +44,14 @@ export const update = mutation({
     phone: v.optional(v.string()),
     description: v.optional(v.string()),
     email: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("nuevo"), v.literal("contactado"), v.literal("evaluado"), v.literal("descartado"))),
+    status: v.optional(
+      v.union(
+        v.literal("nuevo"),
+        v.literal("contactado"),
+        v.literal("evaluado"),
+        v.literal("descartado"),
+      ),
+    ),
     birthDate: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
   },

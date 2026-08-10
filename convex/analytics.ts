@@ -19,7 +19,13 @@ export const saveStats = mutation({
   args: {
     stats: v.array(
       v.object({
-        platform: v.union(v.literal("all"), v.literal("youtube"), v.literal("instagram"), v.literal("tiktok"), v.literal("facebook")),
+        platform: v.union(
+          v.literal("all"),
+          v.literal("youtube"),
+          v.literal("instagram"),
+          v.literal("tiktok"),
+          v.literal("facebook"),
+        ),
         followers: v.number(),
         followersGrowth: v.string(),
         views: v.number(),
@@ -30,25 +36,51 @@ export const saveStats = mutation({
         sharesGrowth: v.string(),
         watchTime: v.string(),
         avgRetention: v.string(),
-        monthlyViews: v.optional(v.array(v.object({
-          month: v.string(),
-          views: v.number(),
-        }))),
-        demographics: v.optional(v.object({
-          age: v.array(v.object({ label: v.string(), value: v.number() })),
-          location: v.array(v.object({ label: v.string(), value: v.number() })),
-          gender: v.array(v.object({ label: v.string(), value: v.number(), color: v.string() })),
-        })),
-        retentionCurve: v.optional(v.array(v.object({
-          ratio: v.number(),
-          retention: v.number(),
-        }))),
-        insights: v.optional(v.array(v.object({
-          title: v.string(),
-          description: v.string(),
-          type: v.union(v.literal("warning"), v.literal("tip"), v.literal("info")),
-        }))),
-      })
+        monthlyViews: v.optional(
+          v.array(
+            v.object({
+              month: v.string(),
+              views: v.number(),
+            }),
+          ),
+        ),
+        demographics: v.optional(
+          v.object({
+            age: v.array(v.object({ label: v.string(), value: v.number() })),
+            location: v.array(
+              v.object({ label: v.string(), value: v.number() }),
+            ),
+            gender: v.array(
+              v.object({
+                label: v.string(),
+                value: v.number(),
+                color: v.string(),
+              }),
+            ),
+          }),
+        ),
+        retentionCurve: v.optional(
+          v.array(
+            v.object({
+              ratio: v.number(),
+              retention: v.number(),
+            }),
+          ),
+        ),
+        insights: v.optional(
+          v.array(
+            v.object({
+              title: v.string(),
+              description: v.string(),
+              type: v.union(
+                v.literal("warning"),
+                v.literal("tip"),
+                v.literal("info"),
+              ),
+            }),
+          ),
+        ),
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -70,7 +102,12 @@ export const saveTopContent = mutation({
       v.object({
         id: v.optional(v.string()),
         title: v.string(),
-        platform: v.union(v.literal("youtube"), v.literal("instagram"), v.literal("tiktok"), v.literal("facebook")),
+        platform: v.union(
+          v.literal("youtube"),
+          v.literal("instagram"),
+          v.literal("tiktok"),
+          v.literal("facebook"),
+        ),
         views: v.number(),
         likes: v.number(),
         watchTime: v.string(),
@@ -78,7 +115,7 @@ export const saveTopContent = mutation({
         duration: v.string(),
         date: v.string(),
         thumbnailUrl: v.optional(v.string()),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {

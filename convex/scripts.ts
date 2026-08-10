@@ -34,7 +34,7 @@ export const create = mutation({
     status: v.union(
       v.literal("draft"),
       v.literal("review"),
-      v.literal("approved")
+      v.literal("approved"),
     ),
     fileUrl: v.optional(v.string()),
     fileName: v.string(),
@@ -60,7 +60,7 @@ export const update = mutation({
     status: v.union(
       v.literal("draft"),
       v.literal("review"),
-      v.literal("approved")
+      v.literal("approved"),
     ),
     fileUrl: v.optional(v.string()),
     fileName: v.string(),

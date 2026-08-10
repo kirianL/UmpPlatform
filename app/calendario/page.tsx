@@ -163,7 +163,15 @@ export default function CalendarioPage() {
     }
 
     return cells;
-  }, [year, month, daysInMonth, firstDay, prevMonthDays, prevMonthIndex, prevMonthYear]);
+  }, [
+    year,
+    month,
+    daysInMonth,
+    firstDay,
+    prevMonthDays,
+    prevMonthIndex,
+    prevMonthYear,
+  ]);
 
   function handlePrevMonth() {
     if (month === 0) {
@@ -257,7 +265,13 @@ export default function CalendarioPage() {
                     const today = new Date();
                     setYear(today.getFullYear());
                     setMonth(today.getMonth());
-                    setSelectedDate(toDateString(today.getFullYear(), today.getMonth(), today.getDate()));
+                    setSelectedDate(
+                      toDateString(
+                        today.getFullYear(),
+                        today.getMonth(),
+                        today.getDate(),
+                      ),
+                    );
                   }}
                   className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1 text-xs font-mono font-medium uppercase text-grayscale-11 transition-colors hover:bg-grayscale-3"
                 >
@@ -284,7 +298,12 @@ export default function CalendarioPage() {
                 {calendarCells.map(({ dateString, dayNum, isCurrentMonth }) => {
                   const dayEvents = eventsByDate[dateString] || [];
                   const isSelected = selectedDate === dateString;
-                  const isToday = toDateString(now.getFullYear(), now.getMonth(), now.getDate()) === dateString;
+                  const isToday =
+                    toDateString(
+                      now.getFullYear(),
+                      now.getMonth(),
+                      now.getDate(),
+                    ) === dateString;
 
                   return (
                     <button
@@ -298,13 +317,19 @@ export default function CalendarioPage() {
                             ? "border-accent-7 bg-accent-2/10 shadow-sm"
                             : "border-transparent bg-grayscale-1 hover:border-grayscale-4 dark:bg-grayscale-3"
                           : "border-transparent bg-grayscale-2/40 text-grayscale-7 hover:border-grayscale-3 dark:bg-grayscale-3/20 dark:text-grayscale-9",
-                        isToday && !isSelected && "ring-1 ring-accent-9/50 bg-accent-2/5 dark:bg-accent-2/5",
+                        isToday &&
+                          !isSelected &&
+                          "ring-1 ring-accent-9/50 bg-accent-2/5 dark:bg-accent-2/5",
                       )}
                     >
-                      <span className={cn(
-                        "font-mono text-xs font-bold leading-none p-0.5 rounded",
-                        isToday ? "text-accent-9 bg-accent-2/20 font-bold" : "text-grayscale-11"
-                      )}>
+                      <span
+                        className={cn(
+                          "font-mono text-xs font-bold leading-none p-0.5 rounded",
+                          isToday
+                            ? "text-accent-9 bg-accent-2/20 font-bold"
+                            : "text-grayscale-11",
+                        )}
+                      >
                         {dayNum}
                       </span>
                       {/* Render mini color bars for events in calendar cells */}
@@ -314,7 +339,8 @@ export default function CalendarioPage() {
                             key={ev._id}
                             className={cn(
                               "h-1 w-full rounded-[1px] opacity-90",
-                              EVENT_COLORS[ev.type as "meeting"] || EVENT_COLORS.meeting
+                              EVENT_COLORS[ev.type as "meeting"] ||
+                                EVENT_COLORS.meeting,
                             )}
                             title={ev.title}
                           />
@@ -338,7 +364,11 @@ export default function CalendarioPage() {
               <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-10">
                 Agenda {selectedDate && `· ${formatDate(selectedDate)}`}
               </h2>
-              <Button variant="primary" className="text-xs" onClick={openCreate}>
+              <Button
+                variant="primary"
+                className="text-xs"
+                onClick={openCreate}
+              >
                 <PlusIcon size={14} weight="bold" />
                 Evento
               </Button>
@@ -351,8 +381,15 @@ export default function CalendarioPage() {
                   className="group relative flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-accent-6 dark:border-grayscale-4 dark:bg-grayscale-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs text-grayscale-9">{ev.time}</span>
-                    <Badge variant={EVENT_BADGE_VARIANT[ev.type as "meeting"] || EVENT_BADGE_VARIANT.meeting}>
+                    <span className="font-mono text-xs text-grayscale-9">
+                      {ev.time}
+                    </span>
+                    <Badge
+                      variant={
+                        EVENT_BADGE_VARIANT[ev.type as "meeting"] ||
+                        EVENT_BADGE_VARIANT.meeting
+                      }
+                    >
                       {EVENT_TYPE_LABELS[ev.type as "meeting"] || ev.type}
                     </Badge>
                   </div>
@@ -360,7 +397,9 @@ export default function CalendarioPage() {
                     {ev.title}
                   </h4>
                   {ev.description && (
-                    <p className="text-xs text-grayscale-9 leading-relaxed">{ev.description}</p>
+                    <p className="text-xs text-grayscale-9 leading-relaxed">
+                      {ev.description}
+                    </p>
                   )}
                   <div className="flex items-center justify-end gap-1.5 border-t border-grayscale-2 dark:border-grayscale-4/30 pt-3">
                     <button
@@ -385,9 +424,16 @@ export default function CalendarioPage() {
 
               {selectedDayEvents.length === 0 && (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-grayscale-3 py-16 text-center dark:border-grayscale-4">
-                  <CalendarDotsIcon size={32} className="text-grayscale-8 mb-2" />
-                  <p className="text-xs font-mono uppercase font-bold text-grayscale-8">Sin eventos</p>
-                  <p className="text-[11px] text-grayscale-9 mt-1">No hay tareas o rodajes para este día.</p>
+                  <CalendarDotsIcon
+                    size={32}
+                    className="text-grayscale-8 mb-2"
+                  />
+                  <p className="text-xs font-mono uppercase font-bold text-grayscale-8">
+                    Sin eventos
+                  </p>
+                  <p className="text-[11px] text-grayscale-9 mt-1">
+                    No hay tareas o rodajes para este día.
+                  </p>
                 </div>
               )}
             </div>

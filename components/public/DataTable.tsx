@@ -21,15 +21,20 @@ type DataTableProps<T> = {
 };
 
 const FunnelIconSvg = ({ active }: { active: boolean }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={cn("size-3 cursor-pointer transition-colors", active ? "text-accent-9 fill-accent-9/10" : "text-grayscale-8 hover:text-grayscale-11")}
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn(
+      "size-3 cursor-pointer transition-colors",
+      active
+        ? "text-accent-9 fill-accent-9/10"
+        : "text-grayscale-8 hover:text-grayscale-11",
+    )}
   >
     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
   </svg>
@@ -43,7 +48,9 @@ export default function DataTable<T>({
   className,
   pageSize: initialPageSize = 10,
 }: DataTableProps<T>) {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>(
+    {},
+  );
   const [openFilterKey, setOpenFilterKey] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
@@ -54,8 +61,10 @@ export default function DataTable<T>({
       for (const [key, value] of Object.entries(activeFilters)) {
         if (!value) continue;
         const col = columns.find((c) => c.key === key);
-        const itemVal = col?.getFilterValue ? col.getFilterValue(item) : (item as any)[key];
-        
+        const itemVal = col?.getFilterValue
+          ? col.getFilterValue(item)
+          : (item as any)[key];
+
         if (col?.filterMatch) {
           if (!col.filterMatch(itemVal, value)) return false;
         } else {
@@ -109,10 +118,16 @@ export default function DataTable<T>({
                   {col.filterOptions && (
                     <button
                       type="button"
-                      onClick={() => setOpenFilterKey(openFilterKey === col.key ? null : col.key)}
+                      onClick={() =>
+                        setOpenFilterKey(
+                          openFilterKey === col.key ? null : col.key,
+                        )
+                      }
                       className={cn(
                         "inline-flex p-0.5 rounded hover:bg-grayscale-3 dark:hover:bg-grayscale-4 cursor-pointer transition-colors",
-                        activeFilters[col.key] ? "bg-accent-2/60 dark:bg-accent-2/20" : ""
+                        activeFilters[col.key]
+                          ? "bg-accent-2/60 dark:bg-accent-2/20"
+                          : "",
                       )}
                     >
                       <FunnelIconSvg active={!!activeFilters[col.key]} />
@@ -122,8 +137,8 @@ export default function DataTable<T>({
 
                 {col.filterOptions && openFilterKey === col.key && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40 cursor-default" 
+                    <div
+                      className="fixed inset-0 z-40 cursor-default"
                       onClick={(e) => {
                         e.stopPropagation();
                         setOpenFilterKey(null);
@@ -142,7 +157,9 @@ export default function DataTable<T>({
                         }}
                         className={cn(
                           "flex w-full items-center rounded-md px-2.5 py-1.5 text-xs text-left cursor-pointer transition-colors hover:bg-grayscale-2 dark:hover:bg-grayscale-3",
-                          !activeFilters[col.key] ? "font-bold text-accent-9 bg-accent-2/30 dark:bg-accent-2/10" : "text-grayscale-11"
+                          !activeFilters[col.key]
+                            ? "font-bold text-accent-9 bg-accent-2/30 dark:bg-accent-2/10"
+                            : "text-grayscale-11",
                         )}
                       >
                         Todos
@@ -162,7 +179,9 @@ export default function DataTable<T>({
                             }}
                             className={cn(
                               "flex w-full items-center rounded-md px-2.5 py-1.5 text-xs text-left cursor-pointer transition-colors hover:bg-grayscale-2 dark:hover:bg-grayscale-3",
-                              isSelected ? "font-bold text-accent-9 bg-accent-2/30 dark:bg-accent-2/10" : "text-grayscale-11"
+                              isSelected
+                                ? "font-bold text-accent-9 bg-accent-2/30 dark:bg-accent-2/10"
+                                : "text-grayscale-11",
                             )}
                           >
                             {opt.label}
@@ -199,7 +218,10 @@ export default function DataTable<T>({
 
           {filteredData.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-xs font-mono uppercase text-grayscale-8">
+              <td
+                colSpan={columns.length}
+                className="px-4 py-12 text-center text-xs font-mono uppercase text-grayscale-8"
+              >
                 Sin resultados para el filtro seleccionado
               </td>
             </tr>
@@ -212,11 +234,19 @@ export default function DataTable<T>({
         <div className="flex flex-col sm:flex-row items-center justify-between border-t border-grayscale-3 bg-grayscale-2 px-4 py-3 gap-3 dark:border-grayscale-4 dark:bg-grayscale-2 select-none">
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase text-grayscale-9">
             <div>
-              Mostrando <span className="font-semibold text-grayscale-12">{(currentPage - 1) * pageSize + 1}</span> -{" "}
+              Mostrando{" "}
+              <span className="font-semibold text-grayscale-12">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              -{" "}
               <span className="font-semibold text-grayscale-12">
                 {Math.min(currentPage * pageSize, filteredData.length)}
               </span>{" "}
-              de <span className="font-semibold text-grayscale-12">{filteredData.length}</span> registros
+              de{" "}
+              <span className="font-semibold text-grayscale-12">
+                {filteredData.length}
+              </span>{" "}
+              registros
             </div>
             <div className="flex items-center gap-1.5 border-l border-grayscale-3 pl-3 dark:border-grayscale-4">
               <span className="text-[10px]">Filas:</span>
@@ -230,7 +260,7 @@ export default function DataTable<T>({
                       "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
                       pageSize === size
                         ? "bg-grayscale-4 text-grayscale-12 dark:bg-grayscale-4"
-                        : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11 dark:hover:bg-grayscale-3"
+                        : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11 dark:hover:bg-grayscale-3",
                     )}
                   >
                     {size}
@@ -262,13 +292,16 @@ export default function DataTable<T>({
                   );
                 })
                 .map((page, index, arr) => {
-                  const showEllipsisBefore = index > 0 && page - arr[index - 1] > 1;
+                  const showEllipsisBefore =
+                    index > 0 && page - arr[index - 1] > 1;
                   const isSelected = page === currentPage;
 
                   return (
                     <div key={page} className="flex items-center gap-1.5">
                       {showEllipsisBefore && (
-                        <span className="text-grayscale-8 font-mono text-[10px]">...</span>
+                        <span className="text-grayscale-8 font-mono text-[10px]">
+                          ...
+                        </span>
                       )}
                       <button
                         type="button"
@@ -277,7 +310,7 @@ export default function DataTable<T>({
                           "flex size-7 items-center justify-center rounded-lg border text-xs font-mono font-medium transition-all active:scale-95 cursor-pointer",
                           isSelected
                             ? "border-accent-9 bg-accent-9 text-white font-bold"
-                            : "border-grayscale-3 bg-grayscale-1 text-grayscale-10 hover:bg-grayscale-2 dark:border-grayscale-4 dark:bg-grayscale-3"
+                            : "border-grayscale-3 bg-grayscale-1 text-grayscale-10 hover:bg-grayscale-2 dark:border-grayscale-4 dark:bg-grayscale-3",
                         )}
                       >
                         {page}
@@ -290,7 +323,9 @@ export default function DataTable<T>({
               <button
                 type="button"
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 className="flex size-7 items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-10 transition-all hover:bg-grayscale-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
               >
                 <span className="text-xs">→</span>

@@ -141,30 +141,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const currency = typeof parsed.currency === "string" ? parsed.currency.toUpperCase() : "CRC";
-    const exchangeRate = typeof parsed.exchangeRate === "number" ? parsed.exchangeRate : 1.0;
+    const currency =
+      typeof parsed.currency === "string"
+        ? parsed.currency.toUpperCase()
+        : "CRC";
+    const exchangeRate =
+      typeof parsed.exchangeRate === "number" ? parsed.exchangeRate : 1.0;
 
     // Normalise items
     const items = Array.isArray(parsed.items)
-      ? (parsed.items as { description?: string; amount?: number; convertedAmount?: number }[]).map(
-          (item) => {
-            const amount = typeof item.amount === "number" ? item.amount : 0;
-            const convertedAmount = typeof item.convertedAmount === "number" 
-              ? item.convertedAmount 
+      ? (
+          parsed.items as {
+            description?: string;
+            amount?: number;
+            convertedAmount?: number;
+          }[]
+        ).map((item) => {
+          const amount = typeof item.amount === "number" ? item.amount : 0;
+          const convertedAmount =
+            typeof item.convertedAmount === "number"
+              ? item.convertedAmount
               : Math.round(amount * exchangeRate);
-            return {
-              description: item.description ?? "",
-              amount,
-              convertedAmount,
-            };
-          }
-        )
+          return {
+            description: item.description ?? "",
+            amount,
+            convertedAmount,
+          };
+        })
       : [];
 
     const total = typeof parsed.total === "number" ? parsed.total : null;
-    const convertedTotal = typeof parsed.convertedTotal === "number" 
-      ? parsed.convertedTotal 
-      : (total !== null ? Math.round(total * exchangeRate) : null);
+    const convertedTotal =
+      typeof parsed.convertedTotal === "number"
+        ? parsed.convertedTotal
+        : total !== null
+          ? Math.round(total * exchangeRate)
+          : null;
 
     return NextResponse.json({
       vendor: parsed.vendor ?? "",
@@ -180,17 +192,20 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     const message = error?.message || "Error desconocido";
     console.error("Gemini scan error:", message, error);
-    
+
     // Check if the error is a quota issue (429) or resource exhaustion
     if (
-      message.includes("429") || 
-      message.includes("RESOURCE_EXHAUSTED") || 
+      message.includes("429") ||
+      message.includes("RESOURCE_EXHAUSTED") ||
       message.includes("quota") ||
       message.includes("Quota exceeded")
     ) {
       return NextResponse.json(
-        { error: "Límite de cuota gratuito de Gemini excedido. Por favor, espera un minuto e intenta de nuevo." },
-        { status: 429 }
+        {
+          error:
+            "Límite de cuota gratuito de Gemini excedido. Por favor, espera un minuto e intenta de nuevo.",
+        },
+        { status: 429 },
       );
     }
 
@@ -202,8 +217,11 @@ export async function POST(request: NextRequest) {
       message.includes("temporary")
     ) {
       return NextResponse.json(
-        { error: "El servicio de Gemini está saturado temporalmente o experimenta alta demanda. Por favor, intenta de nuevo en unos segundos." },
-        { status: 503 }
+        {
+          error:
+            "El servicio de Gemini está saturado temporalmente o experimenta alta demanda. Por favor, intenta de nuevo en unos segundos.",
+        },
+        { status: 503 },
       );
     }
 

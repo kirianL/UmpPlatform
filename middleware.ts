@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "fallback_secret_for_ump_platform_2026";
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || "fallback_secret_for_ump_platform_2026";
 
 // Helper to convert ArrayBuffer to Base64Url (Edge Runtime compatible)
 function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
@@ -10,11 +11,18 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 // Helper to sign session data
-async function signSession(username: string, role: string, expiresAt: number): Promise<string> {
+async function signSession(
+  username: string,
+  role: string,
+  expiresAt: number,
+): Promise<string> {
   const encoder = new TextEncoder();
   const data = `${username}.${role}.${expiresAt}`;
   const keyData = encoder.encode(SESSION_SECRET);
@@ -23,20 +31,29 @@ async function signSession(username: string, role: string, expiresAt: number): P
     keyData,
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
   const signature = await crypto.subtle.sign(
     "HMAC",
     cryptoKey,
-    encoder.encode(data)
+    encoder.encode(data),
   );
   return arrayBufferToBase64Url(signature);
 }
 
-async function verifySession(token: string): Promise<{ valid: boolean; role?: string; username?: string; reason?: string }> {
+async function verifySession(token: string): Promise<{
+  valid: boolean;
+  role?: string;
+  username?: string;
+  reason?: string;
+}> {
   if (!token) return { valid: false, reason: "Token vacío" };
   const parts = token.split(".");
-  if (parts.length < 4) return { valid: false, reason: "Formato de token inválido (menos de 4 partes)" };
+  if (parts.length < 4)
+    return {
+      valid: false,
+      reason: "Formato de token inválido (menos de 4 partes)",
+    };
 
   const signature = parts.pop()!;
   const expiresAtStr = parts.pop()!;
@@ -47,16 +64,16 @@ async function verifySession(token: string): Promise<{ valid: boolean; role?: st
   if (isNaN(expiresAt)) {
     return { valid: false, reason: "Fecha de expiración no es un número" };
   }
-  
+
   if (expiresAt < Date.now()) {
     return { valid: false, reason: `Token expirado` };
   }
 
   const expectedSignature = await signSession(username, role, expiresAt);
   if (expectedSignature !== signature) {
-    return { 
-      valid: false, 
-      reason: `Firma inválida` 
+    return {
+      valid: false,
+      reason: `Firma inválida`,
     };
   }
 
@@ -89,8 +106,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const sessionToken = request.cookies.get("session_token")?.value;
-  console.log(`[Proxy Auth Check] sessionToken value read from cookie: "${sessionToken}"`);
-  
+  console.log(
+    `[Proxy Auth Check] sessionToken value read from cookie: "${sessionToken}"`,
+  );
+
   let isSessionValid = false;
   let userRole = "produccion";
   let userEmail = "";
@@ -102,16 +121,22 @@ export async function middleware(request: NextRequest) {
       userRole = result.role || "produccion";
       userEmail = result.username || "";
     } else {
-      console.warn(`[Proxy Auth Check] Acceso denegado en "${pathname}": ${result.reason}`);
+      console.warn(
+        `[Proxy Auth Check] Acceso denegado en "${pathname}": ${result.reason}`,
+      );
     }
   } else {
-    console.warn(`[Proxy Auth Check] Acceso denegado en "${pathname}": No se encontró cookie session_token`);
+    console.warn(
+      `[Proxy Auth Check] Acceso denegado en "${pathname}": No se encontró cookie session_token`,
+    );
   }
 
   // If path is /login and session is valid, redirect to dashboard (/)
   if (pathname === "/login") {
     if (isSessionValid) {
-      console.log(`[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`);
+      console.log(
+        `[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`,
+      );
       const redirectUrl = userRole === "produccion" ? "/inventario" : "/";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
@@ -140,7 +165,9 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
-      console.warn(`[Proxy Auth Check] Rol "produccion" intentó acceder a "${pathname}". Redirigiendo a /inventario.`);
+      console.warn(
+        `[Proxy Auth Check] Rol "produccion" intentó acceder a "${pathname}". Redirigiendo a /inventario.`,
+      );
       return NextResponse.redirect(new URL("/inventario", request.url));
     }
   }

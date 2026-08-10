@@ -16,8 +16,12 @@ export async function generateMetadata({
   let scheduleCount = 0;
 
   try {
-    const actor = await fetchQuery(api.actors.getByShareToken, { shareToken: token });
-    const schedules = await fetchQuery(api.actorSchedules.getByShareToken, { shareToken: token });
+    const actor = await fetchQuery(api.actors.getByShareToken, {
+      shareToken: token,
+    });
+    const schedules = await fetchQuery(api.actorSchedules.getByShareToken, {
+      shareToken: token,
+    });
 
     if (actor) {
       actorName = actor.name;
@@ -25,7 +29,9 @@ export async function generateMetadata({
       photoUrl = (actor as any).photoUrl || "";
     } else if (schedules && schedules.length > 0) {
       actorName = schedules[0].actorName;
-      characterName = schedules[0].characterName ? `(${schedules[0].characterName})` : "";
+      characterName = schedules[0].characterName
+        ? `(${schedules[0].characterName})`
+        : "";
     }
 
     if (schedules) {
@@ -48,7 +54,14 @@ export async function generateMetadata({
       siteName: "UMP Platform",
       images: photoUrl
         ? [{ url: photoUrl, alt: actorName }]
-        : [{ url: "/ICO-UMP/favicon-180x180.png", width: 180, height: 180, alt: "UMP Platform" }],
+        : [
+            {
+              url: "/ICO-UMP/favicon-180x180.png",
+              width: 180,
+              height: 180,
+              alt: "UMP Platform",
+            },
+          ],
     },
     twitter: {
       card: photoUrl ? "summary_large_image" : "summary",

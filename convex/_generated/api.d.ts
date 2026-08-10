@@ -12,6 +12,7 @@ import type * as actorSchedules from "../actorSchedules.js";
 import type * as actors from "../actors.js";
 import type * as analytics from "../analytics.js";
 import type * as castingLeads from "../castingLeads.js";
+import type * as clientCredentials from "../clientCredentials.js";
 import type * as clientPayments from "../clientPayments.js";
 import type * as clientServices from "../clientServices.js";
 import type * as clients from "../clients.js";
@@ -21,6 +22,8 @@ import type * as equipment from "../equipment.js";
 import type * as events from "../events.js";
 import type * as scripts from "../scripts.js";
 import type * as seed from "../seed.js";
+import type * as socialMediaGoals from "../socialMediaGoals.js";
+import type * as socialMediaPosts from "../socialMediaPosts.js";
 import type * as transactions from "../transactions.js";
 import type * as users from "../users.js";
 
@@ -35,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   actors: typeof actors;
   analytics: typeof analytics;
   castingLeads: typeof castingLeads;
+  clientCredentials: typeof clientCredentials;
   clientPayments: typeof clientPayments;
   clientServices: typeof clientServices;
   clients: typeof clients;
@@ -44,6 +48,8 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   scripts: typeof scripts;
   seed: typeof seed;
+  socialMediaGoals: typeof socialMediaGoals;
+  socialMediaPosts: typeof socialMediaPosts;
   transactions: typeof transactions;
   users: typeof users;
 }>;

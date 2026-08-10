@@ -13,9 +13,19 @@ export const create = mutation({
     title: v.string(),
     date: v.string(),
     time: v.string(),
-    type: v.union(v.literal("shooting"), v.literal("pre-production"), v.literal("post-production"), v.literal("meeting"), v.literal("delivery")),
+    type: v.union(
+      v.literal("shooting"),
+      v.literal("pre-production"),
+      v.literal("post-production"),
+      v.literal("meeting"),
+      v.literal("delivery"),
+    ),
     description: v.string(),
-    status: v.union(v.literal("upcoming"), v.literal("completed"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("upcoming"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("events", args);
@@ -28,9 +38,19 @@ export const update = mutation({
     title: v.string(),
     date: v.string(),
     time: v.string(),
-    type: v.union(v.literal("shooting"), v.literal("pre-production"), v.literal("post-production"), v.literal("meeting"), v.literal("delivery")),
+    type: v.union(
+      v.literal("shooting"),
+      v.literal("pre-production"),
+      v.literal("post-production"),
+      v.literal("meeting"),
+      v.literal("delivery"),
+    ),
     description: v.string(),
-    status: v.union(v.literal("upcoming"), v.literal("completed"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("upcoming"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);

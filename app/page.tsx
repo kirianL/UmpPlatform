@@ -39,17 +39,15 @@ export default function DashboardPage() {
   const events = useQuery(api.events.get) ?? [];
   const seed = useMutation(api.seed.run);
 
-  const activeEmployees = employees.filter(
-    (e) => e.status === "active",
-  ).length;
+  const activeEmployees = employees.filter((e) => e.status === "active").length;
 
-  const totalIncome = transactions.filter(
-    (t) => t.type === "income" && t.status !== "cancelled",
-  ).reduce((s, t) => s + t.amount, 0);
+  const totalIncome = transactions
+    .filter((t) => t.type === "income" && t.status !== "cancelled")
+    .reduce((s, t) => s + t.amount, 0);
 
-  const totalExpenses = transactions.filter(
-    (t) => t.type === "expense" && t.status !== "cancelled",
-  ).reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = transactions
+    .filter((t) => t.type === "expense" && t.status !== "cancelled")
+    .reduce((s, t) => s + t.amount, 0);
 
   const availableEquipment = equipment.filter(
     (e) => e.status === "available",
@@ -59,17 +57,14 @@ export default function DashboardPage() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
 
-  const upcomingEvents = events.filter(
-    (e) => e.status === "upcoming",
-  )
+  const upcomingEvents = events
+    .filter((e) => e.status === "upcoming")
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5);
 
   return (
     <PageContainer>
       <div className="flex flex-col gap-8">
-
-
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
@@ -129,10 +124,17 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col rounded-xl border border-grayscale-3 bg-grayscale-2 divide-y divide-grayscale-3 dark:divide-grayscale-3 min-h-[100px]">
               {recentTransactions.map((t) => (
-                <div key={t._id} className="flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/40">
+                <div
+                  key={t._id}
+                  className="flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/40"
+                >
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <p className="text-sm text-grayscale-11 truncate">{t.concept}</p>
-                    <p className="text-xs text-grayscale-9">{formatDate(t.date)}</p>
+                    <p className="text-sm text-grayscale-11 truncate">
+                      {t.concept}
+                    </p>
+                    <p className="text-xs text-grayscale-9">
+                      {formatDate(t.date)}
+                    </p>
                   </div>
                   <span
                     className={`text-sm font-medium whitespace-nowrap ml-3 ${
@@ -167,9 +169,14 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col rounded-xl border border-grayscale-3 bg-grayscale-2 divide-y divide-grayscale-3 dark:divide-grayscale-3 min-h-[100px]">
               {upcomingEvents.map((ev) => (
-                <div key={ev._id} className="flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/40">
+                <div
+                  key={ev._id}
+                  className="flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/40"
+                >
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <p className="text-sm text-grayscale-11 truncate">{ev.title}</p>
+                    <p className="text-sm text-grayscale-11 truncate">
+                      {ev.title}
+                    </p>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-grayscale-9">
                         {formatDate(ev.date)} · {ev.time}
@@ -197,7 +204,11 @@ export default function DashboardPage() {
             { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
             { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
             { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
-            { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
+            {
+              href: "/calendario",
+              label: "Calendario",
+              Icon: CalendarDotsIcon,
+            },
           ].map(({ href, label, Icon }) => (
             <Link
               key={href}
@@ -205,7 +216,9 @@ export default function DashboardPage() {
               className="small-shadow flex flex-col items-center gap-2 rounded-lg border border-grayscale-3 bg-grayscale-1 p-4 text-grayscale-10 transition-all duration-200 hover:border-accent-6 hover:bg-accent-2 hover:text-accent-11 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] transform-gpu dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:border-accent-6 dark:hover:bg-accent-3"
             >
               <Icon size={22} weight="duotone" />
-              <span className="text-xs font-mono font-medium uppercase">{label}</span>
+              <span className="text-xs font-mono font-medium uppercase">
+                {label}
+              </span>
             </Link>
           ))}
         </div>

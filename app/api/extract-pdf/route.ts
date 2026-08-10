@@ -14,7 +14,7 @@ function extractTextFromPdfBuffer(buffer: Buffer): string {
     const streamEnd = match.index + match[0].lastIndexOf("endstream");
     const streamData = buffer.subarray(
       streamStart > match.index ? streamStart : match.index,
-      streamEnd > streamStart ? streamEnd : buffer.length
+      streamEnd > streamStart ? streamEnd : buffer.length,
     );
 
     let decompressed: string = "";
@@ -32,9 +32,13 @@ function extractTextFromPdfBuffer(buffer: Buffer): string {
     }
 
     // Extract text in parentheses (text) Tj or TJ
-    const tjMatches = decompressed.match(/\(([^()]+)\)\s*(?:Tj|TJ|\'|\")/g) || [];
+    const tjMatches =
+      decompressed.match(/\(([^()]+)\)\s*(?:Tj|TJ|\'|\")/g) || [];
     for (const m of tjMatches) {
-      const clean = m.replace(/^\(/, "").replace(/\)\s*(?:Tj|TJ|\'|\")$/, "").trim();
+      const clean = m
+        .replace(/^\(/, "")
+        .replace(/\)\s*(?:Tj|TJ|\'|\")$/, "")
+        .trim();
       if (
         clean.length > 0 &&
         !clean.startsWith("/") &&
@@ -51,7 +55,10 @@ function extractTextFromPdfBuffer(buffer: Buffer): string {
   if (extractedLines.length === 0) {
     const rawMatches = rawStr.match(/\(([^()]{2,})\)\s*(?:Tj|TJ|\'|\")/g) || [];
     for (const m of rawMatches) {
-      const clean = m.replace(/^\(/, "").replace(/\)\s*(?:Tj|TJ|\'|\")$/, "").trim();
+      const clean = m
+        .replace(/^\(/, "")
+        .replace(/\)\s*(?:Tj|TJ|\'|\")$/, "")
+        .trim();
       if (
         clean.length > 1 &&
         !clean.startsWith("/") &&

@@ -27,7 +27,7 @@ export const create = mutation({
       v.literal("pagado"),
       v.literal("pendiente"),
       v.literal("parcial"),
-      v.literal("sin_pago")
+      v.literal("sin_pago"),
     ),
     contractDate: v.string(),
   },
@@ -59,7 +59,7 @@ export const update = mutation({
       v.literal("pagado"),
       v.literal("pendiente"),
       v.literal("parcial"),
-      v.literal("sin_pago")
+      v.literal("sin_pago"),
     ),
     contractDate: v.string(),
   },
@@ -75,7 +75,7 @@ export const remove = mutation({
     if (service) {
       const clientId = service.clientId;
       await ctx.db.delete(args.id);
-      
+
       const client = await ctx.db.get(clientId);
       if (client) {
         const remaining = await ctx.db

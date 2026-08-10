@@ -13,7 +13,13 @@ export const create = mutation({
     name: v.string(),
     serialNumber: v.optional(v.string()),
     category: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("available"), v.literal("in-use"), v.literal("maintenance"))),
+    status: v.optional(
+      v.union(
+        v.literal("available"),
+        v.literal("in-use"),
+        v.literal("maintenance"),
+      ),
+    ),
     location: v.optional(v.string()),
     acquisitionDate: v.optional(v.string()),
   },
@@ -32,7 +38,13 @@ export const update = mutation({
     name: v.string(),
     serialNumber: v.optional(v.string()),
     category: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("available"), v.literal("in-use"), v.literal("maintenance"))),
+    status: v.optional(
+      v.union(
+        v.literal("available"),
+        v.literal("in-use"),
+        v.literal("maintenance"),
+      ),
+    ),
     location: v.optional(v.string()),
     acquisitionDate: v.optional(v.string()),
   },

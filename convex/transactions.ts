@@ -15,7 +15,11 @@ export const create = mutation({
     date: v.string(),
     category: v.string(),
     type: v.union(v.literal("income"), v.literal("expense")),
-    status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("paid"),
+      v.literal("pending"),
+      v.literal("cancelled"),
+    ),
     local: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -31,7 +35,11 @@ export const update = mutation({
     date: v.string(),
     category: v.string(),
     type: v.union(v.literal("income"), v.literal("expense")),
-    status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("paid"),
+      v.literal("pending"),
+      v.literal("cancelled"),
+    ),
     local: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
@@ -44,7 +52,8 @@ export const update = mutation({
       .collect();
 
     for (const payment of payments) {
-      const paymentStatus: "paid" | "pending" = args.status === "paid" ? "paid" : "pending";
+      const paymentStatus: "paid" | "pending" =
+        args.status === "paid" ? "paid" : "pending";
       await ctx.db.patch(payment._id, {
         amount: args.amount,
         date: args.date,
@@ -57,21 +66,37 @@ export const update = mutation({
         if (service) {
           const servicePayments = await ctx.db
             .query("clientPayments")
-            .withIndex("by_serviceId", (q) => q.eq("serviceId", payment.serviceId))
+            .withIndex("by_serviceId", (q) =>
+              q.eq("serviceId", payment.serviceId),
+            )
             .collect();
 
           const totalPaid = servicePayments
-            .filter((p) => (p._id === payment._id ? paymentStatus === "paid" : p.status === "paid"))
-            .reduce((sum, p) => sum + (p._id === payment._id ? args.amount : p.amount), 0);
+            .filter((p) =>
+              p._id === payment._id
+                ? paymentStatus === "paid"
+                : p.status === "paid",
+            )
+            .reduce(
+              (sum, p) =>
+                sum + (p._id === payment._id ? args.amount : p.amount),
+              0,
+            );
 
-          let newServiceStatus: "pagado" | "parcial" | "pendiente" | "sin_pago" = "pendiente";
+          let newServiceStatus:
+            | "pagado"
+            | "parcial"
+            | "pendiente"
+            | "sin_pago" = "pendiente";
           if (totalPaid >= service.amount && service.amount > 0) {
             newServiceStatus = "pagado";
           } else if (totalPaid > 0) {
             newServiceStatus = "parcial";
           }
 
-          await ctx.db.patch(payment.serviceId, { paymentStatus: newServiceStatus });
+          await ctx.db.patch(payment.serviceId, {
+            paymentStatus: newServiceStatus,
+          });
         }
       }
     }
@@ -105,7 +130,11 @@ export const remove = mutation({
               .filter((p) => p._id !== payment._id && p.status === "paid")
               .reduce((sum, p) => sum + p.amount, 0);
 
-            let newServiceStatus: "pagado" | "parcial" | "pendiente" | "sin_pago" = "pendiente";
+            let newServiceStatus:
+              | "pagado"
+              | "parcial"
+              | "pendiente"
+              | "sin_pago" = "pendiente";
             if (totalPaid >= service.amount && service.amount > 0) {
               newServiceStatus = "pagado";
             } else if (totalPaid > 0) {

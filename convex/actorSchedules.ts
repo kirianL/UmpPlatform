@@ -42,7 +42,7 @@ export const getByShareToken = query({
 
     const normalizedInput = toSlug(token);
     const allActors = await ctx.db.query("actors").collect();
-    
+
     // Strict actor matching
     const matchedActor = allActors.find((a) => {
       if (a.shareToken === token || a._id === token) return true;
@@ -50,7 +50,9 @@ export const getByShareToken = query({
       return toSlug(a.name) === normalizedInput;
     });
 
-    const actorSlug = matchedActor ? toSlug(matchedActor.name) : normalizedInput;
+    const actorSlug = matchedActor
+      ? toSlug(matchedActor.name)
+      : normalizedInput;
     const actorToken = matchedActor?.shareToken;
     const actorId = matchedActor?._id;
 
@@ -59,7 +61,7 @@ export const getByShareToken = query({
       if (s.shareToken === token) return true;
       if (actorToken && s.shareToken === actorToken) return true;
       if (actorId && s.actorId === actorId) return true;
-      
+
       const sSlug = toSlug(s.actorName);
       if (!sSlug) return false;
       if (normalizedInput && sSlug === normalizedInput) return true;
@@ -69,12 +71,14 @@ export const getByShareToken = query({
     });
 
     // Deduplicate by ID
-    const uniqueMap = new Map<string, typeof matching[0]>();
+    const uniqueMap = new Map<string, (typeof matching)[0]>();
     for (const item of matching) {
       uniqueMap.set(item._id, item);
     }
 
-    return Array.from(uniqueMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    return Array.from(uniqueMap.values()).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
   },
 });
 
@@ -94,7 +98,7 @@ export const create = mutation({
       v.literal("scheduled"),
       v.literal("filmed"),
       v.literal("rescheduled"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
     ),
     shareToken: v.optional(v.string()),
   },
@@ -121,7 +125,7 @@ export const update = mutation({
       v.literal("scheduled"),
       v.literal("filmed"),
       v.literal("rescheduled"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
     ),
     shareToken: v.optional(v.string()),
   },

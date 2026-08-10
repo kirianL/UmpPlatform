@@ -22,9 +22,7 @@ export default function EmptyState({
         className,
       )}
     >
-      {icon && (
-        <span className="text-grayscale-7">{icon}</span>
-      )}
+      {icon && <span className="text-grayscale-7">{icon}</span>}
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-grayscale-11">{title}</p>
         {description && (

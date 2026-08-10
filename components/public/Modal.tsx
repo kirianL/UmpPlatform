@@ -19,12 +19,31 @@ export default function Modal({
   children,
   className,
 }: ModalProps) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && typeof window !== "undefined") {
+      window.getSelection()?.removeAllRanges();
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-100 bg-grayscale-1/75 backdrop-blur-sm animate-backdrop" />
+        <Dialog.Backdrop className="fixed inset-0 z-100 bg-black/50 backdrop-blur-md animate-backdrop" />
+
         <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
           <Dialog.Popup
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && typeof window !== "undefined") {
+                window.getSelection()?.removeAllRanges();
+                if (document.activeElement instanceof HTMLElement) {
+                  document.activeElement.blur();
+                }
+              }
+            }}
             className={cn(
               "relative my-auto flex w-full max-w-lg max-h-[90vh] flex-col rounded-2xl border border-grayscale-3 bg-grayscale-1 shadow-2xl outline-none animate-modal dark:border-grayscale-4 dark:bg-grayscale-2 overflow-hidden",
               className,
@@ -41,11 +60,12 @@ export default function Modal({
                 <XIcon size={14} weight="bold" />
               </Dialog.Close>
             </div>
-            <div className="px-4 sm:px-5 py-4 overflow-y-auto max-h-[calc(90vh-3.5rem)]">{children}</div>
+            <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 flex flex-col min-h-0 max-h-[calc(90vh-3.5rem)]">
+              {children}
+            </div>
           </Dialog.Popup>
         </div>
       </Dialog.Portal>
     </Dialog.Root>
   );
 }
-

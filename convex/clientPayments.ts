@@ -56,8 +56,10 @@ export const createPayment = mutation({
   },
   handler: async (ctx, args) => {
     const client = await ctx.db.get(args.clientId);
-    const clientInfo = client ? `${client.name} - ${client.company}` : "Cliente";
-    
+    const clientInfo = client
+      ? `${client.name} - ${client.company}`
+      : "Cliente";
+
     let serviceInfo = "";
     if (args.serviceId) {
       const service = await ctx.db.get(args.serviceId);
@@ -125,7 +127,9 @@ export const updatePayment = mutation({
     // Actualizar transacción vinculada en Finanzas si existe
     if (existing.transactionId) {
       const client = await ctx.db.get(existing.clientId);
-      const clientInfo = client ? `${client.name} - ${client.company}` : "Cliente";
+      const clientInfo = client
+        ? `${client.name} - ${client.company}`
+        : "Cliente";
       const fullConcept = args.concept.trim()
         ? `${args.concept.trim()} (${clientInfo})`
         : `Pago de cliente - ${clientInfo}`;

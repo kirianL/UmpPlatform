@@ -11,7 +11,12 @@ body {
 }
 
 /* Faster touch response for interactive elements */
-button, a, [role="button"], input, select, textarea {
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
   touch-action: manipulation;
 }
 
@@ -157,31 +162,37 @@ button, a, [role="button"], input, select, textarea {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* Modal and Backdrop Transitions */
 .animate-backdrop {
   opacity: 0;
   backdrop-filter: blur(0px);
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    backdrop-filter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, backdrop-filter;
 }
 .animate-backdrop[data-open] {
   opacity: 1;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 .animate-backdrop[data-closed] {
   opacity: 0;
   backdrop-filter: blur(0px);
-  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    backdrop-filter 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-modal {
   opacity: 0;
-  transform: scale(0.96) translateY(8px);
-  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.24s ease-out;
+  transform: scale(0.97) translateY(4px);
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
 }
 .animate-modal[data-open] {
@@ -190,81 +201,29 @@ button, a, [role="button"], input, select, textarea {
 }
 .animate-modal[data-closed] {
   opacity: 0;
-  transform: scale(0.96) translateY(8px);
-  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(0.97) translateY(4px);
+  transition:
+    transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
 
 /* ---------------------------------------------------------------------------
-   View Transitions — Page Navigation
+   Mobile Nav — Staggered entrance
    --------------------------------------------------------------------------- */
-
-/* Assign transition names to keep layout persistent */
-.desktop-sidebar {
-  view-transition-name: sidebar;
-}
-
-.mobile-header {
-  view-transition-name: mobile-header;
-}
-
-/* Page enter: fade in + subtle slide up */
-::view-transition-new(page-enter),
-::view-transition-new(.page-enter) {
-  animation: vt-page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Page exit: fade out quickly */
-::view-transition-old(page-exit),
-::view-transition-old(.page-exit) {
-  animation: vt-page-out 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes vt-page-in {
+@keyframes mobile-nav-in {
   from {
     opacity: 0;
-    filter: blur(2px);
-    transform: translateY(6px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0);
   }
 }
 
-@keyframes vt-page-out {
-  from {
-    opacity: 1;
-    filter: blur(0);
-  }
-  to {
-    opacity: 0;
-    filter: blur(2px);
-  }
-}
-
-/* Anchor sidebar and header — don't animate them */
-::view-transition-group(sidebar) {
-  animation: none;
-  z-index: 50;
-}
-::view-transition-old(sidebar) {
-  display: none;
-}
-::view-transition-new(sidebar) {
-  animation: none;
-}
-
-::view-transition-group(mobile-header) {
-  animation: none;
-  z-index: 100;
-}
-::view-transition-old(mobile-header) {
-  display: none;
-}
-::view-transition-new(mobile-header) {
-  animation: none;
+.mobile-nav-item {
+  opacity: 0;
+  animation: mobile-nav-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Support for prefers-reduced-motion */
@@ -427,22 +386,46 @@ button, a, [role="button"], input, select, textarea {
   }
 
   /* Prevent text cursor (I-beam bar) on static text elements for a premium native app feel */
-  p, span, td, th, div, h1, h2, h3, h4, h5, h6, li, strong, em {
+  p,
+  span,
+  td,
+  th,
+  div,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  li,
+  strong,
+  em {
     cursor: default;
   }
 
   /* Ensure interactive elements show the pointer cursor */
-  a, button, [role="button"], select, option, label {
+  a,
+  button,
+  [role="button"],
+  select,
+  option,
+  label {
     cursor: pointer;
   }
 
   /* Ensure child elements inside interactive elements inherit the pointer cursor */
-  a *, button *, [role="button"] * {
+  a *,
+  button *,
+  [role="button"] * {
     cursor: inherit;
   }
 
   /* Ensure inputs and textareas show the text selection cursor */
-  input, textarea, [contenteditable="true"], input *, textarea * {
+  input,
+  textarea,
+  [contenteditable="true"],
+  input *,
+  textarea * {
     cursor: text;
   }
 
@@ -483,6 +466,6 @@ button, a, [role="button"], input, select, textarea {
 }
 
 * {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }

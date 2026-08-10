@@ -40,7 +40,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex h-dvh w-screen flex-col justify-between overflow-hidden bg-grayscale-1 text-grayscale-12 p-6 font-sans">
-      
       {/* Top Header Row */}
       <div className="flex items-center justify-center w-full animate-fade-in">
         <div className="flex items-center gap-2">
@@ -53,7 +52,6 @@ export default function LoginPage() {
 
       {/* Main Login Form Container */}
       <div className="w-full max-w-[360px] mx-auto flex flex-col gap-6 my-auto animate-scale-up">
-        
         {/* Headings */}
         <div className="flex flex-col gap-1.5 text-left">
           <h2 className="text-2xl font-bold tracking-tight text-grayscale-12">
@@ -118,7 +116,6 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
-
     </div>
   );
 }

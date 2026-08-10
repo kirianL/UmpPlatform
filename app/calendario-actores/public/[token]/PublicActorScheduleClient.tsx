@@ -35,7 +35,10 @@ function formatDate(dateStr: string): string {
 function format12Hour(timeStr?: string): string {
   if (!timeStr) return "";
   const trimmed = timeStr.trim();
-  if (trimmed.toLowerCase().includes("am") || trimmed.toLowerCase().includes("pm")) {
+  if (
+    trimmed.toLowerCase().includes("am") ||
+    trimmed.toLowerCase().includes("pm")
+  ) {
     return trimmed.toUpperCase();
   }
   const parts = trimmed.split(":");
@@ -52,11 +55,19 @@ function format12Hour(timeStr?: string): string {
   return `${formattedHours}:${minutes} ${period}`;
 }
 
-export default function PublicActorScheduleClient({ token }: { token: string }) {
-  const schedules = useQuery(api.actorSchedules.getByShareToken, { shareToken: token });
+export default function PublicActorScheduleClient({
+  token,
+}: {
+  token: string;
+}) {
+  const schedules = useQuery(api.actorSchedules.getByShareToken, {
+    shareToken: token,
+  });
   const actor = useQuery(api.actors.getByShareToken, { shareToken: token });
 
-  const [filterTab, setFilterTab] = useState<"upcoming" | "history" | "all">("upcoming");
+  const [filterTab, setFilterTab] = useState<"upcoming" | "history" | "all">(
+    "upcoming",
+  );
 
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -68,12 +79,18 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
 
   const upcomingSchedules = useMemo(() => {
     if (!schedules) return [];
-    return schedules.filter((s) => s.date >= todayStr && s.status !== "filmed" && s.status !== "cancelled");
+    return schedules.filter(
+      (s) =>
+        s.date >= todayStr && s.status !== "filmed" && s.status !== "cancelled",
+    );
   }, [schedules, todayStr]);
 
   const historySchedules = useMemo(() => {
     if (!schedules) return [];
-    return schedules.filter((s) => s.date < todayStr || s.status === "filmed" || s.status === "cancelled");
+    return schedules.filter(
+      (s) =>
+        s.date < todayStr || s.status === "filmed" || s.status === "cancelled",
+    );
   }, [schedules, todayStr]);
 
   const displayedSchedules = useMemo(() => {
@@ -142,12 +159,16 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
               <div className="flex flex-wrap items-center gap-3 font-mono text-xs font-bold uppercase tracking-wider text-grayscale-11 border-t border-b border-grayscale-3/60 dark:border-grayscale-4/60 py-2.5 my-0.5">
                 <div className="flex items-center gap-1.5 text-grayscale-12">
                   <FilmStripIcon size={15} className="text-accent-9" />
-                  <span>{actor.episodeCount ?? schedules.length ?? 0} capítulos</span>
+                  <span>
+                    {actor.episodeCount ?? schedules.length ?? 0} capítulos
+                  </span>
                 </div>
                 <span className="size-1 rounded-full bg-grayscale-6" />
                 <div className="flex items-center gap-1.5 text-emerald-11 dark:text-emerald-400">
                   <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Elenco {actor.status === "active" ? "activo" : "inactivo"}</span>
+                  <span>
+                    Elenco {actor.status === "active" ? "activo" : "inactivo"}
+                  </span>
                 </div>
               </div>
 
@@ -164,10 +185,13 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
               Elenco de producción UMP
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-grayscale-12 tracking-tight">
-              {token === "general" || token === "all" ? "Agenda general de rodajes" : `Agenda de citaciones (${token})`}
+              {token === "general" || token === "all"
+                ? "Agenda general de rodajes"
+                : `Agenda de citaciones (${token})`}
             </h1>
             <p className="text-xs text-grayscale-11 leading-relaxed">
-              Consulta oficial de citaciones, fechas de grabación y locaciones de rodaje.
+              Consulta oficial de citaciones, fechas de grabación y locaciones
+              de rodaje.
             </p>
           </div>
         )}
@@ -185,13 +209,22 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
             </h2>
 
             <Tabs.List className="border-0 pb-0 gap-1.5">
-              <Tabs.Tab value="upcoming" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+              <Tabs.Tab
+                value="upcoming"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
                 Próximos ({upcomingSchedules.length})
               </Tabs.Tab>
-              <Tabs.Tab value="history" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+              <Tabs.Tab
+                value="history"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
                 Historial ({historySchedules.length})
               </Tabs.Tab>
-              <Tabs.Tab value="all" className="font-mono text-[10px] font-bold uppercase py-1.5 px-3">
+              <Tabs.Tab
+                value="all"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
                 Todos ({schedules.length})
               </Tabs.Tab>
               <Tabs.Indicator />
@@ -210,7 +243,11 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
                   <span className="font-mono text-xs font-bold text-accent-10 dark:text-accent-9">
                     {formatDate(ev.date)}
                   </span>
-                  <Badge variant={STATUS_BADGE[ev.status as "scheduled"]?.variant || "gray"}>
+                  <Badge
+                    variant={
+                      STATUS_BADGE[ev.status as "scheduled"]?.variant || "gray"
+                    }
+                  >
                     {STATUS_BADGE[ev.status as "scheduled"]?.label || ev.status}
                   </Badge>
                 </div>
@@ -221,8 +258,12 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
                     {ev.title}
                   </h3>
                   <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-grayscale-11">
-                    <span className="font-bold text-grayscale-12">{ev.actorName}</span>
-                    <span className="text-accent-10 dark:text-accent-9 font-semibold">({ev.characterName})</span>
+                    <span className="font-bold text-grayscale-12">
+                      {ev.actorName}
+                    </span>
+                    <span className="text-accent-10 dark:text-accent-9 font-semibold">
+                      ({ev.characterName})
+                    </span>
                   </div>
                 </div>
 
@@ -233,9 +274,16 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
                       <ClockIcon size={18} />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Hora de citación</span>
-                      <span className="text-sm font-mono font-bold text-accent-11 dark:text-accent-9 leading-tight">{format12Hour(ev.callTime)}</span>
-                      <span className="text-[10px] text-grayscale-9 font-mono truncate">Rodaje: {format12Hour(ev.startTime)} - {format12Hour(ev.endTime)}</span>
+                      <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">
+                        Hora de citación
+                      </span>
+                      <span className="text-sm font-mono font-bold text-accent-11 dark:text-accent-9 leading-tight">
+                        {format12Hour(ev.callTime)}
+                      </span>
+                      <span className="text-[10px] text-grayscale-9 font-mono truncate">
+                        Rodaje: {format12Hour(ev.startTime)} -{" "}
+                        {format12Hour(ev.endTime)}
+                      </span>
                     </div>
                   </div>
 
@@ -244,8 +292,12 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
                       <MapPinIcon size={18} />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">Locación</span>
-                      <span className="text-xs font-bold text-grayscale-12 leading-snug">{ev.location}</span>
+                      <span className="text-[10px] font-mono font-bold uppercase text-grayscale-8">
+                        Locación
+                      </span>
+                      <span className="text-xs font-bold text-grayscale-12 leading-snug">
+                        {ev.location}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -256,7 +308,9 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
                     <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
                       Notas de la escena / vestuario
                     </span>
-                    <p className="text-grayscale-11 leading-relaxed">{ev.sceneDetails}</p>
+                    <p className="text-grayscale-11 leading-relaxed">
+                      {ev.sceneDetails}
+                    </p>
                   </div>
                 )}
               </div>
@@ -264,9 +318,17 @@ export default function PublicActorScheduleClient({ token }: { token: string }) 
 
             {displayedSchedules.length === 0 && (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-grayscale-3 p-8 sm:p-16 text-center dark:border-grayscale-4">
-                <UserCheckIcon size={44} className="text-grayscale-8 mb-3 shrink-0" />
-                <h3 className="font-mono text-sm font-bold text-grayscale-11 uppercase tracking-wide">Sin llamadas pendientes</h3>
-                <p className="text-xs text-grayscale-9 mt-1.5 max-w-sm">Actualmente no tienes fechas de rodaje agendadas en la plataforma.</p>
+                <UserCheckIcon
+                  size={44}
+                  className="text-grayscale-8 mb-3 shrink-0"
+                />
+                <h3 className="font-mono text-sm font-bold text-grayscale-11 uppercase tracking-wide">
+                  Sin llamadas pendientes
+                </h3>
+                <p className="text-xs text-grayscale-9 mt-1.5 max-w-sm">
+                  Actualmente no tienes fechas de rodaje agendadas en la
+                  plataforma.
+                </p>
               </div>
             )}
           </div>

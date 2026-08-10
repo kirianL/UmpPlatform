@@ -99,7 +99,9 @@ function SidebarNavContent({
                 weight={isActive ? "fill" : "regular"}
                 className={cn(
                   "transition-transform duration-200 group-hover:scale-110",
-                  isActive ? "text-accent-9" : "text-grayscale-9 group-hover:text-grayscale-11",
+                  isActive
+                    ? "text-accent-9"
+                    : "text-grayscale-9 group-hover:text-grayscale-11",
                 )}
               />
               <span className="transition-transform duration-200 group-hover:translate-x-0.5">
@@ -119,11 +121,13 @@ function SidebarNavContent({
               </span>
               <ThemeToggle />
             </div>
-            
+
             <button
               onClick={async () => {
                 try {
-                  const res = await fetch("/api/auth/logout", { method: "POST" });
+                  const res = await fetch("/api/auth/logout", {
+                    method: "POST",
+                  });
                   if (res.ok) {
                     window.location.href = "/login";
                   }

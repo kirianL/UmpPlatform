@@ -19,6 +19,8 @@ import StatCard from "@/components/public/StatCard";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Button from "@/components/public/Button";
+import ConfirmModal from "@/components/public/ConfirmModal";
+
 import { AreaChart, Area } from "@/components/charts/area-chart";
 import { Grid } from "@/components/charts/grid";
 import { XAxis } from "@/components/charts/x-axis";
@@ -43,17 +45,20 @@ const MOCK_PLATFORM_STATS = {
     insights: [
       {
         title: "Crecimiento Multiplataforma Sólido",
-        description: "El alcance consolidado ha subido un 26.8%. Prioriza contenido cruzado (Cross-posting) entre TikTok e Instagram.",
+        description:
+          "El alcance consolidado ha subido un 26.8%. Prioriza contenido cruzado (Cross-posting) entre TikTok e Instagram.",
         type: "info" as const,
       },
       {
         title: "Optimización del Gancho Inicial",
-        description: "La retención de video decae rápido en los primeros 10s. Comienza tus videos directamente con la acción principal.",
+        description:
+          "La retención de video decae rápido en los primeros 10s. Comienza tus videos directamente con la acción principal.",
         type: "warning" as const,
       },
       {
         title: "Llamado a la Acción (CTA)",
-        description: "El engagement creció un 1.5%. Agrega un recordatorio interactivo para suscribirse a la mitad de tus videos largos.",
+        description:
+          "El engagement creció un 1.5%. Agrega un recordatorio interactivo para suscribirse a la mitad de tus videos largos.",
         type: "tip" as const,
       },
     ],
@@ -72,17 +77,20 @@ const MOCK_PLATFORM_STATS = {
     insights: [
       {
         title: "Optimización de Retención Temprana",
-        description: "Tus videos promedian una retención del 64.2%. Considera acortar la introducción a menos de 10 segundos.",
+        description:
+          "Tus videos promedian una retención del 64.2%. Considera acortar la introducción a menos de 10 segundos.",
         type: "warning" as const,
       },
       {
         title: "Oportunidad de Audiencia",
-        description: "Tus principales vistas provienen de Costa Rica. Incentiva la interacción preguntando sobre temas de interés regional.",
+        description:
+          "Tus principales vistas provienen de Costa Rica. Incentiva la interacción preguntando sobre temas de interés regional.",
         type: "tip" as const,
       },
       {
         title: "Fidelización del Público",
-        description: "El grupo de edad de 25-34 años representa el 45% de tu audiencia. Ajusta el ritmo y duración de tus videos.",
+        description:
+          "El grupo de edad de 25-34 años representa el 45% de tu audiencia. Ajusta el ritmo y duración de tus videos.",
         type: "info" as const,
       },
     ],
@@ -101,12 +109,14 @@ const MOCK_PLATFORM_STATS = {
     insights: [
       {
         title: "Potencial de Compartidos en Reels",
-        description: "Los compartidos subieron un 22.5%. Publica Reels cortos de tipo tutorial con plantillas para incentivar el guardado.",
+        description:
+          "Los compartidos subieron un 22.5%. Publica Reels cortos de tipo tutorial con plantillas para incentivar el guardado.",
         type: "tip" as const,
       },
       {
         title: "Retención de Stories Baja",
-        description: "El abandono de historias ocurre tras la segunda diapositiva. Usa encuestas o stickers interactivos en la primera.",
+        description:
+          "El abandono de historias ocurre tras la segunda diapositiva. Usa encuestas o stickers interactivos en la primera.",
         type: "warning" as const,
       },
     ],
@@ -125,12 +135,14 @@ const MOCK_PLATFORM_STATS = {
     insights: [
       {
         title: "Crecimiento Viral Acelerado",
-        description: "El volumen de visualizaciones creció un 45.2%. Mantén la frecuencia de subida de 3 a 5 publicaciones por semana.",
+        description:
+          "El volumen de visualizaciones creció un 45.2%. Mantén la frecuencia de subida de 3 a 5 publicaciones por semana.",
         type: "info" as const,
       },
       {
         title: "Abandono de Pantalla Crítico",
-        description: "La retención de video decae un 50% al segundo 3. Elige portadas con títulos más llamativos o textos de impacto inicial.",
+        description:
+          "La retención de video decae un 50% al segundo 3. Elige portadas con títulos más llamativos o textos de impacto inicial.",
         type: "warning" as const,
       },
     ],
@@ -149,12 +161,14 @@ const MOCK_PLATFORM_STATS = {
     insights: [
       {
         title: "Frecuencia de Publicación Recomendada",
-        description: "Publicar en horarios de la tarde (2 PM - 5 PM) aumenta el engagement en un 12%. Configura un planificador.",
+        description:
+          "Publicar en horarios de la tarde (2 PM - 5 PM) aumenta el engagement en un 12%. Configura un planificador.",
         type: "tip" as const,
       },
       {
         title: "Alcance Orgánico Estable",
-        description: "Las vistas mensuales subieron un 14.8%. Responde a los comentarios más populares para subir la interacción.",
+        description:
+          "Las vistas mensuales subieron un 14.8%. Responde a los comentarios más populares para subir la interacción.",
         type: "info" as const,
       },
     ],
@@ -253,12 +267,48 @@ const MOCK_TOP_CONTENT = [
 ];
 
 const MOCK_MONTHLY_VIEWS = [
-  { month: "Ene", youtube: 280000, instagram: 190000, tiktok: 120000, facebook: 90000 },
-  { month: "Feb", youtube: 310000, instagram: 220000, tiktok: 150000, facebook: 105000 },
-  { month: "Mar", youtube: 390000, instagram: 280000, tiktok: 210000, facebook: 140000 },
-  { month: "Abr", youtube: 350000, instagram: 270000, tiktok: 260000, facebook: 120000 },
-  { month: "May", youtube: 420000, instagram: 310000, tiktok: 310000, facebook: 155000 },
-  { month: "Jun", youtube: 450000, instagram: 380000, tiktok: 375000, facebook: 280000 },
+  {
+    month: "Ene",
+    youtube: 280000,
+    instagram: 190000,
+    tiktok: 120000,
+    facebook: 90000,
+  },
+  {
+    month: "Feb",
+    youtube: 310000,
+    instagram: 220000,
+    tiktok: 150000,
+    facebook: 105000,
+  },
+  {
+    month: "Mar",
+    youtube: 390000,
+    instagram: 280000,
+    tiktok: 210000,
+    facebook: 140000,
+  },
+  {
+    month: "Abr",
+    youtube: 350000,
+    instagram: 270000,
+    tiktok: 260000,
+    facebook: 120000,
+  },
+  {
+    month: "May",
+    youtube: 420000,
+    instagram: 310000,
+    tiktok: 310000,
+    facebook: 155000,
+  },
+  {
+    month: "Jun",
+    youtube: 450000,
+    instagram: 380000,
+    tiktok: 375000,
+    facebook: 280000,
+  },
 ];
 
 const DEMOGRAPHICS = {
@@ -308,9 +358,14 @@ const MOCK_YOUTUBE_DEMOGRAPHICS = {
 // ---------------------------------------------------------------------------
 
 export default function AnalyticsPage() {
-  const [platform, setPlatform] = useState<"all" | "youtube" | "instagram" | "tiktok" | "facebook">("all");
+  const [platform, setPlatform] = useState<
+    "all" | "youtube" | "instagram" | "tiktok" | "facebook"
+  >("all");
   const [timeframe, setTimeframe] = useState("30");
-  const [hoveredPoint, setHoveredPoint] = useState<{ ratio: number; retention: number } | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    ratio: number;
+    retention: number;
+  } | null>(null);
 
   const dbStats = useQuery(api.analytics.getStats) ?? [];
   const dbTopContent = useQuery(api.analytics.getTopContent) ?? [];
@@ -321,9 +376,10 @@ export default function AnalyticsPage() {
   }, [dbStats, platform]);
 
   const filteredContent = useMemo(() => {
-    const contentList = dbTopContent.length > 0 ? dbTopContent : MOCK_TOP_CONTENT;
+    const contentList =
+      dbTopContent.length > 0 ? dbTopContent : MOCK_TOP_CONTENT;
     return contentList.filter(
-      (item) => platform === "all" || item.platform === platform
+      (item) => platform === "all" || item.platform === platform,
     );
   }, [dbTopContent, platform]);
 
@@ -332,7 +388,7 @@ export default function AnalyticsPage() {
     if (ytStats?.monthlyViews && ytStats.monthlyViews.length > 0) {
       return MOCK_MONTHLY_VIEWS.map((m) => {
         const realMonth = ytStats.monthlyViews?.find(
-          (rm) => rm.month.toLowerCase() === m.month.toLowerCase()
+          (rm) => rm.month.toLowerCase() === m.month.toLowerCase(),
         );
         return {
           ...m,
@@ -348,9 +404,20 @@ export default function AnalyticsPage() {
       const ytStats = dbStats.find((s) => s.platform === "youtube");
       if (ytStats?.demographics) {
         return {
-          age: ytStats.demographics.age && ytStats.demographics.age.length > 0 ? ytStats.demographics.age : MOCK_YOUTUBE_DEMOGRAPHICS.age,
-          location: ytStats.demographics.location && ytStats.demographics.location.length > 0 ? ytStats.demographics.location : MOCK_YOUTUBE_DEMOGRAPHICS.location,
-          gender: ytStats.demographics.gender && ytStats.demographics.gender.length > 0 ? ytStats.demographics.gender : MOCK_YOUTUBE_DEMOGRAPHICS.gender,
+          age:
+            ytStats.demographics.age && ytStats.demographics.age.length > 0
+              ? ytStats.demographics.age
+              : MOCK_YOUTUBE_DEMOGRAPHICS.age,
+          location:
+            ytStats.demographics.location &&
+            ytStats.demographics.location.length > 0
+              ? ytStats.demographics.location
+              : MOCK_YOUTUBE_DEMOGRAPHICS.location,
+          gender:
+            ytStats.demographics.gender &&
+            ytStats.demographics.gender.length > 0
+              ? ytStats.demographics.gender
+              : MOCK_YOUTUBE_DEMOGRAPHICS.gender,
         };
       }
       return MOCK_YOUTUBE_DEMOGRAPHICS;
@@ -360,9 +427,12 @@ export default function AnalyticsPage() {
 
   const retentionPath = useMemo(() => {
     const ytStats = dbStats.find((s) => s.platform === "youtube");
-    const hasRealData = platform === "youtube" && ytStats?.retentionCurve && ytStats.retentionCurve.length > 0;
-    
-    const points = hasRealData 
+    const hasRealData =
+      platform === "youtube" &&
+      ytStats?.retentionCurve &&
+      ytStats.retentionCurve.length > 0;
+
+    const points = hasRealData
       ? [...(ytStats.retentionCurve || [])].sort((a, b) => a.ratio - b.ratio)
       : [
           { ratio: 0.0, retention: 100 },
@@ -402,6 +472,7 @@ export default function AnalyticsPage() {
   }, [retentionPath.points]);
 
   const [syncing, setSyncing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const saveStatsMutation = useMutation(api.analytics.saveStats);
   const saveTopContentMutation = useMutation(api.analytics.saveTopContent);
 
@@ -411,29 +482,35 @@ export default function AnalyticsPage() {
       const res = await fetch("/api/sync-youtube");
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error || "Error al sincronizar con YouTube");
+        setErrorMessage(body.error || "Error al sincronizar con YouTube");
         return;
       }
       const data = await res.json();
-      
+
       const currentStats: any[] = [...dbStats];
       const ytIndex = currentStats.findIndex((s) => s.platform === "youtube");
       const newYtStat = {
         platform: "youtube" as const,
         ...data.stats,
       };
-      
+
       if (ytIndex >= 0) {
         currentStats[ytIndex] = newYtStat;
       } else {
         currentStats.push(newYtStat);
       }
-      
+
       const allIndex = currentStats.findIndex((s) => s.platform === "all");
-      const otherPlatforms = currentStats.filter((s) => s.platform !== "all" && s.platform !== "youtube");
-      const totalFollowers = newYtStat.followers + otherPlatforms.reduce((sum: number, s: any) => sum + s.followers, 0);
-      const totalViews = newYtStat.views + otherPlatforms.reduce((sum: number, s: any) => sum + s.views, 0);
-      
+      const otherPlatforms = currentStats.filter(
+        (s) => s.platform !== "all" && s.platform !== "youtube",
+      );
+      const totalFollowers =
+        newYtStat.followers +
+        otherPlatforms.reduce((sum: number, s: any) => sum + s.followers, 0);
+      const totalViews =
+        newYtStat.views +
+        otherPlatforms.reduce((sum: number, s: any) => sum + s.views, 0);
+
       const newAllStat = {
         platform: "all" as const,
         followers: totalFollowers || 325300,
@@ -447,21 +524,24 @@ export default function AnalyticsPage() {
         watchTime: "52,400 h",
         avgRetention: "58.4%",
       };
-      
+
       if (allIndex >= 0) {
         currentStats[allIndex] = newAllStat;
       } else {
         currentStats.push(newAllStat);
       }
-      
-      await saveStatsMutation({ stats: currentStats.map(({ _id, _creationTime, ...rest }: any) => rest) });
-      
+
+      await saveStatsMutation({
+        stats: currentStats.map(({ _id, _creationTime, ...rest }: any) => rest),
+      });
+
       const otherContent = dbTopContent.filter((c) => c.platform !== "youtube");
       const newContent = [...otherContent, ...data.topContent];
-      await saveTopContentMutation({ content: newContent.map(({ _id, _creationTime, ...rest }: any) => rest) });
-      
+      await saveTopContentMutation({
+        content: newContent.map(({ _id, _creationTime, ...rest }: any) => rest),
+      });
     } catch (err: any) {
-      alert("Error de conexión: " + err.message);
+      setErrorMessage("Error de conexión: " + err.message);
     } finally {
       setSyncing(false);
     }
@@ -536,7 +616,11 @@ export default function AnalyticsPage() {
                 : "border-transparent text-grayscale-9 hover:text-grayscale-12"
             }`}
           >
-            <YoutubeLogo size={16} weight="fill" className={platform === "youtube" ? "text-red-9" : ""} />
+            <YoutubeLogo
+              size={16}
+              weight="fill"
+              className={platform === "youtube" ? "text-red-9" : ""}
+            />
             YouTube
           </button>
           <button
@@ -548,7 +632,10 @@ export default function AnalyticsPage() {
                 : "border-transparent text-grayscale-9 hover:text-grayscale-12"
             }`}
           >
-            <InstagramLogo size={16} className={platform === "instagram" ? "text-violet-9" : ""} />
+            <InstagramLogo
+              size={16}
+              className={platform === "instagram" ? "text-violet-9" : ""}
+            />
             Instagram
           </button>
           <button
@@ -560,7 +647,10 @@ export default function AnalyticsPage() {
                 : "border-transparent text-grayscale-9 hover:text-grayscale-12"
             }`}
           >
-            <TiktokLogo size={16} className={platform === "tiktok" ? "text-cyan-9" : ""} />
+            <TiktokLogo
+              size={16}
+              className={platform === "tiktok" ? "text-cyan-9" : ""}
+            />
             TikTok
           </button>
           <button
@@ -572,7 +662,11 @@ export default function AnalyticsPage() {
                 : "border-transparent text-grayscale-9 hover:text-grayscale-12"
             }`}
           >
-            <FacebookLogo size={16} weight="fill" className={platform === "facebook" ? "text-blue-9" : ""} />
+            <FacebookLogo
+              size={16}
+              weight="fill"
+              className={platform === "facebook" ? "text-blue-9" : ""}
+            />
             Facebook
           </button>
         </div>
@@ -588,21 +682,25 @@ export default function AnalyticsPage() {
                 </span>
               </h2>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {stats.insights.map((insight: any, idx: number) => {
-                const label = 
-                  insight.type === "warning" ? "WARN" : insight.type === "tip" ? "TIP" : "INFO";
+                const label =
+                  insight.type === "warning"
+                    ? "WARN"
+                    : insight.type === "tip"
+                      ? "TIP"
+                      : "INFO";
 
-                const badgeColor = 
-                  insight.type === "warning" 
-                    ? "border border-red-9/20 text-red-9 bg-red-9/5" 
-                    : insight.type === "tip" 
+                const badgeColor =
+                  insight.type === "warning"
+                    ? "border border-red-9/20 text-red-9 bg-red-9/5"
+                    : insight.type === "tip"
                       ? "border border-green-9/20 text-green-9 bg-green-9/5"
                       : "border border-blue-9/20 text-blue-9 bg-blue-9/5";
 
                 return (
-                  <div 
+                  <div
                     key={idx}
                     className="flex flex-col gap-2 rounded-lg border border-grayscale-3 bg-grayscale-2/30 p-4 transition-all hover:translate-y-[-2px] hover:border-grayscale-4 dark:border-grayscale-4 dark:bg-grayscale-3/10"
                   >
@@ -610,7 +708,9 @@ export default function AnalyticsPage() {
                       <span className="font-mono text-xs font-bold text-grayscale-12 leading-snug">
                         {insight.title}
                       </span>
-                      <span className={`text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeColor}`}>
+                      <span
+                        className={`text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeColor}`}
+                      >
                         {label}
                       </span>
                     </div>
@@ -630,7 +730,13 @@ export default function AnalyticsPage() {
             label="Seguidores Totales"
             value={stats.followers.toLocaleString("es-CR")}
             detail={`${stats.followersGrowth} este mes`}
-            icon={<ShareNetworkIcon size={18} weight="bold" className="text-accent-9" />}
+            icon={
+              <ShareNetworkIcon
+                size={18}
+                weight="bold"
+                className="text-accent-9"
+              />
+            }
           />
           <StatCard
             label="Reproducciones"
@@ -642,13 +748,17 @@ export default function AnalyticsPage() {
             label="Tiempo Reproducción"
             value={stats.watchTime}
             detail="Horas de consumo"
-            icon={<ClockIcon size={18} weight="bold" className="text-violet-9" />}
+            icon={
+              <ClockIcon size={18} weight="bold" className="text-violet-9" />
+            }
           />
           <StatCard
             label="Retención Promedio"
             value={stats.avgRetention}
             detail="Permanencia en video"
-            icon={<TrendUpIcon size={18} weight="bold" className="text-orange-9" />}
+            icon={
+              <TrendUpIcon size={18} weight="bold" className="text-orange-9" />
+            }
           />
         </div>
 
@@ -660,9 +770,11 @@ export default function AnalyticsPage() {
               <h2 className="font-mono text-xs font-semibold uppercase text-grayscale-12">
                 Historial de Reproducciones Mensuales
               </h2>
-              <span className="text-[10px] text-grayscale-9 font-mono uppercase">Millones de Vistas</span>
+              <span className="text-[10px] text-grayscale-9 font-mono uppercase">
+                Millones de Vistas
+              </span>
             </div>
-            
+
             {/* Custom CSS Bar Chart */}
             <div className="flex h-56 items-end justify-between gap-2 pt-6 pb-2 border-b border-grayscale-3 dark:border-grayscale-4">
               {monthlyViewsToShow.map((data, mIdx) => {
@@ -673,12 +785,18 @@ export default function AnalyticsPage() {
                 const fbHeight = (data.facebook / max) * 100;
 
                 return (
-                  <div key={data.month} className="flex flex-1 flex-col items-center h-full justify-end">
+                  <div
+                    key={data.month}
+                    className="flex flex-1 flex-col items-center h-full justify-end"
+                  >
                     <div className="flex w-full items-end gap-0.5 px-0.5 h-full max-w-[65px]">
                       {/* YouTube Bar */}
                       <div
                         className="flex-1 rounded-t bg-red-9/80 dark:bg-red-9/60 transition-all hover:bg-red-9 cursor-pointer relative group animate-grow-up"
-                        style={{ height: `${ytHeight}%`, animationDelay: `${mIdx * 80}ms` }}
+                        style={{
+                          height: `${ytHeight}%`,
+                          animationDelay: `${mIdx * 80}ms`,
+                        }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
                           YT: {(data.youtube / 1000).toFixed(0)}k
@@ -687,7 +805,10 @@ export default function AnalyticsPage() {
                       {/* Instagram Bar */}
                       <div
                         className="flex-1 rounded-t bg-violet-9/80 dark:bg-violet-9/60 transition-all hover:bg-violet-9/60 hover:bg-violet-9 cursor-pointer relative group animate-grow-up"
-                        style={{ height: `${igHeight}%`, animationDelay: `${mIdx * 80 + 20}ms` }}
+                        style={{
+                          height: `${igHeight}%`,
+                          animationDelay: `${mIdx * 80 + 20}ms`,
+                        }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
                           IG: {(data.instagram / 1000).toFixed(0)}k
@@ -696,7 +817,10 @@ export default function AnalyticsPage() {
                       {/* TikTok Bar */}
                       <div
                         className="flex-1 rounded-t bg-cyan-9/80 dark:bg-cyan-9/60 transition-all hover:bg-cyan-9 cursor-pointer relative group animate-grow-up"
-                        style={{ height: `${tkHeight}%`, animationDelay: `${mIdx * 80 + 40}ms` }}
+                        style={{
+                          height: `${tkHeight}%`,
+                          animationDelay: `${mIdx * 80 + 40}ms`,
+                        }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
                           TK: {(data.tiktok / 1000).toFixed(0)}k
@@ -705,14 +829,19 @@ export default function AnalyticsPage() {
                       {/* Facebook Bar */}
                       <div
                         className="flex-1 rounded-t bg-blue-9/80 dark:bg-blue-9/60 transition-all hover:bg-blue-9 cursor-pointer relative group animate-grow-up"
-                        style={{ height: `${fbHeight}%`, animationDelay: `${mIdx * 80 + 60}ms` }}
+                        style={{
+                          height: `${fbHeight}%`,
+                          animationDelay: `${mIdx * 80 + 60}ms`,
+                        }}
                       >
                         <span className="absolute -top-7 left-1/2 -translate-x-1/2 scale-0 rounded bg-grayscale-12 px-1.5 py-0.5 text-[8px] text-grayscale-1 shadow transition-all duration-200 ease-out group-hover:scale-100 origin-bottom font-mono whitespace-nowrap z-10">
                           FB: {(data.facebook / 1000).toFixed(0)}k
                         </span>
                       </div>
                     </div>
-                    <span className="mt-2 font-mono text-[10px] text-grayscale-9">{data.month}</span>
+                    <span className="mt-2 font-mono text-[10px] text-grayscale-9">
+                      {data.month}
+                    </span>
                   </div>
                 );
               })}
@@ -722,19 +851,27 @@ export default function AnalyticsPage() {
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-2">
               <div className="flex items-center gap-1.5">
                 <span className="size-2 rounded bg-red-9" />
-                <span className="text-[10px] font-mono text-grayscale-9">YouTube</span>
+                <span className="text-[10px] font-mono text-grayscale-9">
+                  YouTube
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="size-2 rounded bg-violet-9" />
-                <span className="text-[10px] font-mono text-grayscale-9">Instagram</span>
+                <span className="text-[10px] font-mono text-grayscale-9">
+                  Instagram
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="size-2 rounded bg-cyan-9" />
-                <span className="text-[10px] font-mono text-grayscale-9">TikTok</span>
+                <span className="text-[10px] font-mono text-grayscale-9">
+                  TikTok
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="size-2 rounded bg-blue-9" />
-                <span className="text-[10px] font-mono text-grayscale-9">Facebook</span>
+                <span className="text-[10px] font-mono text-grayscale-9">
+                  Facebook
+                </span>
               </div>
             </div>
           </div>
@@ -749,23 +886,33 @@ export default function AnalyticsPage() {
                 Curva de Retención de Video
               </h2>
               <p className="text-[10px] text-grayscale-10 leading-tight">
-                Retención promedio a lo largo de la duración de reproducción (video popular)
+                Retención promedio a lo largo de la duración de reproducción
+                (video popular)
               </p>
             </div>
 
             {/* Bklit AreaChart */}
             <div className="relative flex flex-col items-center justify-center flex-1 py-1 w-full min-h-[200px]">
-              <AreaChart data={chartData} xDataKey="date" aspectRatio="2.5 / 1" className="w-full">
-                <Grid horizontal stroke="var(--chart-grid)" strokeDasharray="3,3" />
-                <Area 
-                  dataKey="retention" 
-                  fill="#ef4444" 
-                  stroke="#ef4444" 
-                  fillOpacity={0.18} 
+              <AreaChart
+                data={chartData}
+                xDataKey="date"
+                aspectRatio="2.5 / 1"
+                className="w-full"
+              >
+                <Grid
+                  horizontal
+                  stroke="var(--chart-grid)"
+                  strokeDasharray="3,3"
+                />
+                <Area
+                  dataKey="retention"
+                  fill="#ef4444"
+                  stroke="#ef4444"
+                  fillOpacity={0.18}
                   strokeWidth={2}
                 />
                 <XAxis numTicks={5} />
-                <ChartTooltip 
+                <ChartTooltip
                   rows={(point) => [
                     {
                       label: "Retención",
@@ -779,8 +926,12 @@ export default function AnalyticsPage() {
 
             <div className="rounded-lg bg-grayscale-2 p-3 dark:bg-grayscale-4/30">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-grayscale-10">Punto de Abandono Crítico</span>
-                <span className="font-mono font-bold text-red-9">0:45 min (Intro)</span>
+                <span className="text-grayscale-10">
+                  Punto de Abandono Crítico
+                </span>
+                <span className="font-mono font-bold text-red-9">
+                  0:45 min (Intro)
+                </span>
               </div>
             </div>
           </div>
@@ -802,12 +953,17 @@ export default function AnalyticsPage() {
                     <div key={item.label} className="flex flex-col gap-1">
                       <div className="flex justify-between text-xs text-grayscale-11">
                         <span>{item.label}</span>
-                        <span className="font-mono font-bold">{item.value}%</span>
+                        <span className="font-mono font-bold">
+                          {item.value}%
+                        </span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-grayscale-3 dark:bg-grayscale-4 overflow-hidden">
                         <div
-                           className="h-full rounded-full bg-accent-9 animate-slide-in-left origin-left"
-                           style={{ width: `${item.value}%`, animationDelay: `${idx * 100}ms` }}
+                          className="h-full rounded-full bg-accent-9 animate-slide-in-left origin-left"
+                          style={{
+                            width: `${item.value}%`,
+                            animationDelay: `${idx * 100}ms`,
+                          }}
                         />
                       </div>
                     </div>
@@ -818,19 +974,25 @@ export default function AnalyticsPage() {
               {/* Location groups */}
               <div className="flex flex-col gap-3">
                 <h3 className="font-mono text-[10px] font-bold uppercase text-grayscale-9 tracking-wide">
-                  Ubicaciones Principales {platform === "youtube" ? "(Países)" : "(Costa Rica)"}
+                  Ubicaciones Principales{" "}
+                  {platform === "youtube" ? "(Países)" : "(Costa Rica)"}
                 </h3>
                 <div className="flex flex-col gap-2.5">
                   {demographicsToShow.location.map((item, idx) => (
                     <div key={item.label} className="flex flex-col gap-1">
                       <div className="flex justify-between text-xs text-grayscale-11">
                         <span>{item.label}</span>
-                        <span className="font-mono font-bold">{item.value}%</span>
+                        <span className="font-mono font-bold">
+                          {item.value}%
+                        </span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-grayscale-3 dark:bg-grayscale-4 overflow-hidden">
                         <div
-                           className="h-full rounded-full bg-green-9 animate-slide-in-left origin-left"
-                           style={{ width: `${item.value}%`, animationDelay: `${idx * 100}ms` }}
+                          className="h-full rounded-full bg-green-9 animate-slide-in-left origin-left"
+                          style={{
+                            width: `${item.value}%`,
+                            animationDelay: `${idx * 100}ms`,
+                          }}
                         />
                       </div>
                     </div>
@@ -844,14 +1006,17 @@ export default function AnalyticsPage() {
               <h3 className="font-mono text-[10px] font-bold uppercase text-grayscale-9 tracking-wide mb-3">
                 Distribución por Género
               </h3>
-              
+
               {/* Segmented bar chart */}
               <div className="h-3 w-full rounded-full bg-grayscale-3 dark:bg-grayscale-4 flex overflow-hidden">
                 {demographicsToShow.gender.map((item, idx) => (
                   <div
                     key={item.label}
                     className={`h-full ${item.color} first:rounded-l-full last:rounded-r-full animate-slide-in-left origin-left`}
-                    style={{ width: `${item.value}%`, animationDelay: `${idx * 150}ms` }}
+                    style={{
+                      width: `${item.value}%`,
+                      animationDelay: `${idx * 150}ms`,
+                    }}
                     title={`${item.label}: ${item.value}%`}
                   />
                 ))}
@@ -862,8 +1027,12 @@ export default function AnalyticsPage() {
                 {demographicsToShow.gender.map((item) => (
                   <div key={item.label} className="flex items-center gap-1.5">
                     <span className={`size-2 rounded-full ${item.color}`} />
-                    <span className="text-xs text-grayscale-11">{item.label}</span>
-                    <span className="font-mono text-xs font-bold text-grayscale-12">{item.value}%</span>
+                    <span className="text-xs text-grayscale-11">
+                      {item.label}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-grayscale-12">
+                      {item.value}%
+                    </span>
                   </div>
                 ))}
               </div>
@@ -910,8 +1079,19 @@ export default function AnalyticsPage() {
                         className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                       />
                     ) : (
-                      <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-grayscale-2 to-grayscale-3 dark:from-grayscale-4 dark:to-grayscale-5`}>
-                        <Icon size={32} className={`opacity-40 ${item.platform === "youtube" ? "text-red-9" : item.platform === "instagram" ? "text-violet-9" : item.platform === "tiktok" ? "text-cyan-9" : "text-blue-9"}`} weight={item.platform === "youtube" || item.platform === "facebook" ? "fill" : "regular"} />
+                      <div
+                        className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-grayscale-2 to-grayscale-3 dark:from-grayscale-4 dark:to-grayscale-5`}
+                      >
+                        <Icon
+                          size={32}
+                          className={`opacity-40 ${item.platform === "youtube" ? "text-red-9" : item.platform === "instagram" ? "text-violet-9" : item.platform === "tiktok" ? "text-cyan-9" : "text-blue-9"}`}
+                          weight={
+                            item.platform === "youtube" ||
+                            item.platform === "facebook"
+                              ? "fill"
+                              : "regular"
+                          }
+                        />
                       </div>
                     )}
                     {/* Duration Badge */}
@@ -925,14 +1105,26 @@ export default function AnalyticsPage() {
                   {/* Header Row: Platform Icon and Date */}
                   <div className="flex items-center justify-between gap-2 mt-1">
                     <div className="flex items-center gap-1.5">
-                      <div className={`flex size-6 items-center justify-center rounded-md ${platformColor}`}>
-                        <Icon size={14} weight={item.platform === "youtube" || item.platform === "facebook" ? "fill" : "regular"} />
+                      <div
+                        className={`flex size-6 items-center justify-center rounded-md ${platformColor}`}
+                      >
+                        <Icon
+                          size={14}
+                          weight={
+                            item.platform === "youtube" ||
+                            item.platform === "facebook"
+                              ? "fill"
+                              : "regular"
+                          }
+                        />
                       </div>
                       <span className="font-mono text-[10px] text-grayscale-10 uppercase tracking-wide font-semibold">
                         {item.platform}
                       </span>
                     </div>
-                    <span className="font-mono text-[9px] text-grayscale-9">{item.date}</span>
+                    <span className="font-mono text-[9px] text-grayscale-9">
+                      {item.date}
+                    </span>
                   </div>
 
                   {/* Title */}
@@ -946,23 +1138,29 @@ export default function AnalyticsPage() {
                   {/* Metrics Row */}
                   <div className="grid grid-cols-3 gap-2 mt-1">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] font-mono text-grayscale-9 uppercase">Vistas</span>
+                      <span className="text-[9px] font-mono text-grayscale-9 uppercase">
+                        Vistas
+                      </span>
                       <span className="text-xs font-bold font-mono text-grayscale-12">
-                        {item.views >= 1000000 
-                          ? `${(item.views / 1000000).toFixed(1)}M` 
-                          : item.views >= 1000 
-                            ? `${(item.views / 1000).toFixed(0)}k` 
+                        {item.views >= 1000000
+                          ? `${(item.views / 1000000).toFixed(1)}M`
+                          : item.views >= 1000
+                            ? `${(item.views / 1000).toFixed(0)}k`
                             : item.views}
                       </span>
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] font-mono text-grayscale-9 uppercase">Watch Time</span>
+                      <span className="text-[9px] font-mono text-grayscale-9 uppercase">
+                        Watch Time
+                      </span>
                       <span className="text-xs font-bold font-mono text-grayscale-12">
                         {item.watchTime}
                       </span>
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] font-mono text-grayscale-9 uppercase">Retención</span>
+                      <span className="text-[9px] font-mono text-grayscale-9 uppercase">
+                        Retención
+                      </span>
                       <span className="text-xs font-bold font-mono text-grayscale-12">
                         {item.retention}
                       </span>
@@ -974,6 +1172,16 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!errorMessage}
+        onOpenChange={(open) => !open && setErrorMessage(null)}
+        title="Notificación"
+        description={errorMessage || ""}
+        confirmText="Entendido"
+        variant="warning"
+        onConfirm={() => setErrorMessage(null)}
+      />
     </PageContainer>
   );
 }

@@ -67,13 +67,16 @@ export default function InventarioPage() {
   const filtered = equipment.filter(
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
-      (e.serialNumber && e.serialNumber.toLowerCase().includes(search.toLowerCase())) ||
+      (e.serialNumber &&
+        e.serialNumber.toLowerCase().includes(search.toLowerCase())) ||
       (EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category || "")
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
 
-  const available = equipment.filter((e) => (e.status || "available") === "available").length;
+  const available = equipment.filter(
+    (e) => (e.status || "available") === "available",
+  ).length;
   const inUse = equipment.filter((e) => e.status === "in-use").length;
   const maintenance = equipment.filter(
     (e) => e.status === "maintenance",
@@ -132,7 +135,9 @@ export default function InventarioPage() {
           <p className="text-sm font-medium text-grayscale-12 truncate">
             {e.name}
           </p>
-          <p className="text-xs text-grayscale-9 font-mono">{e.serialNumber || "Sin S/N"}</p>
+          <p className="text-xs text-grayscale-9 font-mono">
+            {e.serialNumber || "Sin S/N"}
+          </p>
         </div>
       ),
     },
@@ -152,7 +157,9 @@ export default function InventarioPage() {
       getFilterValue: (e) => e.category,
       render: (e) => (
         <span className="text-sm text-grayscale-11">
-          {EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] || e.category || "Accesorios"}
+          {EQUIPMENT_CATEGORY_LABELS[e.category as "camera"] ||
+            e.category ||
+            "Accesorios"}
         </span>
       ),
     },
@@ -176,7 +183,8 @@ export default function InventarioPage() {
       ],
       getFilterValue: (e) => e.status,
       render: (e) => {
-        const cfg = STATUS_CONFIG[e.status as "available"] || STATUS_CONFIG.available;
+        const cfg =
+          STATUS_CONFIG[e.status as "available"] || STATUS_CONFIG.available;
         return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
       },
     },
@@ -241,14 +249,22 @@ export default function InventarioPage() {
             label="En Uso / Rodaje"
             value={inUse}
             detail="Operando actualmente"
-            icon={<FilmSlateIcon size={18} weight="fill" className="text-accent-9" />}
+            icon={
+              <FilmSlateIcon
+                size={18}
+                weight="fill"
+                className="text-accent-9"
+              />
+            }
             index={1}
           />
           <StatCard
             label="Mantenimiento"
             value={maintenance}
             detail="En revisión técnica"
-            icon={<WrenchIcon size={18} weight="bold" className="text-orange-9" />}
+            icon={
+              <WrenchIcon size={18} weight="bold" className="text-orange-9" />
+            }
             index={2}
           />
         </div>
@@ -321,9 +337,7 @@ export default function InventarioPage() {
               label="Nombre del Equipo"
               id="eq-name"
               value={form.name}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, name: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Ej: Sony FX3 Cinema Line"
             />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

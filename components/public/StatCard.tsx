@@ -30,14 +30,10 @@ export default function StatCard({
         <span className="text-xs font-medium font-mono uppercase text-grayscale-9">
           {label}
         </span>
-        {icon && (
-          <span className="text-grayscale-8">{icon}</span>
-        )}
+        {icon && <span className="text-grayscale-8">{icon}</span>}
       </div>
       <p className="text-2xl font-bold text-grayscale-12">{value}</p>
-      {detail && (
-        <p className="text-xs text-grayscale-10">{detail}</p>
-      )}
+      {detail && <p className="text-xs text-grayscale-10">{detail}</p>}
     </div>
   );
 }

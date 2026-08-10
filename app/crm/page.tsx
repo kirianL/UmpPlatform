@@ -63,7 +63,11 @@ const SIMPLIFIED_STAGE_LABELS: Record<SimplifiedStage, string> = {
   closed: "Cerrado (Ganado / Perdido)",
 };
 
-const SIMPLIFIED_STAGE_ORDER: SimplifiedStage[] = ["contact", "negotiating", "closed"];
+const SIMPLIFIED_STAGE_ORDER: SimplifiedStage[] = [
+  "contact",
+  "negotiating",
+  "closed",
+];
 
 const COLUMN_COLORS: Record<SimplifiedStage, string> = {
   contact: "bg-grayscale-8",
@@ -115,10 +119,11 @@ export default function CRMPage() {
       })
       .catch((err) => console.error("Error fetching exchange rate:", err));
   }, []);
-  
+
   // Mobile stage view state
-  const [activeMobileStage, setActiveMobileStage] = useState<SimplifiedStage>("contact");
-  
+  const [activeMobileStage, setActiveMobileStage] =
+    useState<SimplifiedStage>("contact");
+
   // Track recently moved card to apply pulse animation
   const [lastMovedId, setLastMovedId] = useState<string | null>(null);
 
@@ -150,10 +155,16 @@ export default function CRMPage() {
   // Pipeline stats (exclude lost and won for active pipeline value)
   const pipelineValue = deals
     .filter((d) => d.stage !== "lost" && d.stage !== "won")
-    .reduce((s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value), 0);
+    .reduce(
+      (s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value),
+      0,
+    );
   const wonValue = deals
     .filter((d) => d.stage === "won")
-    .reduce((s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value), 0);
+    .reduce(
+      (s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value),
+      0,
+    );
   const activeDeals = deals.filter(
     (d) => d.stage !== "lost" && d.stage !== "won",
   ).length;
@@ -200,7 +211,7 @@ export default function CRMPage() {
   }
 
   function moveStage(dealId: string, newStage: DealStage) {
-    const deal = deals.find(d => d._id === dealId);
+    const deal = deals.find((d) => d._id === dealId);
     if (!deal) return;
 
     const update = () => {
@@ -232,11 +243,18 @@ export default function CRMPage() {
   }
 
   // Pointer event handlers for starting the drag
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, deal: any) => {
+  const handlePointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    deal: any,
+  ) => {
     if (e.button !== 0) return; // Only primary button
     const target = e.target as HTMLElement;
     // Don't drag if clicking buttons, links, inputs, or edit buttons
-    if (target.closest("button") || target.closest("a") || target.closest("input")) {
+    if (
+      target.closest("button") ||
+      target.closest("a") ||
+      target.closest("input")
+    ) {
       return;
     }
 
@@ -279,13 +297,16 @@ export default function CRMPage() {
         if (hoveredCol === "contact") {
           newStage = "lead";
         } else if (hoveredCol === "negotiating") {
-          newStage = (draggedDeal.stage === "proposal" || draggedDeal.stage === "negotiation")
-            ? draggedDeal.stage
-            : "negotiation";
+          newStage =
+            draggedDeal.stage === "proposal" ||
+            draggedDeal.stage === "negotiation"
+              ? draggedDeal.stage
+              : "negotiation";
         } else if (hoveredCol === "closed") {
-          newStage = (draggedDeal.stage === "won" || draggedDeal.stage === "lost")
-            ? draggedDeal.stage
-            : "won";
+          newStage =
+            draggedDeal.stage === "won" || draggedDeal.stage === "lost"
+              ? draggedDeal.stage
+              : "won";
         }
         moveStage(draggedDeal._id, newStage);
       }
@@ -328,14 +349,16 @@ export default function CRMPage() {
           <StatCard
             label="Ganados"
             value={formatCurrency(wonValue)}
-            detail={`${dealsByStage.closed.filter(d => d.stage === "won").length} cerrados`}
-            icon={<TrendUpIcon size={18} weight="bold" className="text-green-9" />}
+            detail={`${dealsByStage.closed.filter((d) => d.stage === "won").length} cerrados`}
+            icon={
+              <TrendUpIcon size={18} weight="bold" className="text-green-9" />
+            }
             index={1}
           />
           <StatCard
             label="Total Deals"
             value={deals.length}
-            detail={`${dealsByStage.closed.filter(d => d.stage === "lost").length} perdidos`}
+            detail={`${dealsByStage.closed.filter((d) => d.stage === "lost").length} perdidos`}
             icon={<CurrencyDollarIcon size={18} weight="fill" />}
             index={2}
           />
@@ -357,17 +380,23 @@ export default function CRMPage() {
                     "flex-1 sm:flex-initial flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 font-mono text-[11px] font-bold uppercase transition-all whitespace-nowrap cursor-pointer",
                     isSelected
                       ? "bg-grayscale-1 text-grayscale-12 shadow-xs dark:bg-grayscale-4"
-                      : "text-grayscale-9 hover:text-grayscale-11"
+                      : "text-grayscale-9 hover:text-grayscale-11",
                   )}
                 >
                   <span>{SIMPLIFIED_STAGE_LABELS[stage].split(" ")[0]}</span>
-                  <span className="opacity-70 font-sans font-normal text-[10px]">({count})</span>
+                  <span className="opacity-70 font-sans font-normal text-[10px]">
+                    ({count})
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          <Button variant="primary" className="w-full sm:w-auto text-xs justify-center py-2.5 px-4" onClick={openCreate}>
+          <Button
+            variant="primary"
+            className="w-full sm:w-auto text-xs justify-center py-2.5 px-4"
+            onClick={openCreate}
+          >
             <PlusIcon size={16} weight="bold" />
             Nuevo deal
           </Button>
@@ -377,7 +406,11 @@ export default function CRMPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {SIMPLIFIED_STAGE_ORDER.map((stage) => {
             const stageDeals = dealsByStage[stage];
-            const stageTotal = stageDeals.reduce((s, d) => s + (d.currency === "USD" ? d.value * exchangeRate : d.value), 0);
+            const stageTotal = stageDeals.reduce(
+              (s, d) =>
+                s + (d.currency === "USD" ? d.value * exchangeRate : d.value),
+              0,
+            );
             const isVisibleMobile = activeMobileStage === stage;
 
             return (
@@ -389,14 +422,19 @@ export default function CRMPage() {
                   hoveredCol === stage
                     ? "bg-grayscale-3/50 border border-dashed border-accent-9/70 shadow-inner"
                     : "bg-grayscale-2/20 border border-grayscale-3/40 dark:border-grayscale-4/30",
-                  isVisibleMobile ? "flex" : "hidden md:flex"
+                  isVisibleMobile ? "flex" : "hidden md:flex",
                 )}
               >
                 {/* Column Header */}
                 <div className="flex flex-col gap-1.5 pb-3 border-b border-grayscale-3 dark:border-grayscale-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={cn("size-2.5 rounded-full", COLUMN_COLORS[stage])} />
+                      <span
+                        className={cn(
+                          "size-2.5 rounded-full",
+                          COLUMN_COLORS[stage],
+                        )}
+                      />
                       <span className="font-mono text-sm font-bold uppercase text-grayscale-12 tracking-wide">
                         {SIMPLIFIED_STAGE_LABELS[stage]}
                       </span>
@@ -420,12 +458,15 @@ export default function CRMPage() {
                         key={deal._id}
                         onPointerDown={(e) => handlePointerDown(e, deal)}
                         style={{
-                          viewTransitionName: lastMovedId === deal._id ? `card-${deal._id}` : undefined,
+                          viewTransitionName:
+                            lastMovedId === deal._id
+                              ? `card-${deal._id}`
+                              : undefined,
                         }}
                         className={cn(
                           "group relative flex flex-col gap-4 rounded-xl border border-grayscale-3 bg-grayscale-1 p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent-6 hover:shadow-md cursor-grab active:cursor-grabbing transform-gpu dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:border-accent-7 touch-none select-none",
                           isDragged && "opacity-30 border-dashed",
-                          lastMovedId === deal._id && "animate-card-move"
+                          lastMovedId === deal._id && "animate-card-move",
                         )}
                       >
                         {/* Top Row: Client Info and Stage/Priority Status */}
@@ -438,12 +479,19 @@ export default function CRMPage() {
                               {deal.client}
                             </span>
                           </div>
-                          
+
                           {/* Priority dot indicator */}
                           <div className="flex items-center gap-1.5">
-                            <span className={cn("size-2 rounded-full", 
-                              deal.priority === "high" ? "bg-red-9" : deal.priority === "medium" ? "bg-orange-9" : "bg-green-9"
-                            )} />
+                            <span
+                              className={cn(
+                                "size-2 rounded-full",
+                                deal.priority === "high"
+                                  ? "bg-red-9"
+                                  : deal.priority === "medium"
+                                    ? "bg-orange-9"
+                                    : "bg-green-9",
+                              )}
+                            />
                             <span className="text-[10px] font-mono text-grayscale-9 uppercase">
                               {PRIORITY_LABEL[deal.priority as "medium"]}
                             </span>
@@ -472,14 +520,24 @@ export default function CRMPage() {
 
                         {/* Budget Highlight Block */}
                         <div className="flex items-center justify-between rounded-lg bg-grayscale-2 px-3 py-2 dark:bg-grayscale-4/30">
-                          <span className="text-[10px] font-mono text-grayscale-9 uppercase font-medium">Valor</span>
+                          <span className="text-[10px] font-mono text-grayscale-9 uppercase font-medium">
+                            Valor
+                          </span>
                           <div className="flex flex-col items-end">
                             <span className="font-mono text-sm font-bold text-grayscale-12">
-                              {formatCurrency(deal.value, deal.currency || "CRC")}
+                              {formatCurrency(
+                                deal.value,
+                                deal.currency || "CRC",
+                              )}
                             </span>
-                            {(deal.currency === "USD") && (
+                            {deal.currency === "USD" && (
                               <span className="font-mono text-[10px] text-grayscale-9 leading-none mt-0.5">
-                                ({formatCurrency(deal.value * exchangeRate, "CRC")})
+                                (
+                                {formatCurrency(
+                                  deal.value * exchangeRate,
+                                  "CRC",
+                                )}
+                                )
                               </span>
                             )}
                           </div>
@@ -490,25 +548,33 @@ export default function CRMPage() {
                           <div className="flex flex-col">
                             {deal.expectedClose ? (
                               <>
-                                <span className="text-[9px] font-mono text-grayscale-9 uppercase">Cierre</span>
+                                <span className="text-[9px] font-mono text-grayscale-9 uppercase">
+                                  Cierre
+                                </span>
                                 <span className="font-mono font-semibold text-grayscale-11">
                                   {formatDate(deal.expectedClose)}
                                 </span>
                               </>
                             ) : (
-                              <span className="text-[9px] font-mono text-grayscale-8 uppercase">Cierre —</span>
+                              <span className="text-[9px] font-mono text-grayscale-8 uppercase">
+                                Cierre —
+                              </span>
                             )}
                           </div>
 
                           {/* Close status indicator inside closed column or edit actions */}
                           <div className="flex items-center gap-2">
                             {deal.stage === "won" && (
-                              <Badge variant="green" className="text-[9px]">Ganado</Badge>
+                              <Badge variant="green" className="text-[9px]">
+                                Ganado
+                              </Badge>
                             )}
                             {deal.stage === "lost" && (
-                              <Badge variant="red" className="text-[9px]">Perdido</Badge>
+                              <Badge variant="red" className="text-[9px]">
+                                Perdido
+                              </Badge>
                             )}
-                            
+
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
@@ -535,7 +601,9 @@ export default function CRMPage() {
 
                   {stageDeals.length === 0 && (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-grayscale-3 py-14 dark:border-grayscale-4 bg-grayscale-2/10">
-                      <p className="text-xs font-mono uppercase font-bold text-grayscale-8">Sin deals</p>
+                      <p className="text-xs font-mono uppercase font-bold text-grayscale-8">
+                        Sin deals
+                      </p>
                     </div>
                   )}
                 </div>
@@ -616,7 +684,8 @@ export default function CRMPage() {
                 />
                 {form.currency === "USD" && form.value > 0 && (
                   <span className="text-[10px] font-mono text-grayscale-9 mt-0.5 pl-1">
-                    Equivale a: {formatCurrency(form.value * exchangeRate, "CRC")}
+                    Equivale a:{" "}
+                    {formatCurrency(form.value * exchangeRate, "CRC")}
                   </span>
                 )}
               </div>
@@ -690,7 +759,11 @@ export default function CRMPage() {
               >
                 Cancelar
               </Button>
-              <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
+              <Button
+                variant="primary"
+                className="w-full sm:w-auto text-xs justify-center"
+                type="submit"
+              >
                 {editingDeal ? "Guardar Cambios" : "Crear Deal"}
               </Button>
             </div>
@@ -709,17 +782,33 @@ export default function CRMPage() {
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="font-mono text-[10px] font-bold uppercase text-grayscale-10">{draggedDeal.client}</span>
-            <span className={cn("size-2 rounded-full", 
-              draggedDeal.priority === "high" ? "bg-red-9" : draggedDeal.priority === "medium" ? "bg-orange-9" : "bg-green-9"
-            )} />
+            <span className="font-mono text-[10px] font-bold uppercase text-grayscale-10">
+              {draggedDeal.client}
+            </span>
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                draggedDeal.priority === "high"
+                  ? "bg-red-9"
+                  : draggedDeal.priority === "medium"
+                    ? "bg-orange-9"
+                    : "bg-green-9",
+              )}
+            />
           </div>
-          <h4 className="text-sm font-bold text-grayscale-12 line-clamp-2">{draggedDeal.title}</h4>
+          <h4 className="text-sm font-bold text-grayscale-12 line-clamp-2">
+            {draggedDeal.title}
+          </h4>
           <div className="mt-3 flex items-center justify-between rounded bg-grayscale-2 px-2.5 py-1.5 dark:bg-grayscale-4/30">
-            <span className="text-[10px] font-mono text-grayscale-9 uppercase">Valor</span>
+            <span className="text-[10px] font-mono text-grayscale-9 uppercase">
+              Valor
+            </span>
             <div className="flex flex-col items-end">
               <span className="font-mono text-sm font-bold text-grayscale-12">
-                {formatCurrency(draggedDeal.value, draggedDeal.currency || "CRC")}
+                {formatCurrency(
+                  draggedDeal.value,
+                  draggedDeal.currency || "CRC",
+                )}
               </span>
               {draggedDeal.currency === "USD" && (
                 <span className="font-mono text-[10px] text-grayscale-9 leading-none mt-0.5">

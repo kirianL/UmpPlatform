@@ -19,7 +19,10 @@ const List = ({
   ...props
 }: React.ComponentProps<typeof BaseTabs.List>) => (
   <BaseTabs.List
-    className={cn("flex flex-row gap-0.5 relative overflow-x-auto no-scrollbar", className)}
+    className={cn(
+      "flex flex-row gap-0.5 relative overflow-x-auto no-scrollbar",
+      className,
+    )}
     {...props}
   />
 );
@@ -30,7 +33,7 @@ const Tab = ({
 }: React.ComponentProps<typeof BaseTabs.Tab>) => (
   <BaseTabs.Tab
     className={cn(
-      "relative cursor-pointer z-10 px-2 py-1 text-xs text-grayscale-10 data-active:text-grayscale-11",
+      "relative cursor-pointer z-10 px-2 py-1 text-xs text-grayscale-10 data-active:text-grayscale-11 whitespace-nowrap shrink-0",
       className,
     )}
     {...props}

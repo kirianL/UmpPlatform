@@ -10,7 +10,7 @@ import ConvexClientProvider from "@/components/ConvexClientProvider";
 import PwaRegister from "@/components/PwaRegister";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const inter = Inter({
   variable: "--font-inter",
@@ -55,10 +55,18 @@ export const metadata: Metadata = {
       { url: "/ICO-UMP/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/ICO-UMP/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/ICO-UMP/favicon-48x48.png", sizes: "48x48", type: "image/png" },
-      { url: "/ICO-UMP/favicon-128x128.png", sizes: "128x128", type: "image/png" },
+      {
+        url: "/ICO-UMP/favicon-128x128.png",
+        sizes: "128x128",
+        type: "image/png",
+      },
     ],
     apple: [
-      { url: "/ICO-UMP/favicon-180x180.png", sizes: "180x180", type: "image/png" },
+      {
+        url: "/ICO-UMP/favicon-180x180.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
   },
   formatDetection: {
@@ -79,7 +87,15 @@ export default async function RootLayout({
   return (
     <html
       lang="es"
-      className={cn("h-full", "antialiased", inter.variable, jetbrainsMono.variable, pirataOne.variable, "font-sans", geist.variable)}
+      className={cn(
+        "h-full",
+        "antialiased",
+        inter.variable,
+        jetbrainsMono.variable,
+        pirataOne.variable,
+        "font-sans",
+        geist.variable,
+      )}
       suppressHydrationWarning
     >
       <body className="min-h-full bg-grayscale-1 text-grayscale-12">

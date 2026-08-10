@@ -32,7 +32,6 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { downloadFile, usePdfBlobUrl } from "@/lib/file-download";
 
-
 const STATUS_BADGE = {
   draft: { label: "Borrador", variant: "gray" as const },
   review: { label: "En Revisión", variant: "orange" as const },
@@ -68,18 +67,18 @@ export default function GuionesPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState(EMPTY_SCRIPT);
 
-
   // Load comments for selected script
-  const scriptComments = useQuery(
-    api.scripts.getCommentsByScriptId,
-    selectedScript ? { scriptId: selectedScript._id } : "skip"
-  ) ?? [];
+  const scriptComments =
+    useQuery(
+      api.scripts.getCommentsByScriptId,
+      selectedScript ? { scriptId: selectedScript._id } : "skip",
+    ) ?? [];
 
   const filtered = scripts.filter(
     (s) =>
       s.title.toLowerCase().includes(search.toLowerCase()) ||
       s.episodeOrProject.toLowerCase().includes(search.toLowerCase()) ||
-      s.version.toLowerCase().includes(search.toLowerCase())
+      s.version.toLowerCase().includes(search.toLowerCase()),
   );
 
   const approvedCount = scripts.filter((s) => s.status === "approved").length;
@@ -121,7 +120,8 @@ export default function GuionesPage() {
       setSelectedFile(file);
       const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
       const sizeKb = Math.round(file.size / 1024);
-      const formattedSize = file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+      const formattedSize =
+        file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
 
       // Read file to text if plain text (.txt)
       if (file.name.endsWith(".txt") || file.type.startsWith("text/")) {
@@ -170,7 +170,12 @@ export default function GuionesPage() {
     const scriptTitle = form.title.trim() || "Nuevo Guión sin Título";
 
     const shareId = editingId
-      ? scriptTitle.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 20) + "-" + Math.random().toString(36).substring(2, 7)
+      ? scriptTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "-")
+          .slice(0, 20) +
+        "-" +
+        Math.random().toString(36).substring(2, 7)
       : "guion-" + Math.random().toString(36).substring(2, 9);
 
     if (editingId) {
@@ -239,7 +244,9 @@ export default function GuionesPage() {
             <p className="text-xs text-grayscale-9 flex items-center gap-2">
               <span>{s.episodeOrProject}</span>
               <span>•</span>
-              <span className="font-mono text-[11px] font-semibold text-accent-10">{s.version}</span>
+              <span className="font-mono text-[11px] font-semibold text-accent-10">
+                {s.version}
+              </span>
             </p>
           </div>
         </div>
@@ -251,8 +258,12 @@ export default function GuionesPage() {
       className: "hidden sm:table-cell",
       render: (s) => (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-mono text-grayscale-11 truncate max-w-[180px]">{s.fileName}</span>
-          <span className="text-[11px] text-grayscale-8 font-mono">{s.fileSize}</span>
+          <span className="text-xs font-mono text-grayscale-11 truncate max-w-[180px]">
+            {s.fileName}
+          </span>
+          <span className="text-[11px] text-grayscale-8 font-mono">
+            {s.fileSize}
+          </span>
         </div>
       ),
     },
@@ -267,9 +278,21 @@ export default function GuionesPage() {
       getFilterValue: (s) => s.status,
       render: (s) => (
         <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider">
-          <span className={`size-2 rounded-full ${s.status === "approved" ? "bg-emerald-500" : s.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`} />
-          <span className={s.status === "approved" ? "text-emerald-11 dark:text-emerald-400" : "text-amber-11 dark:text-amber-400"}>
-            {s.status === "approved" ? "Aprobado" : s.status === "review" ? "En Revisión" : "Borrador"}
+          <span
+            className={`size-2 rounded-full ${s.status === "approved" ? "bg-emerald-500" : s.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`}
+          />
+          <span
+            className={
+              s.status === "approved"
+                ? "text-emerald-11 dark:text-emerald-400"
+                : "text-amber-11 dark:text-amber-400"
+            }
+          >
+            {s.status === "approved"
+              ? "Aprobado"
+              : s.status === "review"
+                ? "En Revisión"
+                : "Borrador"}
           </span>
         </div>
       ),
@@ -408,7 +431,11 @@ export default function GuionesPage() {
               }
               action={
                 !search && (
-                  <Button variant="primary" className="text-xs" onClick={openCreate}>
+                  <Button
+                    variant="primary"
+                    className="text-xs"
+                    onClick={openCreate}
+                  >
                     <UploadSimpleIcon size={16} weight="bold" />
                     Subir primer guión
                   </Button>
@@ -435,7 +462,9 @@ export default function GuionesPage() {
               label="Título del Guión"
               id="script-title"
               value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }
               placeholder="Ej: Horizontes — Episodio 1: El Despertar"
               required
             />
@@ -445,7 +474,9 @@ export default function GuionesPage() {
                 label="Proyecto / Episodio"
                 id="script-project"
                 value={form.episodeOrProject}
-                onChange={(e) => setForm((f) => ({ ...f, episodeOrProject: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, episodeOrProject: e.target.value }))
+                }
                 placeholder="Ej: Serie Horizontes T1"
                 required
               />
@@ -453,7 +484,9 @@ export default function GuionesPage() {
                 label="Versión"
                 id="script-version"
                 value={form.version}
-                onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, version: e.target.value }))
+                }
                 placeholder="Ej: v1.0, Borrador 2"
                 required
               />
@@ -463,15 +496,15 @@ export default function GuionesPage() {
               label="Estado del Guión"
               id="script-status"
               value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as any }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, status: e.target.value as any }))
+              }
               options={[
                 { value: "draft", label: "Borrador" },
                 { value: "review", label: "En Revisión" },
                 { value: "approved", label: "Aprobado" },
               ]}
             />
-
-
 
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
@@ -486,7 +519,11 @@ export default function GuionesPage() {
                 />
                 <UploadSimpleIcon size={24} className="text-accent-9 mb-1" />
                 <p className="text-xs font-semibold text-grayscale-11">
-                  {selectedFile ? selectedFile.name : form.fileName ? form.fileName : "Haz clic o arrastra tu archivo aquí"}
+                  {selectedFile
+                    ? selectedFile.name
+                    : form.fileName
+                      ? form.fileName
+                      : "Haz clic o arrastra tu archivo aquí"}
                 </p>
               </div>
             </div>
@@ -495,7 +532,9 @@ export default function GuionesPage() {
               label="Notas / Descripción Corta"
               id="script-desc"
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               placeholder="Notas importantes sobre este corte o escena..."
             />
 
@@ -527,16 +566,34 @@ export default function GuionesPage() {
               {/* Header: Title, Episode, Version & Status */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-grayscale-3 pb-3 dark:border-grayscale-4/60">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs font-mono">
-                  <span className="font-extrabold text-grayscale-12 text-sm sm:text-base">{selectedScript.title}</span>
+                  <span className="font-extrabold text-grayscale-12 text-sm sm:text-base">
+                    {selectedScript.title}
+                  </span>
                   <span className="text-grayscale-8">•</span>
-                  <span className="text-accent-10 font-bold uppercase">{selectedScript.episodeOrProject}</span>
+                  <span className="text-accent-10 font-bold uppercase">
+                    {selectedScript.episodeOrProject}
+                  </span>
                   <span className="text-grayscale-8">•</span>
-                  <span className="text-grayscale-10 font-semibold">{selectedScript.version}</span>
+                  <span className="text-grayscale-10 font-semibold">
+                    {selectedScript.version}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider shrink-0">
-                  <span className={`size-2 rounded-full ${selectedScript.status === "approved" ? "bg-emerald-500" : selectedScript.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`} />
-                  <span className={selectedScript.status === "approved" ? "text-emerald-11 dark:text-emerald-400" : "text-amber-11 dark:text-amber-400"}>
-                    {selectedScript.status === "approved" ? "Aprobado" : selectedScript.status === "review" ? "En Revisión" : "Borrador"}
+                  <span
+                    className={`size-2 rounded-full ${selectedScript.status === "approved" ? "bg-emerald-500" : selectedScript.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`}
+                  />
+                  <span
+                    className={
+                      selectedScript.status === "approved"
+                        ? "text-emerald-11 dark:text-emerald-400"
+                        : "text-amber-11 dark:text-amber-400"
+                    }
+                  >
+                    {selectedScript.status === "approved"
+                      ? "Aprobado"
+                      : selectedScript.status === "review"
+                        ? "En Revisión"
+                        : "Borrador"}
                   </span>
                 </div>
               </div>
@@ -555,7 +612,11 @@ export default function GuionesPage() {
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-accent-6/40 bg-accent-2/20 px-3 py-1.5 text-xs font-mono font-bold text-accent-11 hover:bg-accent-2/40 transition-colors shrink-0 cursor-pointer"
                 >
                   <CopyIcon size={14} />
-                  <span>{copiedId === selectedScript.shareId ? "¡Copiado!" : "Copiar Enlace"}</span>
+                  <span>
+                    {copiedId === selectedScript.shareId
+                      ? "¡Copiado!"
+                      : "Copiar Enlace"}
+                  </span>
                 </button>
               </div>
 
@@ -563,7 +624,10 @@ export default function GuionesPage() {
               <div className="flex flex-col gap-2.5 rounded-xl border border-grayscale-3 bg-grayscale-2 p-3 sm:p-4 dark:border-grayscale-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-grayscale-3/60 pb-2 dark:border-grayscale-4/60">
                   <div className="flex items-center gap-2">
-                    <BookOpenIcon size={16} className="text-accent-9 shrink-0" />
+                    <BookOpenIcon
+                      size={16}
+                      className="text-accent-9 shrink-0"
+                    />
                     <span className="font-mono text-xs font-bold uppercase text-grayscale-11">
                       Guión
                     </span>
@@ -571,7 +635,13 @@ export default function GuionesPage() {
                   {selectedScript.fileUrl && (
                     <button
                       type="button"
-                      onClick={() => downloadFile(selectedScript.fileUrl, `${selectedScript.title}.pdf`, selectedScript.content)}
+                      onClick={() =>
+                        downloadFile(
+                          selectedScript.fileUrl,
+                          `${selectedScript.title}.pdf`,
+                          selectedScript.content,
+                        )
+                      }
                       className="inline-flex items-center gap-1.5 rounded-md border border-emerald-4/40 bg-emerald-2/60 dark:bg-emerald-9/20 px-2.5 py-1 text-[11px] font-mono font-bold text-emerald-11 dark:text-emerald-300 hover:bg-emerald-2/80 transition-colors cursor-pointer shrink-0"
                     >
                       <DownloadSimpleIcon size={13} />
@@ -596,7 +666,10 @@ export default function GuionesPage() {
                     </div>
                     <div
                       className="w-full h-80 sm:h-[450px] rounded-lg overflow-y-auto border border-grayscale-4/50 bg-white"
-                      style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+                      style={{
+                        WebkitOverflowScrolling: "touch",
+                        touchAction: "pan-y",
+                      }}
                     >
                       <iframe
                         src={`${pdfBlobUrl}#toolbar=1`}
@@ -638,11 +711,19 @@ export default function GuionesPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <span className="text-xs font-bold text-grayscale-12 flex items-center gap-1.5 truncate">
-                          <UserIcon size={13} className="text-accent-9 shrink-0" />
+                          <UserIcon
+                            size={13}
+                            className="text-accent-9 shrink-0"
+                          />
                           {c.authorName}
                         </span>
                         <span className="text-[10px] text-grayscale-9 font-mono shrink-0">
-                          {new Date(c.createdAt).toLocaleDateString("es-CR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          {new Date(c.createdAt).toLocaleDateString("es-CR", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
                       <p className="text-xs text-grayscale-11 leading-relaxed pl-3 sm:pl-5 border-l-2 border-accent-6/40">
@@ -653,7 +734,9 @@ export default function GuionesPage() {
 
                   {scriptComments.length === 0 && (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-grayscale-3 py-6 px-4 text-center dark:border-grayscale-4">
-                      <p className="text-xs font-mono text-grayscale-8">Aún no hay comentarios en este guión.</p>
+                      <p className="text-xs font-mono text-grayscale-8">
+                        Aún no hay comentarios en este guión.
+                      </p>
                     </div>
                   )}
                 </div>

@@ -46,7 +46,9 @@ export const getByShareToken = query({
     const allActors = await ctx.db.query("actors").collect();
 
     // 1. Exact match by shareToken or _id
-    let actor = allActors.find((a) => a.shareToken === token || a._id === token);
+    let actor = allActors.find(
+      (a) => a.shareToken === token || a._id === token,
+    );
     if (actor) return actor;
 
     const normalizedInput = toSlug(token);
@@ -75,9 +77,14 @@ export const getByShareToken = query({
 
       // Check if schedule actorName matches an actor in allActors by slug
       const rawName = matchingSchedules[0].actorName;
-      const { name, characterName } = extractNameAndCharacter(rawName, matchingSchedules[0].characterName);
+      const { name, characterName } = extractNameAndCharacter(
+        rawName,
+        matchingSchedules[0].characterName,
+      );
 
-      const matchedByName = allActors.find((a) => toSlug(a.name) === toSlug(name));
+      const matchedByName = allActors.find(
+        (a) => toSlug(a.name) === toSlug(name),
+      );
       if (matchedByName) return matchedByName;
 
       // Synthetic fallback if actor record does not exist in actors table
@@ -86,7 +93,8 @@ export const getByShareToken = query({
         _creationTime: Date.now(),
         name,
         characterName,
-        characterBio: "Elenco de producción registrado para llamados de rodaje.",
+        characterBio:
+          "Elenco de producción registrado para llamados de rodaje.",
         photoUrl: "",
         phone: "",
         email: "",

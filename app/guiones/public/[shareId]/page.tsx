@@ -11,15 +11,19 @@ export async function generateMetadata({
   const { shareId } = await params;
 
   let title = "Guión de Producción — UmpPlatform";
-  let description = "Consulta y revisión de guiones en vivo en la plataforma UMP Platform.";
+  let description =
+    "Consulta y revisión de guiones en vivo en la plataforma UMP Platform.";
 
   try {
     const script = await fetchQuery(api.scripts.getByShareId, { shareId });
 
     if (script) {
-      const episodeText = script.episodeOrProject ? `(${script.episodeOrProject})` : "";
+      const episodeText = script.episodeOrProject
+        ? `(${script.episodeOrProject})`
+        : "";
       const versionText = script.version ? `[${script.version}]` : "";
-      title = `${script.title} ${episodeText} ${versionText} — Guión UMP`.trim();
+      title =
+        `${script.title} ${episodeText} ${versionText} — Guión UMP`.trim();
       description = `Visualiza y descarga el guión oficial de "${script.title}" ${episodeText}. Agrega retroalimentación y notas para el elenco en UmpPlatform.`;
     }
   } catch (err) {
@@ -35,7 +39,12 @@ export async function generateMetadata({
       type: "article",
       siteName: "UMP Platform",
       images: [
-        { url: "/ICO-UMP/favicon-180x180.png", width: 180, height: 180, alt: "UMP Platform" }
+        {
+          url: "/ICO-UMP/favicon-180x180.png",
+          width: 180,
+          height: 180,
+          alt: "UMP Platform",
+        },
       ],
     },
     twitter: {

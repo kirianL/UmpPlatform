@@ -19,9 +19,16 @@ import Logo from "@/components/Logo";
 import { downloadFile, usePdfBlobUrl } from "@/lib/file-download";
 
 export default function PublicScriptClient({ shareId }: { shareId: string }) {
-  const script = useQuery(api.scripts.getByShareId, shareId ? { shareId } : "skip");
+  const script = useQuery(
+    api.scripts.getByShareId,
+    shareId ? { shareId } : "skip",
+  );
   const pdfBlobUrl = usePdfBlobUrl(script?.fileUrl);
-  const comments = useQuery(api.scripts.getCommentsByShareId, shareId ? { shareId } : "skip") ?? [];
+  const comments =
+    useQuery(
+      api.scripts.getCommentsByShareId,
+      shareId ? { shareId } : "skip",
+    ) ?? [];
   const addComment = useMutation(api.scripts.addComment);
 
   const [authorName, setAuthorName] = useState("");
@@ -30,7 +37,8 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!authorName.trim() || !commentText.trim() || !script || isSubmitting) return;
+    if (!authorName.trim() || !commentText.trim() || !script || isSubmitting)
+      return;
 
     setIsSubmitting(true);
     try {
@@ -60,9 +68,12 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
       <div className="flex min-h-screen items-center justify-center bg-grayscale-1 dark:bg-grayscale-1 px-4">
         <div className="flex max-w-md flex-col items-center text-center gap-3 rounded-2xl border border-grayscale-3 bg-grayscale-2 p-8 shadow-sm dark:border-grayscale-4">
           <ScrollIcon size={48} className="text-grayscale-8" />
-          <h2 className="font-mono text-lg font-bold text-grayscale-12">Guión No Encontrado</h2>
+          <h2 className="font-mono text-lg font-bold text-grayscale-12">
+            Guión No Encontrado
+          </h2>
           <p className="text-xs text-grayscale-9">
-            El enlace ingresado no existe o el guión ha sido removido de la plataforma UMP.
+            El enlace ingresado no existe o el guión ha sido removido de la
+            plataforma UMP.
           </p>
         </div>
       </div>
@@ -92,12 +103,24 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
               <span className="font-mono text-xs font-bold text-accent-10 uppercase tracking-wide">
                 {script.episodeOrProject}
               </span>
-              
+
               {/* Minimal Redesigned Status Indicator */}
               <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider">
-                <span className={`size-2 rounded-full ${script.status === "approved" ? "bg-emerald-500" : script.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`} />
-                <span className={script.status === "approved" ? "text-emerald-11 dark:text-emerald-400" : "text-amber-11 dark:text-amber-400"}>
-                  {script.status === "approved" ? "Aprobado" : script.status === "review" ? "En Revisión" : "Borrador"}
+                <span
+                  className={`size-2 rounded-full ${script.status === "approved" ? "bg-emerald-500" : script.status === "review" ? "bg-amber-500" : "bg-grayscale-8"}`}
+                />
+                <span
+                  className={
+                    script.status === "approved"
+                      ? "text-emerald-11 dark:text-emerald-400"
+                      : "text-amber-11 dark:text-amber-400"
+                  }
+                >
+                  {script.status === "approved"
+                    ? "Aprobado"
+                    : script.status === "review"
+                      ? "En Revisión"
+                      : "Borrador"}
                 </span>
               </div>
             </div>
@@ -106,9 +129,19 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
               {script.title}
             </h1>
             <p className="text-xs text-grayscale-9 flex flex-wrap items-center gap-2 sm:gap-3">
-              <span>Versión: <strong className="text-grayscale-11 font-mono">{script.version}</strong></span>
+              <span>
+                Versión:{" "}
+                <strong className="text-grayscale-11 font-mono">
+                  {script.version}
+                </strong>
+              </span>
               <span>•</span>
-              <span>Subido por: <strong className="text-grayscale-11">{script.uploadedBy}</strong></span>
+              <span>
+                Subido por:{" "}
+                <strong className="text-grayscale-11">
+                  {script.uploadedBy}
+                </strong>
+              </span>
             </p>
           </div>
 
@@ -123,13 +156,19 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
             <div className="flex items-center gap-3">
               <FilePdfIcon size={24} className="text-red-9 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-grayscale-12 truncate">{script.fileName}</p>
-                <p className="text-[11px] text-grayscale-8 font-mono">{script.fileSize}</p>
+                <p className="text-xs font-bold text-grayscale-12 truncate">
+                  {script.fileName}
+                </p>
+                <p className="text-[11px] text-grayscale-8 font-mono">
+                  {script.fileSize}
+                </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => downloadFile(script.fileUrl, script.fileName, script.content)}
+              onClick={() =>
+                downloadFile(script.fileUrl, script.fileName, script.content)
+              }
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-2 px-3 py-2 text-xs font-mono font-medium text-grayscale-11 hover:bg-grayscale-3 transition-colors cursor-pointer"
             >
               <DownloadSimpleIcon size={14} />
@@ -152,7 +191,8 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border border-sky-4/40 bg-sky-2/40 p-3 dark:border-sky-8/40 dark:bg-sky-9/20">
                 <span className="text-xs text-sky-11 dark:text-sky-300 font-mono">
-                  ¿Visualizando en móvil o pantalla táctil? Puedes abrir el PDF completo:
+                  ¿Visualizando en móvil o pantalla táctil? Puedes abrir el PDF
+                  completo:
                 </span>
                 <button
                   type="button"
@@ -165,7 +205,10 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
               </div>
               <div
                 className="w-full rounded-xl overflow-y-auto border border-grayscale-4/60 bg-white shadow-inner"
-                style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  touchAction: "pan-y",
+                }}
               >
                 <iframe
                   src={`${pdfBlobUrl}#toolbar=1`}
@@ -183,7 +226,9 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
           ) : (
             <div className="py-12 text-center text-grayscale-9 flex flex-col items-center gap-2 rounded-xl border border-dashed border-grayscale-3 dark:border-grayscale-4">
               <BookOpenIcon size={32} className="text-grayscale-8" />
-              <p className="text-xs font-mono uppercase font-bold text-grayscale-8">Sin archivo o texto para mostrar</p>
+              <p className="text-xs font-mono uppercase font-bold text-grayscale-8">
+                Sin archivo o texto para mostrar
+              </p>
             </div>
           )}
         </div>
@@ -201,7 +246,10 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
           </div>
 
           {/* Add Comment Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-4 dark:border-grayscale-4 dark:bg-grayscale-3">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-3 rounded-xl border border-grayscale-3 bg-grayscale-1 p-4 dark:border-grayscale-4 dark:bg-grayscale-3"
+          >
             <h3 className="text-xs font-mono font-bold uppercase text-grayscale-11">
               Agregar Comentario o Retroalimentación
             </h3>
@@ -230,7 +278,9 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-9 px-4 py-2 text-xs font-mono font-bold text-grayscale-1 hover:bg-accent-10 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 <PaperPlaneRightIcon size={14} weight="bold" />
-                <span>{isSubmitting ? "Enviando..." : "Publicar Comentario"}</span>
+                <span>
+                  {isSubmitting ? "Enviando..." : "Publicar Comentario"}
+                </span>
               </button>
             </div>
           </form>
@@ -264,7 +314,8 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
 
             {comments.length === 0 && (
               <div className="py-8 text-center text-grayscale-8 font-mono text-xs border border-dashed border-grayscale-3 rounded-xl dark:border-grayscale-4">
-                Aún no se han publicado comentarios sobre este guión. ¡Sé el primero en aportar feedback!
+                Aún no se han publicado comentarios sobre este guión. ¡Sé el
+                primero en aportar feedback!
               </div>
             )}
           </div>

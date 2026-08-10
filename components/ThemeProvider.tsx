@@ -9,6 +9,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       defaultTheme="light"
       enableSystem
       disableTransitionOnChange
+      scriptProps={{ type: "template" }}
     >
       {children}
     </NextThemesProvider>

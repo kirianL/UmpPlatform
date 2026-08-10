@@ -41,7 +41,12 @@ function formatWithCurrency(n: number, currency: string): string {
   }).format(n);
 }
 
-function compressImage(file: File, maxWidth = 1600, maxHeight = 1600, quality = 0.85): Promise<File | Blob> {
+function compressImage(
+  file: File,
+  maxWidth = 1600,
+  maxHeight = 1600,
+  quality = 0.85,
+): Promise<File | Blob> {
   return new Promise((resolve) => {
     if (file.type === "application/pdf") {
       resolve(file);
@@ -94,7 +99,7 @@ function compressImage(file: File, maxWidth = 1600, maxHeight = 1600, quality = 
             }
           },
           file.type || "image/jpeg",
-          quality
+          quality,
         );
       };
       img.onerror = () => resolve(file);
@@ -157,13 +162,14 @@ export default function InvoiceScanner({
 
     try {
       const compressedFile = await compressImage(file);
-      const data = await recogniseInvoice(compressedFile, (p) => setProgress(p));
+      const data = await recogniseInvoice(compressedFile, (p) =>
+        setProgress(p),
+      );
       setResult(data);
       setStatus("done");
     } catch (err) {
       console.error("Scan error:", err);
-      const message =
-        err instanceof Error ? err.message : "Error al procesar";
+      const message = err instanceof Error ? err.message : "Error al procesar";
       setError(message);
       setStatus("error");
     }
@@ -365,13 +371,21 @@ export default function InvoiceScanner({
                 <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
                   {result.vendor && (
                     <span className="flex items-center gap-1 text-xs font-medium text-grayscale-11">
-                      <StorefrontIcon size={12} weight="bold" className="text-grayscale-8" />
+                      <StorefrontIcon
+                        size={12}
+                        weight="bold"
+                        className="text-grayscale-8"
+                      />
                       {result.vendor}
                     </span>
                   )}
                   {result.date && (
                     <span className="flex items-center gap-1 text-xs font-medium text-grayscale-11">
-                      <CalendarIcon size={12} weight="bold" className="text-grayscale-8" />
+                      <CalendarIcon
+                        size={12}
+                        weight="bold"
+                        className="text-grayscale-8"
+                      />
                       {result.date}
                     </span>
                   )}
@@ -395,7 +409,7 @@ export default function InvoiceScanner({
                     </span>
                     <div className="shrink-0 text-right flex flex-col">
                       <span className="text-xs font-semibold text-grayscale-12 dark:text-grayscale-11 font-mono">
-                        {result.currency !== "CRC" 
+                        {result.currency !== "CRC"
                           ? formatWithCurrency(item.amount, result.currency)
                           : formatCurrency(item.amount)}
                       </span>
@@ -421,11 +435,12 @@ export default function InvoiceScanner({
                         ? formatWithCurrency(result.total, result.currency)
                         : formatCurrency(result.total)}
                     </span>
-                    {result.currency !== "CRC" && result.convertedTotal != null && (
-                      <span className="text-xs font-semibold text-grayscale-8 font-mono">
-                        ({formatCurrency(result.convertedTotal)})
-                      </span>
-                    )}
+                    {result.currency !== "CRC" &&
+                      result.convertedTotal != null && (
+                        <span className="text-xs font-semibold text-grayscale-8 font-mono">
+                          ({formatCurrency(result.convertedTotal)})
+                        </span>
+                      )}
                   </div>
                 </div>
               )}

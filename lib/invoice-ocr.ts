@@ -39,7 +39,9 @@ export async function recogniseInvoice(
   onProgress?.(90);
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    const body = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
     throw new Error(body.error ?? `Error del servidor (${res.status})`);
   }
 
@@ -51,10 +53,12 @@ export async function recogniseInvoice(
     date: data.date ?? null,
     type: data.type === "income" ? "income" : "expense",
     currency: data.currency ?? "CRC",
-    exchangeRate: typeof data.exchangeRate === "number" ? data.exchangeRate : 1.0,
+    exchangeRate:
+      typeof data.exchangeRate === "number" ? data.exchangeRate : 1.0,
     items: Array.isArray(data.items) ? data.items : [],
     total: typeof data.total === "number" ? data.total : null,
-    convertedTotal: typeof data.convertedTotal === "number" ? data.convertedTotal : null,
+    convertedTotal:
+      typeof data.convertedTotal === "number" ? data.convertedTotal : null,
     rawText: data.rawText ?? "",
   };
 }

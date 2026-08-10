@@ -3,7 +3,8 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { hashPassword } from "@/lib/auth-helpers";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "fallback_secret_for_ump_platform_2026";
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || "fallback_secret_for_ump_platform_2026";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin@ultimate.cr";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "UmpPlatform2026!";
 
@@ -14,11 +15,18 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 // Helper to sign session data
-async function signSession(username: string, role: string, expiresAt: number): Promise<string> {
+async function signSession(
+  username: string,
+  role: string,
+  expiresAt: number,
+): Promise<string> {
   const encoder = new TextEncoder();
   const data = `${username}.${role}.${expiresAt}`;
   const keyData = encoder.encode(SESSION_SECRET);
@@ -27,12 +35,12 @@ async function signSession(username: string, role: string, expiresAt: number): P
     keyData,
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
   const signature = await crypto.subtle.sign(
     "HMAC",
     cryptoKey,
-    encoder.encode(data)
+    encoder.encode(data),
   );
   const signatureBase64 = arrayBufferToBase64Url(signature);
   return `${data}.${signatureBase64}`;
@@ -43,7 +51,10 @@ export async function POST(request: Request) {
     const { username, password } = await request.json();
 
     if (!username || !password) {
-      return NextResponse.json({ error: "Faltan credenciales" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Faltan credenciales" },
+        { status: 400 },
+      );
     }
 
     let isValid = false;
@@ -54,7 +65,9 @@ export async function POST(request: Request) {
       const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
       if (convexUrl) {
         const convex = new ConvexHttpClient(convexUrl);
-        const user = await convex.query(api.users.getByEmail, { email: username });
+        const user = await convex.query(api.users.getByEmail, {
+          email: username,
+        });
         if (user) {
           const expectedHash = hashPassword(password);
           if (user.passwordHash === expectedHash) {
@@ -76,7 +89,10 @@ export async function POST(request: Request) {
     }
 
     if (!isValid) {
-      return NextResponse.json({ error: "Usuario o contraseña incorrectos" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Usuario o contraseña incorrectos" },
+        { status: 401 },
+      );
     }
 
     // Session valid for 7 days
@@ -86,8 +102,11 @@ export async function POST(request: Request) {
 
     // Redirect produccion role to /inventario, others to /
     const redirectUrl = role === "produccion" ? "/inventario" : "/";
-    const response = NextResponse.json({ success: true, redirect: redirectUrl });
-    
+    const response = NextResponse.json({
+      success: true,
+      redirect: redirectUrl,
+    });
+
     // Set HTTP-Only Cookie
     response.cookies.set({
       name: "session_token",
@@ -102,6 +121,9 @@ export async function POST(request: Request) {
     return response;
   } catch (err: any) {
     console.error("Login route error:", err);
-    return NextResponse.json({ error: "Error en el servidor de autenticación" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error en el servidor de autenticación" },
+      { status: 500 },
+    );
   }
 }

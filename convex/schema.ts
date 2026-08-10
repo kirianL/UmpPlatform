@@ -18,7 +18,14 @@ export default defineSchema({
     phone: v.optional(v.string()),
     description: v.optional(v.string()),
     email: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("nuevo"), v.literal("contactado"), v.literal("evaluado"), v.literal("descartado"))),
+    status: v.optional(
+      v.union(
+        v.literal("nuevo"),
+        v.literal("contactado"),
+        v.literal("evaluado"),
+        v.literal("descartado"),
+      ),
+    ),
     createdAt: v.optional(v.string()),
     birthDate: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
@@ -29,7 +36,11 @@ export default defineSchema({
     date: v.string(), // ISO format YYYY-MM-DD
     category: v.string(),
     type: v.union(v.literal("income"), v.literal("expense")),
-    status: v.union(v.literal("paid"), v.literal("pending"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("paid"),
+      v.literal("pending"),
+      v.literal("cancelled"),
+    ),
     local: v.optional(v.string()),
     clientId: v.optional(v.string()),
   }),
@@ -48,7 +59,12 @@ export default defineSchema({
     clientId: v.id("clients"),
     serviceName: v.string(),
     amount: v.number(),
-    paymentStatus: v.union(v.literal("pagado"), v.literal("pendiente"), v.literal("parcial"), v.literal("sin_pago")),
+    paymentStatus: v.union(
+      v.literal("pagado"),
+      v.literal("pendiente"),
+      v.literal("parcial"),
+      v.literal("sin_pago"),
+    ),
     contractDate: v.string(),
   }).index("by_clientId", ["clientId"]),
   clientPayments: defineTable({
@@ -67,7 +83,13 @@ export default defineSchema({
     name: v.string(),
     serialNumber: v.optional(v.string()),
     category: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("available"), v.literal("in-use"), v.literal("maintenance"))),
+    status: v.optional(
+      v.union(
+        v.literal("available"),
+        v.literal("in-use"),
+        v.literal("maintenance"),
+      ),
+    ),
     location: v.optional(v.string()),
     acquisitionDate: v.optional(v.string()),
   }),
@@ -76,7 +98,13 @@ export default defineSchema({
     client: v.string(),
     value: v.number(),
     currency: v.optional(v.string()),
-    stage: v.union(v.literal("lead"), v.literal("proposal"), v.literal("negotiation"), v.literal("won"), v.literal("lost")),
+    stage: v.union(
+      v.literal("lead"),
+      v.literal("proposal"),
+      v.literal("negotiation"),
+      v.literal("won"),
+      v.literal("lost"),
+    ),
     priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     createdAt: v.string(),
     expectedClose: v.string(),
@@ -87,12 +115,28 @@ export default defineSchema({
     title: v.string(),
     date: v.string(), // YYYY-MM-DD
     time: v.string(), // HH:mm
-    type: v.union(v.literal("shooting"), v.literal("pre-production"), v.literal("post-production"), v.literal("meeting"), v.literal("delivery")),
+    type: v.union(
+      v.literal("shooting"),
+      v.literal("pre-production"),
+      v.literal("post-production"),
+      v.literal("meeting"),
+      v.literal("delivery"),
+    ),
     description: v.string(),
-    status: v.union(v.literal("upcoming"), v.literal("completed"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("upcoming"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
   }),
   analyticsStats: defineTable({
-    platform: v.union(v.literal("all"), v.literal("youtube"), v.literal("instagram"), v.literal("tiktok"), v.literal("facebook")),
+    platform: v.union(
+      v.literal("all"),
+      v.literal("youtube"),
+      v.literal("instagram"),
+      v.literal("tiktok"),
+      v.literal("facebook"),
+    ),
     followers: v.number(),
     followersGrowth: v.string(),
     views: v.number(),
@@ -103,29 +147,54 @@ export default defineSchema({
     sharesGrowth: v.string(),
     watchTime: v.string(),
     avgRetention: v.string(),
-    monthlyViews: v.optional(v.array(v.object({
-      month: v.string(),
-      views: v.number(),
-    }))),
-    demographics: v.optional(v.object({
-      age: v.array(v.object({ label: v.string(), value: v.number() })),
-      location: v.array(v.object({ label: v.string(), value: v.number() })),
-      gender: v.array(v.object({ label: v.string(), value: v.number(), color: v.string() })),
-    })),
-    retentionCurve: v.optional(v.array(v.object({
-      ratio: v.number(),
-      retention: v.number(),
-    }))),
-    insights: v.optional(v.array(v.object({
-      title: v.string(),
-      description: v.string(),
-      type: v.union(v.literal("warning"), v.literal("tip"), v.literal("info")),
-    }))),
+    monthlyViews: v.optional(
+      v.array(
+        v.object({
+          month: v.string(),
+          views: v.number(),
+        }),
+      ),
+    ),
+    demographics: v.optional(
+      v.object({
+        age: v.array(v.object({ label: v.string(), value: v.number() })),
+        location: v.array(v.object({ label: v.string(), value: v.number() })),
+        gender: v.array(
+          v.object({ label: v.string(), value: v.number(), color: v.string() }),
+        ),
+      }),
+    ),
+    retentionCurve: v.optional(
+      v.array(
+        v.object({
+          ratio: v.number(),
+          retention: v.number(),
+        }),
+      ),
+    ),
+    insights: v.optional(
+      v.array(
+        v.object({
+          title: v.string(),
+          description: v.string(),
+          type: v.union(
+            v.literal("warning"),
+            v.literal("tip"),
+            v.literal("info"),
+          ),
+        }),
+      ),
+    ),
   }),
   topContent: defineTable({
     id: v.optional(v.string()),
     title: v.string(),
-    platform: v.union(v.literal("youtube"), v.literal("instagram"), v.literal("tiktok"), v.literal("facebook")),
+    platform: v.union(
+      v.literal("youtube"),
+      v.literal("instagram"),
+      v.literal("tiktok"),
+      v.literal("facebook"),
+    ),
     views: v.number(),
     likes: v.number(),
     watchTime: v.string(),
@@ -147,7 +216,7 @@ export default defineSchema({
     status: v.union(
       v.literal("draft"),
       v.literal("review"),
-      v.literal("approved")
+      v.literal("approved"),
     ),
     fileUrl: v.optional(v.string()),
     fileName: v.string(),
@@ -165,7 +234,9 @@ export default defineSchema({
     authorName: v.string(),
     comment: v.string(),
     createdAt: v.string(),
-  }).index("by_shareId", ["shareId"]).index("by_scriptId", ["scriptId"]),
+  })
+    .index("by_shareId", ["shareId"])
+    .index("by_scriptId", ["scriptId"]),
   actors: defineTable({
     name: v.string(),
     characterName: v.string(),
@@ -193,8 +264,70 @@ export default defineSchema({
       v.literal("scheduled"),
       v.literal("filmed"),
       v.literal("rescheduled"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
     ),
     shareToken: v.optional(v.string()),
-  }).index("by_actorName", ["actorName"]).index("by_shareToken", ["shareToken"]),
+  })
+    .index("by_actorName", ["actorName"])
+    .index("by_shareToken", ["shareToken"]),
+  clientCredentials: defineTable({
+    clientId: v.id("clients"),
+    platform: v.string(), // "instagram", "facebook", "tiktok", "youtube", "linkedin", "meta_business", "otro"
+    username: v.string(),
+    password: v.string(),
+    url: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("needs_relogin"),
+        v.literal("inactive"),
+      ),
+    ),
+    updatedAt: v.optional(v.string()),
+  }).index("by_clientId", ["clientId"]),
+  socialMediaPosts: defineTable({
+    clientId: v.id("clients"),
+    title: v.string(),
+    platform: v.union(
+      v.literal("instagram"),
+      v.literal("facebook"),
+      v.literal("tiktok"),
+      v.literal("youtube"),
+      v.literal("linkedin"),
+      v.literal("otro"),
+    ),
+    contentType: v.union(
+      v.literal("reel"),
+      v.literal("carousel"),
+      v.literal("image"),
+      v.literal("story"),
+      v.literal("video"),
+      v.literal("post"),
+    ),
+    scheduledDate: v.string(), // YYYY-MM-DD
+    scheduledTime: v.optional(v.string()), // HH:mm
+    status: v.union(
+      v.literal("planificado"),
+      v.literal("en_proceso"),
+      v.literal("publicado"),
+      v.literal("cancelado"),
+    ),
+    postUrl: v.optional(v.string()),
+    caption: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    views: v.optional(v.number()),
+    likes: v.optional(v.number()),
+    comments: v.optional(v.number()),
+    shares: v.optional(v.number()),
+  }).index("by_clientId", ["clientId"]),
+  socialMediaGoals: defineTable({
+    clientId: v.id("clients"),
+    month: v.string(), // YYYY-MM
+    targetPosts: v.number(),
+    targetReels: v.optional(v.number()),
+    targetStories: v.optional(v.number()),
+    targetCarousels: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  }).index("by_clientId", ["clientId"]),
 });

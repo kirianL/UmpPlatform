@@ -22,7 +22,10 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const initials = args.avatarInitials || args.name.slice(0, 2).toUpperCase();
-    return await ctx.db.insert("employees", { ...args, avatarInitials: initials });
+    return await ctx.db.insert("employees", {
+      ...args,
+      avatarInitials: initials,
+    });
   },
 });
 

@@ -53,7 +53,10 @@ function formatMonthYear(year: number, month: number): string {
 function format12Hour(timeStr?: string): string {
   if (!timeStr) return "";
   const trimmed = timeStr.trim();
-  if (trimmed.toLowerCase().includes("am") || trimmed.toLowerCase().includes("pm")) {
+  if (
+    trimmed.toLowerCase().includes("am") ||
+    trimmed.toLowerCase().includes("pm")
+  ) {
     return trimmed.toUpperCase();
   }
   const parts = trimmed.split(":");
@@ -111,7 +114,7 @@ export default function CalendarioActoresPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(
-    toDateString(now.getFullYear(), now.getMonth(), now.getDate())
+    toDateString(now.getFullYear(), now.getMonth(), now.getDate()),
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [routesModalOpen, setRoutesModalOpen] = useState(false);
@@ -126,7 +129,9 @@ export default function CalendarioActoresPage() {
   }, [actorSchedules, selectedActorFilter]);
 
   const actorSelectOptions = useMemo(() => {
-    const uniqueActors = Array.from(new Set(actors.map((a) => a.name).filter(Boolean)));
+    const uniqueActors = Array.from(
+      new Set(actors.map((a) => a.name).filter(Boolean)),
+    );
     const opts = uniqueActors.map((name) => ({ value: name, label: name }));
     return [{ value: "Elenco General", label: "Elenco General" }, ...opts];
   }, [actors]);
@@ -137,9 +142,14 @@ export default function CalendarioActoresPage() {
       const filtered = actors.filter((a) => a.name === form.actorName);
       if (filtered.length > 0) relevantActors = filtered;
     }
-    const uniqueChars = Array.from(new Set(relevantActors.map((a) => a.characterName).filter(Boolean)));
+    const uniqueChars = Array.from(
+      new Set(relevantActors.map((a) => a.characterName).filter(Boolean)),
+    );
     const opts = uniqueChars.map((char) => ({ value: char, label: char }));
-    return [{ value: "Personaje General", label: "Personaje General" }, ...opts];
+    return [
+      { value: "Personaje General", label: "Personaje General" },
+      ...opts,
+    ];
   }, [actors, form.actorName]);
 
   // Group schedules by date
@@ -163,13 +173,24 @@ export default function CalendarioActoresPage() {
   const firstDay = getFirstDayOfWeek(year, month);
 
   const calendarCells = useMemo(() => {
-    const cells: { dateString: string; dayNum: number; isCurrentMonth: boolean }[] = [];
-    const prevMonthDays = getDaysInMonth(month === 0 ? year - 1 : year, month === 0 ? 11 : month - 1);
+    const cells: {
+      dateString: string;
+      dayNum: number;
+      isCurrentMonth: boolean;
+    }[] = [];
+    const prevMonthDays = getDaysInMonth(
+      month === 0 ? year - 1 : year,
+      month === 0 ? 11 : month - 1,
+    );
 
     for (let i = firstDay - 1; i >= 0; i--) {
       const d = prevMonthDays - i;
       cells.push({
-        dateString: toDateString(month === 0 ? year - 1 : year, month === 0 ? 11 : month - 1, d),
+        dateString: toDateString(
+          month === 0 ? year - 1 : year,
+          month === 0 ? 11 : month - 1,
+          d,
+        ),
         dayNum: d,
         isCurrentMonth: false,
       });
@@ -187,7 +208,11 @@ export default function CalendarioActoresPage() {
     const remaining = totalSlots % 7 === 0 ? 0 : 7 - (totalSlots % 7);
     for (let d = 1; d <= remaining; d++) {
       cells.push({
-        dateString: toDateString(month === 11 ? year + 1 : year, month === 11 ? 0 : month + 1, d),
+        dateString: toDateString(
+          month === 11 ? year + 1 : year,
+          month === 11 ? 0 : month + 1,
+          d,
+        ),
         dayNum: d,
         isCurrentMonth: false,
       });
@@ -199,7 +224,8 @@ export default function CalendarioActoresPage() {
   function openCreate() {
     setEditingId(null);
     const initialActor = actors.length > 0 ? actors[0].name : "Elenco General";
-    const initialChar = actors.length > 0 ? actors[0].characterName : "Personaje General";
+    const initialChar =
+      actors.length > 0 ? actors[0].characterName : "Personaje General";
     setForm({
       ...EMPTY_SCHEDULE,
       actorName: initialActor,
@@ -245,7 +271,7 @@ export default function CalendarioActoresPage() {
       (a) =>
         a._id === (form as any).actorId ||
         getSlug(a.name) === targetSlug ||
-        a.name.toLowerCase().trim() === actorName.toLowerCase().trim()
+        a.name.toLowerCase().trim() === actorName.toLowerCase().trim(),
     );
     const shareToken = matchedActor?.shareToken || targetSlug;
 
@@ -253,7 +279,10 @@ export default function CalendarioActoresPage() {
       ...form,
       title,
       actorName,
-      characterName: form.characterName.trim() || matchedActor?.characterName || "Personaje General",
+      characterName:
+        form.characterName.trim() ||
+        matchedActor?.characterName ||
+        "Personaje General",
       actorId: matchedActor?._id,
       shareToken,
     };
@@ -288,7 +317,7 @@ export default function CalendarioActoresPage() {
       const matched = actors.find(
         (a) =>
           getSlug(a.name) === targetSlug ||
-          a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim()
+          a.name.toLowerCase().trim() === ev.actorName.toLowerCase().trim(),
       );
       if (matched) return getSlug(matched.name);
       return targetSlug;
@@ -312,7 +341,7 @@ export default function CalendarioActoresPage() {
         getSlug(a.name) === targetSlug ||
         a.name.toLowerCase().trim() === target.toLowerCase().trim() ||
         a.shareToken === target ||
-        a._id === target
+        a._id === target,
     );
 
     const slug = matched ? getSlug(matched.name) : targetSlug;
@@ -338,7 +367,9 @@ export default function CalendarioActoresPage() {
         {/* Toolbar & Actor Share links */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-xl border border-grayscale-3 bg-grayscale-2 p-4 dark:border-grayscale-4 overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full lg:w-auto min-w-0">
-            <span className="text-xs font-mono font-bold uppercase text-grayscale-10 shrink-0">Filtrar por Actor:</span>
+            <span className="text-xs font-mono font-bold uppercase text-grayscale-10 shrink-0">
+              Filtrar por Actor:
+            </span>
             <select
               value={selectedActorFilter}
               onChange={(e) => setSelectedActorFilter(e.target.value)}
@@ -401,7 +432,11 @@ export default function CalendarioActoresPage() {
               )}
             </button>
 
-            <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" onClick={openCreate}>
+            <Button
+              variant="primary"
+              className="w-full sm:w-auto text-xs justify-center"
+              onClick={openCreate}
+            >
               <PlusIcon size={14} weight="bold" />
               Agendar Llamado
             </Button>
@@ -418,7 +453,11 @@ export default function CalendarioActoresPage() {
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setMonth((m) => (m === 0 ? (setYear((y) => y - 1), 11) : m - 1))}
+                  onClick={() =>
+                    setMonth((m) =>
+                      m === 0 ? (setYear((y) => y - 1), 11) : m - 1,
+                    )
+                  }
                   className="flex size-7 cursor-pointer items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-11 hover:bg-grayscale-3"
                 >
                   <CaretLeftIcon size={14} />
@@ -429,7 +468,13 @@ export default function CalendarioActoresPage() {
                     const today = new Date();
                     setYear(today.getFullYear());
                     setMonth(today.getMonth());
-                    setSelectedDate(toDateString(today.getFullYear(), today.getMonth(), today.getDate()));
+                    setSelectedDate(
+                      toDateString(
+                        today.getFullYear(),
+                        today.getMonth(),
+                        today.getDate(),
+                      ),
+                    );
                   }}
                   className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1 text-xs font-mono font-medium uppercase text-grayscale-11 hover:bg-grayscale-3"
                 >
@@ -437,7 +482,11 @@ export default function CalendarioActoresPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMonth((m) => (m === 11 ? (setYear((y) => y + 1), 0) : m + 1))}
+                  onClick={() =>
+                    setMonth((m) =>
+                      m === 11 ? (setYear((y) => y + 1), 0) : m + 1,
+                    )
+                  }
                   className="flex size-7 cursor-pointer items-center justify-center rounded-lg border border-grayscale-3 bg-grayscale-1 text-grayscale-11 hover:bg-grayscale-3"
                 >
                   <CaretRightIcon size={14} />
@@ -455,7 +504,12 @@ export default function CalendarioActoresPage() {
                 {calendarCells.map(({ dateString, dayNum, isCurrentMonth }) => {
                   const dayEvents = eventsByDate[dateString] || [];
                   const isSelected = selectedDate === dateString;
-                  const isToday = toDateString(now.getFullYear(), now.getMonth(), now.getDate()) === dateString;
+                  const isToday =
+                    toDateString(
+                      now.getFullYear(),
+                      now.getMonth(),
+                      now.getDate(),
+                    ) === dateString;
 
                   return (
                     <button
@@ -469,13 +523,19 @@ export default function CalendarioActoresPage() {
                             ? "border-accent-7 bg-accent-2/10 shadow-sm"
                             : "border-transparent bg-grayscale-1 hover:border-grayscale-4 dark:bg-grayscale-3"
                           : "border-transparent bg-grayscale-2/40 text-grayscale-7 hover:border-grayscale-3 dark:bg-grayscale-3/20 dark:text-grayscale-9",
-                        isToday && !isSelected && "ring-1 ring-accent-9/50 bg-accent-2/5"
+                        isToday &&
+                          !isSelected &&
+                          "ring-1 ring-accent-9/50 bg-accent-2/5",
                       )}
                     >
-                      <span className={cn(
-                        "font-mono text-xs font-bold leading-none p-0.5 rounded",
-                        isToday ? "text-accent-9 bg-accent-2/20 font-bold" : "text-grayscale-11"
-                      )}>
+                      <span
+                        className={cn(
+                          "font-mono text-xs font-bold leading-none p-0.5 rounded",
+                          isToday
+                            ? "text-accent-9 bg-accent-2/20 font-bold"
+                            : "text-grayscale-11",
+                        )}
+                      >
                         {dayNum}
                       </span>
                       <div className="flex flex-col gap-1 mt-auto w-full overflow-hidden">
@@ -521,15 +581,22 @@ export default function CalendarioActoresPage() {
                       Citación: {format12Hour(ev.callTime)}
                     </span>
                     <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-11 dark:text-emerald-400 bg-emerald-2/60 dark:bg-emerald-9/20 border border-emerald-4/30 px-2 py-0.5 rounded-md">
-                      {STATUS_BADGE[ev.status as "scheduled"]?.label || ev.status}
+                      {STATUS_BADGE[ev.status as "scheduled"]?.label ||
+                        ev.status}
                     </span>
                   </div>
 
                   <div className="flex flex-col gap-0.5">
-                    <h4 className="text-sm font-bold text-grayscale-12 tracking-tight">{ev.title}</h4>
+                    <h4 className="text-sm font-bold text-grayscale-12 tracking-tight">
+                      {ev.title}
+                    </h4>
                     <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
-                      <span className="font-bold text-grayscale-12">{ev.actorName}</span>
-                      <span className="text-accent-10 dark:text-accent-9 font-semibold">({ev.characterName})</span>
+                      <span className="font-bold text-grayscale-12">
+                        {ev.actorName}
+                      </span>
+                      <span className="text-accent-10 dark:text-accent-9 font-semibold">
+                        ({ev.characterName})
+                      </span>
                     </div>
                   </div>
 
@@ -552,7 +619,9 @@ export default function CalendarioActoresPage() {
                       className="text-[11px] font-mono text-accent-9 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <CopyIcon size={13} />
-                      {copiedToken === getSlug(getActorShareToken(ev)) ? "¡Enlace copiado!" : "Copiar enlace del actor"}
+                      {copiedToken === getSlug(getActorShareToken(ev))
+                        ? "¡Enlace copiado!"
+                        : "Copiar enlace del actor"}
                     </button>
 
                     <div className="flex items-center gap-1">
@@ -577,9 +646,16 @@ export default function CalendarioActoresPage() {
 
               {selectedDayEvents.length === 0 && (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-grayscale-3 py-16 text-center dark:border-grayscale-4">
-                  <CalendarCheckIcon size={36} className="text-grayscale-8 mb-2" />
-                  <p className="text-xs font-mono uppercase font-bold text-grayscale-8">Sin rodajes programados</p>
-                  <p className="text-[11px] text-grayscale-9 mt-1">No hay llamados de actores registrados para esta fecha.</p>
+                  <CalendarCheckIcon
+                    size={36}
+                    className="text-grayscale-8 mb-2"
+                  />
+                  <p className="text-xs font-mono uppercase font-bold text-grayscale-8">
+                    Sin rodajes programados
+                  </p>
+                  <p className="text-[11px] text-grayscale-9 mt-1">
+                    No hay llamados de actores registrados para esta fecha.
+                  </p>
                 </div>
               )}
             </div>
@@ -590,7 +666,9 @@ export default function CalendarioActoresPage() {
         <Modal
           open={modalOpen}
           onOpenChange={setModalOpen}
-          title={editingId ? "Editar Llamado de Rodaje" : "Agendar Llamado de Actor"}
+          title={
+            editingId ? "Editar Llamado de Rodaje" : "Agendar Llamado de Actor"
+          }
         >
           <form
             onSubmit={(e) => {
@@ -603,7 +681,9 @@ export default function CalendarioActoresPage() {
               label="Título del Llamado / Escena"
               id="sch-title"
               value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }
               placeholder="Ej: Grabación Escena 3: Interrogatorio Central"
               required
             />
@@ -615,8 +695,11 @@ export default function CalendarioActoresPage() {
                 value={form.actorName}
                 onChange={(e) => {
                   const val = e.target.value;
-                  const actorChars = actors.filter((a) => a.name === val).map((a) => a.characterName);
-                  const newChar = actorChars.length > 0 ? actorChars[0] : form.characterName;
+                  const actorChars = actors
+                    .filter((a) => a.name === val)
+                    .map((a) => a.characterName);
+                  const newChar =
+                    actorChars.length > 0 ? actorChars[0] : form.characterName;
                   setForm((f) => ({
                     ...f,
                     actorName: val,
@@ -648,14 +731,18 @@ export default function CalendarioActoresPage() {
                 id="sch-date"
                 type="date"
                 value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, date: e.target.value }))
+                }
                 required
               />
               <Select
                 label="Estado del Llamado"
                 id="sch-status"
                 value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as any }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, status: e.target.value as any }))
+                }
                 options={[
                   { value: "scheduled", label: "Programado" },
                   { value: "filmed", label: "Grabado / Completado" },
@@ -671,7 +758,9 @@ export default function CalendarioActoresPage() {
                 id="sch-call"
                 type="time"
                 value={form.callTime}
-                onChange={(e) => setForm((f) => ({ ...f, callTime: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, callTime: e.target.value }))
+                }
                 required
               />
               <Input
@@ -679,7 +768,9 @@ export default function CalendarioActoresPage() {
                 id="sch-end"
                 type="time"
                 value={form.endTime}
-                onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, endTime: e.target.value }))
+                }
                 required
               />
             </div>
@@ -688,7 +779,9 @@ export default function CalendarioActoresPage() {
               label="Locación / Set de Grabación"
               id="sch-loc"
               value={form.location}
-              onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, location: e.target.value }))
+              }
               placeholder="Ej: Foro A (San José) o Locación Exterior"
               required
             />
@@ -697,7 +790,9 @@ export default function CalendarioActoresPage() {
               label="Detalles de la Escena / Requerimientos de Vestuario"
               id="sch-details"
               value={form.sceneDetails}
-              onChange={(e) => setForm((f) => ({ ...f, sceneDetails: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, sceneDetails: e.target.value }))
+              }
               placeholder="Notas de vestuario, props o especificaciones para el actor..."
             />
 
@@ -710,7 +805,11 @@ export default function CalendarioActoresPage() {
               >
                 Cancelar
               </Button>
-              <Button variant="primary" className="w-full sm:w-auto text-xs justify-center" type="submit">
+              <Button
+                variant="primary"
+                className="w-full sm:w-auto text-xs justify-center"
+                type="submit"
+              >
                 {editingId ? "Guardar Cambios" : "Agendar Rodaje"}
               </Button>
             </div>
@@ -725,7 +824,9 @@ export default function CalendarioActoresPage() {
         >
           <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-1">
             <p className="text-xs text-grayscale-10">
-              Cada actor dispone de una ruta única e individual para acceder a su dossier y agenda de citaciones pendientes. Puedes copiar o compartir sus enlaces directos:
+              Cada actor dispone de una ruta única e individual para acceder a
+              su dossier y agenda de citaciones pendientes. Puedes copiar o
+              compartir sus enlaces directos:
             </p>
 
             <div className="flex flex-col gap-2.5">
@@ -736,7 +837,9 @@ export default function CalendarioActoresPage() {
                     ALL
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-grayscale-12">Agenda General (Todos los Actores)</span>
+                    <span className="text-xs font-bold text-grayscale-12">
+                      Agenda General (Todos los Actores)
+                    </span>
                     <span className="text-[10px] font-mono text-grayscale-9 truncate">
                       /calendario-actores/public/general
                     </span>
@@ -773,7 +876,8 @@ export default function CalendarioActoresPage() {
 
               {/* Actor Rows */}
               {actors.map((actor) => {
-                const token = getSlug(actor.name) || actor.shareToken || "general";
+                const token =
+                  getSlug(actor.name) || actor.shareToken || "general";
                 const isCopied = copiedToken === token;
                 return (
                   <div
@@ -783,7 +887,11 @@ export default function CalendarioActoresPage() {
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="relative size-10 shrink-0 overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3 border border-grayscale-3 dark:border-grayscale-4">
                         {actor.photoUrl ? (
-                          <img src={actor.photoUrl} alt={actor.name} className="size-full object-cover object-center" />
+                          <img
+                            src={actor.photoUrl}
+                            alt={actor.name}
+                            className="size-full object-cover object-center"
+                          />
                         ) : (
                           <div className="flex size-full items-center justify-center font-mono text-xs font-bold text-accent-10 bg-accent-2/40">
                             {actor.name.slice(0, 2).toUpperCase()}
@@ -792,7 +900,9 @@ export default function CalendarioActoresPage() {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-extrabold text-grayscale-12 truncate">{actor.name}</span>
+                          <span className="text-xs font-extrabold text-grayscale-12 truncate">
+                            {actor.name}
+                          </span>
                           <span className="text-[10px] font-mono font-bold text-accent-10 dark:text-accent-9">
                             ({actor.characterName})
                           </span>
@@ -811,7 +921,10 @@ export default function CalendarioActoresPage() {
                       >
                         {isCopied ? (
                           <>
-                            <CheckCircleIcon size={14} className="text-green-9" />
+                            <CheckCircleIcon
+                              size={14}
+                              className="text-green-9"
+                            />
                             <span>¡Copiado!</span>
                           </>
                         ) : (

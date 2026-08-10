@@ -22,7 +22,10 @@ import {
 import { useState } from "react";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
+
+import ConfirmModal from "@/components/public/ConfirmModal";
 import DataTable, { type Column } from "@/components/public/DataTable";
+
 import EmptyState from "@/components/public/EmptyState";
 import Input from "@/components/public/Input";
 import Modal from "@/components/public/Modal";
@@ -302,6 +305,7 @@ export default function PersonalPage() {
   // Casting Lead Modal State
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
+  const [leadToDeleteId, setLeadToDeleteId] = useState<string | null>(null);
   const [leadForm, setLeadForm] = useState(EMPTY_LEAD);
 
   // Ficha Personaje Modal State
@@ -518,9 +522,7 @@ export default function PersonalPage() {
   }
 
   function handleDeleteLead(id: string) {
-    if (confirm("¿Estás seguro de eliminar a esta persona interesada?")) {
-      removeCastingLead({ id: id as any });
-    }
+    setLeadToDeleteId(id);
   }
 
   const empColumns: Column<any>[] = [
@@ -564,7 +566,9 @@ export default function PersonalPage() {
         const bday = getBirthdayInfo(e.birthDate);
         if (!bday) {
           return (
-            <span className="text-xs text-grayscale-8 italic">No registrado</span>
+            <span className="text-xs text-grayscale-8 italic">
+              No registrado
+            </span>
           );
         }
         return (
@@ -588,7 +592,7 @@ export default function PersonalPage() {
                   bday.daysRemaining <= 30 &&
                   "bg-sky-3 text-sky-11 border-sky-5 dark:bg-sky-4/30",
                 bday.daysRemaining > 30 &&
-                  "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11"
+                  "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11",
               )}
             >
               {bday.badgeText}
@@ -811,7 +815,8 @@ export default function PersonalPage() {
                       {person.role}
                     </span>
                     <span className="font-mono text-[10px] font-bold text-accent-11 dark:text-accent-9 mt-0.5">
-                      {person.info?.dayMonthFormatted} ({person.info?.badgeText})
+                      {person.info?.dayMonthFormatted} ({person.info?.badgeText}
+                      )
                     </span>
                   </div>
                 </div>
@@ -990,8 +995,13 @@ export default function PersonalPage() {
                           return (
                             <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] bg-grayscale-2/80 dark:bg-grayscale-3/60 px-2 py-1 rounded-lg border border-grayscale-3/60 dark:border-grayscale-4/60">
                               <div className="flex items-center gap-1 text-grayscale-11 font-mono text-[10px] truncate">
-                                <CakeIcon size={12} className="text-amber-500 shrink-0" />
-                                <span className="truncate">{bday.dayMonthFormatted} ({bday.currentAge}a)</span>
+                                <CakeIcon
+                                  size={12}
+                                  className="text-amber-500 shrink-0"
+                                />
+                                <span className="truncate">
+                                  {bday.dayMonthFormatted} ({bday.currentAge}a)
+                                </span>
                               </div>
                               <span
                                 className={cn(
@@ -1005,7 +1015,7 @@ export default function PersonalPage() {
                                     bday.daysRemaining <= 30 &&
                                     "bg-sky-3 text-sky-11 border-sky-5 dark:bg-sky-4/30",
                                   bday.daysRemaining > 30 &&
-                                    "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11"
+                                    "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11",
                                 )}
                               >
                                 {bday.badgeText}
@@ -1160,7 +1170,9 @@ export default function PersonalPage() {
                             />
                           ) : (
                             <div className="flex size-full items-center justify-center font-mono text-xs sm:text-sm font-bold text-accent-11 bg-accent-3">
-                              {(lead.name || "Persona").slice(0, 2).toUpperCase()}
+                              {(lead.name || "Persona")
+                                .slice(0, 2)
+                                .toUpperCase()}
                             </div>
                           )}
                         </div>
@@ -1169,14 +1181,25 @@ export default function PersonalPage() {
                             {lead.name || "Persona interesada"}
                           </span>
                           <a
-                            href={lead.phone ? getWhatsAppLink(lead.phone) : "#"}
+                            href={
+                              lead.phone ? getWhatsAppLink(lead.phone) : "#"
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-[10px] sm:text-xs text-grayscale-10 font-mono hover:text-green-11 hover:underline transition-colors group/wa"
-                            title={lead.phone ? "Abrir chat de WhatsApp" : "Sin teléfono registrado"}
+                            title={
+                              lead.phone
+                                ? "Abrir chat de WhatsApp"
+                                : "Sin teléfono registrado"
+                            }
                           >
-                            <PhoneIcon size={11} className="text-accent-9 group-hover/wa:text-green-11 shrink-0 transition-colors" />
-                            <span className="truncate">{lead.phone || "Sin teléfono"}</span>
+                            <PhoneIcon
+                              size={11}
+                              className="text-accent-9 group-hover/wa:text-green-11 shrink-0 transition-colors"
+                            />
+                            <span className="truncate">
+                              {lead.phone || "Sin teléfono"}
+                            </span>
                           </a>
                         </div>
                       </div>
@@ -1197,8 +1220,13 @@ export default function PersonalPage() {
                         return (
                           <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] bg-grayscale-2/80 dark:bg-grayscale-3/60 px-2 py-1 rounded-lg border border-grayscale-3/60 dark:border-grayscale-4/60">
                             <div className="flex items-center gap-1 text-grayscale-11 font-mono text-[10px] truncate">
-                              <CakeIcon size={12} className="text-amber-500 shrink-0" />
-                              <span className="truncate">{bday.dayMonthFormatted} ({bday.currentAge}a)</span>
+                              <CakeIcon
+                                size={12}
+                                className="text-amber-500 shrink-0"
+                              />
+                              <span className="truncate">
+                                {bday.dayMonthFormatted} ({bday.currentAge}a)
+                              </span>
                             </div>
                             <span
                               className={cn(
@@ -1212,7 +1240,7 @@ export default function PersonalPage() {
                                   bday.daysRemaining <= 30 &&
                                   "bg-sky-3 text-sky-11 border-sky-5 dark:bg-sky-4/30",
                                 bday.daysRemaining > 30 &&
-                                  "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11"
+                                  "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11",
                               )}
                             >
                               {bday.badgeText}
@@ -1912,10 +1940,14 @@ export default function PersonalPage() {
                     if (!bday) return null;
                     return (
                       <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-11 dark:text-amber-9 mt-1">
-                        <CakeIcon size={22} className="shrink-0 text-amber-500" />
+                        <CakeIcon
+                          size={22}
+                          className="shrink-0 text-amber-500"
+                        />
                         <div className="flex flex-col text-xs font-mono">
                           <span className="font-bold text-grayscale-12">
-                            Cumpleaños: {bday.birthDateFormatted} ({bday.currentAge} años)
+                            Cumpleaños: {bday.birthDateFormatted} (
+                            {bday.currentAge} años)
                           </span>
                           <span className="text-[11px] text-amber-11 dark:text-amber-9 font-semibold">
                             {bday.detailText}
@@ -1960,6 +1992,21 @@ export default function PersonalPage() {
             </div>
           </Modal>
         )}
+        {/* Confirm Delete Lead Modal */}
+
+        <ConfirmModal
+          open={!!leadToDeleteId}
+          onOpenChange={(open) => !open && setLeadToDeleteId(null)}
+          title="¿Eliminar Interesado?"
+          description="¿Estás seguro de que deseas eliminar a esta persona interesada? Esta acción no se puede deshacer."
+          confirmText="Eliminar Persona"
+          onConfirm={async () => {
+            if (leadToDeleteId) {
+              await removeCastingLead({ id: leadToDeleteId as any });
+              setLeadToDeleteId(null);
+            }
+          }}
+        />
       </div>
     </PageContainer>
   );

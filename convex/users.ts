@@ -22,7 +22,7 @@ export const create = mutation({
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
-    
+
     if (existing) {
       throw new Error("El usuario ya existe");
     }
