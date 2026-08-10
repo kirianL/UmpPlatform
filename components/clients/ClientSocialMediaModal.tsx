@@ -1434,14 +1434,22 @@ export default function ClientSocialMediaModal({
             </div>
           </Tabs.Panel>
 
-          {/* TAB 4: PDF REPORT GENERATOR */}
+          {/* TAB 4: PDF REPORT GENERATOR (EN CONSTRUCCIÓN) */}
           <Tabs.Panel
             value="report"
             keepMounted={false}
-            className="mt-4 flex-1 overflow-y-auto min-h-0 pr-1 space-y-4 font-sans"
+            className="mt-4 flex-1 flex flex-col items-center justify-center p-12 text-center font-sans min-h-[220px]"
           >
-            {/* DOWNLOAD & SUMMARY */}
-            <SocialMediaReportPdf data={reportData} />
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <PrinterIcon
+                size={44}
+                weight="duotone"
+                className="text-amber-9"
+              />
+              <span className="inline-block px-3 py-1 rounded-full bg-amber-3 text-amber-11 dark:bg-amber-9/20 dark:text-amber-9 text-xs font-mono font-bold uppercase tracking-wider">
+                Módulo en construcción
+              </span>
+            </div>
           </Tabs.Panel>
         </Tabs.Root>
       </div>
