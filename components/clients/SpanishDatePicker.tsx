@@ -68,19 +68,18 @@ export default function SpanishDatePicker({
   };
 
   const handleOpenPicker = () => {
-    if (hiddenInputRef.current) {
-      if ("showPicker" in hiddenInputRef.current) {
+    const inputEl = hiddenInputRef.current as
+      | (HTMLInputElement & { showPicker?: () => void })
+      | null;
+    if (inputEl) {
+      if (typeof inputEl.showPicker === "function") {
         try {
-          (
-            hiddenInputRef.current as HTMLInputElement & {
-              showPicker: () => void;
-            }
-          ).showPicker();
+          inputEl.showPicker();
         } catch {
-          hiddenInputRef.current.click();
+          inputEl.click();
         }
       } else {
-        hiddenInputRef.current.click();
+        inputEl.click();
       }
     }
   };
