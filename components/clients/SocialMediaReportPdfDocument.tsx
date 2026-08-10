@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatDateDDMMYYYY } from "@/helpers/date-format";
 
 // Re-export for backwards compatibility
@@ -23,6 +23,7 @@ export interface ReportData {
   clientName: string;
   companyName: string;
   email?: string;
+  logoUrl?: string;
   monthYear: string;
   targetPosts: number;
   publishedPosts: number;
@@ -105,6 +106,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+  },
+  clientLogoContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#ffffff",
+    padding: 2,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  clientLogo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
   },
   clientCol: {
     flexDirection: "column",
@@ -333,13 +352,20 @@ export default function SocialMediaReportPdfDocument({
 
         {/* CLIENT BANNER */}
         <View style={styles.clientBanner}>
-          <View style={styles.clientCol}>
-            <Text style={styles.sectionLabel}>Cliente / Empresa</Text>
-            <Text style={styles.clientName}>{data.companyName}</Text>
-            <Text style={styles.clientSub}>{data.clientName}</Text>
-            {data.email ? (
-              <Text style={styles.clientSub}>{data.email}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {data.logoUrl ? (
+              <View style={styles.clientLogoContainer}>
+                <Image src={data.logoUrl} style={styles.clientLogo} />
+              </View>
             ) : null}
+            <View style={styles.clientCol}>
+              <Text style={styles.sectionLabel}>Cliente / Empresa</Text>
+              <Text style={styles.clientName}>{data.companyName}</Text>
+              <Text style={styles.clientSub}>{data.clientName}</Text>
+              {data.email ? (
+                <Text style={styles.clientSub}>{data.email}</Text>
+              ) : null}
+            </View>
           </View>
           <View style={[styles.clientCol, { alignItems: "flex-end" }]}>
             <Text style={styles.sectionLabel}>Servicio Contratado</Text>

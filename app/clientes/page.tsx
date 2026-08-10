@@ -13,11 +13,13 @@ import {
   ReceiptIcon,
   ShareNetworkIcon,
   TrashIcon,
+  UploadSimpleIcon,
   UserPlusIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 
+import ClientLogo from "@/components/clients/ClientLogo";
 import ClientSocialMediaModal from "@/components/clients/ClientSocialMediaModal";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
@@ -74,6 +76,7 @@ const EMPTY_CLIENT = {
   lastInteraction: new Date().toISOString().slice(0, 10),
   projectCount: 0,
   notes: "",
+  logoUrl: "",
 };
 
 const EMPTY_INITIAL_SERVICE = {
@@ -221,6 +224,7 @@ export default function ClientesPage() {
         c.lastInteraction || new Date().toISOString().slice(0, 10),
       projectCount: c.projectCount || 0,
       notes: c.notes || "",
+      logoUrl: c.logoUrl || "",
     });
     setInitialService(EMPTY_INITIAL_SERVICE);
     setModalOpen(true);
@@ -229,13 +233,18 @@ export default function ClientesPage() {
   async function handleSaveClient() {
     if (!form.name.trim()) return;
 
+    const payload = {
+      ...form,
+      logoUrl: form.logoUrl.trim() ? form.logoUrl.trim() : undefined,
+    };
+
     if (editingId) {
       await updateClient({
         id: editingId as any,
-        ...form,
+        ...payload,
       });
     } else {
-      const newClientId = await createClient(form);
+      const newClientId = await createClient(payload);
       if (initialService.serviceName.trim() && newClientId) {
         await createService({
           clientId: newClientId,
@@ -387,18 +396,26 @@ export default function ClientesPage() {
       key: "name",
       header: "Cliente / empresa",
       render: (c) => (
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-grayscale-12 truncate">
-              {c.name}
+        <div className="flex items-center gap-3 min-w-0">
+          <ClientLogo
+            logoUrl={c.logoUrl}
+            company={c.company}
+            name={c.name}
+            size="md"
+          />
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-grayscale-12 truncate">
+                {c.name}
+              </span>
+              <Badge variant={c.type === "potencial" ? "accent" : "gray"}>
+                {c.type === "potencial" ? "Potencial" : "Activo"}
+              </Badge>
+            </div>
+            <span className="text-xs text-grayscale-9 font-medium truncate">
+              {c.company}
             </span>
-            <Badge variant={c.type === "potencial" ? "accent" : "gray"}>
-              {c.type === "potencial" ? "Potencial" : "Activo"}
-            </Badge>
           </div>
-          <span className="text-xs text-grayscale-9 font-medium">
-            {c.company}
-          </span>
         </div>
       ),
     },
@@ -732,6 +749,68 @@ export default function ClientesPage() {
             }}
             className="flex flex-col gap-4"
           >
+            {/* Logo de la empresa */}
+            <div className="flex flex-col gap-2 rounded-xl border border-grayscale-4 bg-grayscale-2/60 p-3.5 dark:border-grayscale-5 dark:bg-grayscale-3/40">
+              <span className="text-xs font-bold text-grayscale-12 font-mono uppercase">
+                Logo de la empresa (opcional)
+              </span>
+              <div className="flex items-center gap-3.5">
+                <ClientLogo
+                  logoUrl={form.logoUrl}
+                  company={form.company}
+                  name={form.name}
+                  size="lg"
+                />
+                <div className="flex flex-1 flex-col gap-2 min-w-0">
+                  <Input
+                    label="URL del logo"
+                    id="client-logoUrl"
+                    value={form.logoUrl}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, logoUrl: e.target.value }))
+                    }
+                    placeholder="https://ejemplo.com/logo.png"
+                  />
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-grayscale-4 bg-grayscale-1 px-2.5 py-1 text-xs font-medium text-grayscale-11 transition-colors hover:bg-grayscale-3 hover:text-grayscale-12 dark:border-grayscale-5 dark:bg-grayscale-3 dark:hover:bg-grayscale-4">
+                      <UploadSimpleIcon size={14} />
+                      <span>Subir imagen local</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === "string") {
+                                setForm((f) => ({
+                                  ...f,
+                                  logoUrl: reader.result as string,
+                                }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    {form.logoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, logoUrl: "" }))}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-11 transition-colors hover:bg-red-3"
+                      >
+                        <TrashIcon size={13} />
+                        <span>Quitar logo</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="Nombre del cliente"

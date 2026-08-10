@@ -54,6 +54,7 @@ export default defineSchema({
     lastInteraction: v.string(), // ISO format
     projectCount: v.number(),
     notes: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
   }),
   clientServices: defineTable({
     clientId: v.id("clients"),

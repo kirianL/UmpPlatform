@@ -40,6 +40,7 @@ import { formatDateDDMMYYYY } from "@/helpers/date-format";
 const SocialMediaReportPdf = dynamic(() => import("./SocialMediaReportPdf"), {
   ssr: false,
 });
+import ClientLogo from "./ClientLogo";
 import SpanishDatePicker from "./SpanishDatePicker";
 import VaultSecurityGate from "./VaultSecurityGate";
 
@@ -56,6 +57,7 @@ interface ClientSocialMediaModalProps {
     name: string;
     company: string;
     email: string;
+    logoUrl?: string;
   } | null;
   defaultTab?: "overview" | "credentials" | "calendar" | "report";
 }
@@ -459,6 +461,7 @@ export default function ClientSocialMediaModal({
       clientName: client?.name ?? "",
       companyName: client?.company ?? "",
       email: client?.email ?? "",
+      logoUrl: client?.logoUrl,
       monthYear: monthName,
 
       targetPosts: goalTargets.targetPosts,
@@ -505,47 +508,55 @@ export default function ClientSocialMediaModal({
       <div className="flex flex-col h-full space-y-4">
         {/* TOP CONTROLS: MONTH PICKER & ACTION BUTTONS */}
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-grayscale-3 pb-3 dark:border-grayscale-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase text-grayscale-10">
-              Periodo:
-            </span>
-            <div className="flex items-center gap-1 rounded-lg border border-grayscale-3 bg-grayscale-2 px-2 py-1 text-xs font-mono text-grayscale-12 dark:border-grayscale-4 dark:bg-grayscale-3">
-              <select
-                value={selectedMonth.split("-")[1] || "01"}
-                onChange={(e) => {
-                  const year = selectedMonth.split("-")[0] || "2026";
-                  setSelectedMonth(`${year}-${e.target.value}`);
-                }}
-                className="bg-transparent font-mono text-xs font-bold text-grayscale-12 outline-none cursor-pointer"
-              >
-                {SPANISH_MONTHS.map((m) => (
-                  <option
-                    key={m.value}
-                    value={m.value}
-                    className="bg-grayscale-1 text-grayscale-12 dark:bg-grayscale-3"
-                  >
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedMonth.split("-")[0] || "2026"}
-                onChange={(e) => {
-                  const month = selectedMonth.split("-")[1] || "08";
-                  setSelectedMonth(`${e.target.value}-${month}`);
-                }}
-                className="bg-transparent font-mono text-xs font-bold text-grayscale-12 outline-none cursor-pointer"
-              >
-                {[2024, 2025, 2026, 2027, 2028].map((y) => (
-                  <option
-                    key={y}
-                    value={String(y)}
-                    className="bg-grayscale-1 text-grayscale-12 dark:bg-grayscale-3"
-                  >
-                    {y}
-                  </option>
-                ))}
-              </select>
+          <div className="flex items-center gap-3">
+            <ClientLogo
+              logoUrl={client.logoUrl}
+              company={client.company}
+              name={client.name}
+              size="sm"
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold uppercase text-grayscale-10">
+                Periodo:
+              </span>
+              <div className="flex items-center gap-1 rounded-lg border border-grayscale-3 bg-grayscale-2 px-2 py-1 text-xs font-mono text-grayscale-12 dark:border-grayscale-4 dark:bg-grayscale-3">
+                <select
+                  value={selectedMonth.split("-")[1] || "01"}
+                  onChange={(e) => {
+                    const year = selectedMonth.split("-")[0] || "2026";
+                    setSelectedMonth(`${year}-${e.target.value}`);
+                  }}
+                  className="bg-transparent font-mono text-xs font-bold text-grayscale-12 outline-none cursor-pointer"
+                >
+                  {SPANISH_MONTHS.map((m) => (
+                    <option
+                      key={m.value}
+                      value={m.value}
+                      className="bg-grayscale-1 text-grayscale-12 dark:bg-grayscale-3"
+                    >
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedMonth.split("-")[0] || "2026"}
+                  onChange={(e) => {
+                    const month = selectedMonth.split("-")[1] || "08";
+                    setSelectedMonth(`${e.target.value}-${month}`);
+                  }}
+                  className="bg-transparent font-mono text-xs font-bold text-grayscale-12 outline-none cursor-pointer"
+                >
+                  {[2024, 2025, 2026, 2027, 2028].map((y) => (
+                    <option
+                      key={y}
+                      value={String(y)}
+                      className="bg-grayscale-1 text-grayscale-12 dark:bg-grayscale-3"
+                    >
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 

@@ -19,6 +19,7 @@ export const create = mutation({
     lastInteraction: v.string(),
     projectCount: v.number(),
     notes: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("clients", {
@@ -40,6 +41,7 @@ export const update = mutation({
     lastInteraction: v.string(),
     projectCount: v.number(),
     notes: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);
