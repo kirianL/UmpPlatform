@@ -75,6 +75,32 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { href: "/personal", label: "Personal", Icon: UsersIcon },
+            { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
+            { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
+            { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
+            {
+              href: "/calendario",
+              label: "Calendario",
+              Icon: CalendarDotsIcon,
+            },
+          ].map(({ href, label, Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="small-shadow flex flex-col items-center gap-2 rounded-lg border border-grayscale-3 bg-grayscale-1 p-4 text-grayscale-10 transition-all duration-200 hover:border-accent-6 hover:bg-accent-2 hover:text-accent-11 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] transform-gpu dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:border-accent-6 dark:hover:bg-accent-3"
+            >
+              <Icon size={22} weight="duotone" />
+              <span className="text-xs font-mono font-medium uppercase">
+                {label}
+              </span>
+            </Link>
+          ))}
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -195,32 +221,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        </div>
-
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {[
-            { href: "/personal", label: "Personal", Icon: UsersIcon },
-            { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
-            { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
-            { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
-            {
-              href: "/calendario",
-              label: "Calendario",
-              Icon: CalendarDotsIcon,
-            },
-          ].map(({ href, label, Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="small-shadow flex flex-col items-center gap-2 rounded-lg border border-grayscale-3 bg-grayscale-1 p-4 text-grayscale-10 transition-all duration-200 hover:border-accent-6 hover:bg-accent-2 hover:text-accent-11 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] transform-gpu dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:border-accent-6 dark:hover:bg-accent-3"
-            >
-              <Icon size={22} weight="duotone" />
-              <span className="text-xs font-mono font-medium uppercase">
-                {label}
-              </span>
-            </Link>
-          ))}
         </div>
       </div>
     </PageContainer>
