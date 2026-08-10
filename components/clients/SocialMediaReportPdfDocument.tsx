@@ -40,6 +40,13 @@ export interface ReportData {
   notes?: string;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  planificado: "Planificado",
+  en_proceso: "En Proceso",
+  publicado: "Publicado",
+  cancelado: "Cancelado",
+};
+
 const styles = StyleSheet.create({
   page: {
     padding: 32,
@@ -351,7 +358,7 @@ export default function SocialMediaReportPdfDocument({
         <Text style={styles.sectionTitle}>Resumen Ejecutivo de Contenido</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Publicados</Text>
+            <Text style={styles.statLabel}>Publicaciones Totales</Text>
             <Text style={styles.statValue}>{data.publishedPosts}</Text>
             <Text style={styles.statTarget}>Meta: {data.targetPosts}</Text>
           </View>
@@ -363,7 +370,7 @@ export default function SocialMediaReportPdfDocument({
             </Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Carruseles & Posts</Text>
+            <Text style={styles.statLabel}>Carruseles & Imágenes</Text>
             <Text style={styles.statValue}>{data.publishedCarousels ?? 0}</Text>
             <Text style={styles.statTarget}>
               Meta: {data.targetCarousels ?? "-"}
@@ -488,7 +495,7 @@ export default function SocialMediaReportPdfDocument({
                           : styles.badgeOther
                     }
                   >
-                    {p.status}
+                    {STATUS_LABELS[p.status] || p.status.replace(/_/g, " ")}
                   </Text>
                 </View>
               </View>

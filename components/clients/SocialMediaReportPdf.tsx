@@ -97,7 +97,7 @@ export default function SocialMediaReportPdf({ data }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-grayscale-2 dark:bg-grayscale-3 border border-grayscale-3 dark:border-grayscale-4">
             <span className="text-[10px] font-mono uppercase text-grayscale-9 block">
-              Total Posts
+              Total Publicaciones
             </span>
             <span className="text-base font-bold font-mono text-grayscale-12">
               {data.publishedPosts} / {data.targetPosts}

@@ -44,12 +44,7 @@ import SpanishDatePicker from "./SpanishDatePicker";
 import VaultSecurityGate from "./VaultSecurityGate";
 
 type PlatformType =
-  | "instagram"
-  | "facebook"
-  | "tiktok"
-  | "youtube"
-  | "linkedin"
-  | "otro";
+  "instagram" | "facebook" | "tiktok" | "youtube" | "linkedin" | "otro";
 type ContentType = "reel" | "carousel" | "image" | "story" | "video" | "post";
 type StatusType = "planificado" | "en_proceso" | "publicado" | "cancelado";
 
@@ -80,7 +75,7 @@ const CONTENT_TYPES = [
   { value: "image", label: "Imagen" },
   { value: "story", label: "Historia" },
   { value: "video", label: "Video Largo" },
-  { value: "post", label: "Post General" },
+  { value: "post", label: "Publicación General" },
 ];
 
 const POST_STATUSES = [
@@ -179,26 +174,13 @@ export default function ClientSocialMediaModal({
   const [postForm, setPostForm] = useState({
     title: "",
     platform: "instagram" as
-      | "instagram"
-      | "facebook"
-      | "tiktok"
-      | "youtube"
-      | "linkedin"
-      | "otro",
+      "instagram" | "facebook" | "tiktok" | "youtube" | "linkedin" | "otro",
     contentType: "reel" as
-      | "reel"
-      | "carousel"
-      | "image"
-      | "story"
-      | "video"
-      | "post",
+      "reel" | "carousel" | "image" | "story" | "video" | "post",
     scheduledDate: new Date().toISOString().slice(0, 10),
     scheduledTime: "12:00",
     status: "planificado" as
-      | "planificado"
-      | "en_proceso"
-      | "publicado"
-      | "cancelado",
+      "planificado" | "en_proceso" | "publicado" | "cancelado",
     postUrl: "",
     caption: "",
     notes: "",
@@ -235,10 +217,10 @@ export default function ClientSocialMediaModal({
   }, [currentGoal]);
 
   const [goalForm, setGoalForm] = useState({
-    targetPosts: 12,
-    targetReels: 6,
-    targetStories: 15,
-    targetCarousels: 4,
+    targetPosts: 0,
+    targetReels: 0,
+    targetStories: 0,
+    targetCarousels: 0,
     notes: "",
   });
 
@@ -345,9 +327,7 @@ export default function ClientSocialMediaModal({
       url: credForm.url ? String(credForm.url).trim() : undefined,
       notes: credForm.notes ? String(credForm.notes).trim() : undefined,
       status: (credForm.status || "active") as
-        | "active"
-        | "needs_relogin"
-        | "inactive",
+        "active" | "needs_relogin" | "inactive",
     };
 
     if (editingCredId) {
@@ -428,10 +408,15 @@ export default function ClientSocialMediaModal({
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!client) return;
+    const computedSum =
+      Number(goalForm.targetReels) +
+      Number(goalForm.targetCarousels) +
+      Number(goalForm.targetStories);
+    const targetPosts = Math.max(Number(goalForm.targetPosts), computedSum);
     await setGoal({
       clientId: client._id,
       month: selectedMonth,
-      targetPosts: Number(goalForm.targetPosts),
+      targetPosts,
       targetReels: Number(goalForm.targetReels),
       targetStories: Number(goalForm.targetStories),
       targetCarousels: Number(goalForm.targetCarousels),
@@ -617,21 +602,21 @@ export default function ClientSocialMediaModal({
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
               <div className="rounded-xl border border-grayscale-3 bg-grayscale-2 p-3.5 dark:border-grayscale-4 dark:bg-grayscale-3">
                 <span className="text-[10px] font-mono font-bold uppercase text-grayscale-9">
-                  Total Posts
+                  Total Publicaciones
                 </span>
                 <div className="mt-1 flex items-baseline justify-between">
                   <span className="text-xl font-bold font-mono text-grayscale-12">
                     {publishedPostsCount}
                   </span>
                   <span className="text-xs font-mono text-grayscale-9">
-                    Meta: {currentGoal?.targetPosts ?? 12}
+                    Meta: {goalTargets.targetPosts}
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 w-full bg-grayscale-3 rounded-full overflow-hidden dark:bg-grayscale-4">
                   <div
                     className="h-full bg-accent-9 rounded-full transition-all duration-300"
                     style={{
-                      width: `${Math.min(100, Math.round((publishedPostsCount / (currentGoal?.targetPosts ?? 12)) * 100))}%`,
+                      width: `${Math.min(100, Math.round((publishedPostsCount / (goalTargets.targetPosts || 1)) * 100))}%`,
                     }}
                   />
                 </div>
@@ -646,14 +631,14 @@ export default function ClientSocialMediaModal({
                     {publishedReelsCount}
                   </span>
                   <span className="text-xs font-mono text-grayscale-9">
-                    Meta: {currentGoal?.targetReels ?? 6}
+                    Meta: {goalTargets.targetReels}
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 w-full bg-grayscale-3 rounded-full overflow-hidden dark:bg-grayscale-4">
                   <div
                     className="h-full bg-red-9 rounded-full transition-all duration-300"
                     style={{
-                      width: `${Math.min(100, Math.round((publishedReelsCount / (currentGoal?.targetReels ?? 6)) * 100))}%`,
+                      width: `${Math.min(100, Math.round((publishedReelsCount / (goalTargets.targetReels || 1)) * 100))}%`,
                     }}
                   />
                 </div>
@@ -668,14 +653,14 @@ export default function ClientSocialMediaModal({
                     {publishedCarouselsCount}
                   </span>
                   <span className="text-xs font-mono text-grayscale-9">
-                    Meta: {currentGoal?.targetCarousels ?? 4}
+                    Meta: {goalTargets.targetCarousels}
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 w-full bg-grayscale-3 rounded-full overflow-hidden dark:bg-grayscale-4">
                   <div
                     className="h-full bg-violet-9 rounded-full transition-all duration-300"
                     style={{
-                      width: `${Math.min(100, Math.round((publishedCarouselsCount / (currentGoal?.targetCarousels ?? 4)) * 100))}%`,
+                      width: `${Math.min(100, Math.round((publishedCarouselsCount / (goalTargets.targetCarousels || 1)) * 100))}%`,
                     }}
                   />
                 </div>
@@ -690,14 +675,14 @@ export default function ClientSocialMediaModal({
                     {publishedStoriesCount}
                   </span>
                   <span className="text-xs font-mono text-grayscale-9">
-                    Meta: {currentGoal?.targetStories ?? 15}
+                    Meta: {goalTargets.targetStories}
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 w-full bg-grayscale-3 rounded-full overflow-hidden dark:bg-grayscale-4">
                   <div
                     className="h-full bg-orange-9 rounded-full transition-all duration-300"
                     style={{
-                      width: `${Math.min(100, Math.round((publishedStoriesCount / (currentGoal?.targetStories ?? 15)) * 100))}%`,
+                      width: `${Math.min(100, Math.round((publishedStoriesCount / (goalTargets.targetStories || 1)) * 100))}%`,
                     }}
                   />
                 </div>
@@ -717,10 +702,10 @@ export default function ClientSocialMediaModal({
                   className="px-2 py-1 text-xs"
                   onClick={() => {
                     setGoalForm({
-                      targetPosts: currentGoal?.targetPosts ?? 12,
-                      targetReels: currentGoal?.targetReels ?? 6,
-                      targetStories: currentGoal?.targetStories ?? 15,
-                      targetCarousels: currentGoal?.targetCarousels ?? 4,
+                      targetPosts: goalTargets.targetPosts,
+                      targetReels: goalTargets.targetReels,
+                      targetStories: goalTargets.targetStories,
+                      targetCarousels: goalTargets.targetCarousels,
                       notes: currentGoal?.notes ?? "",
                     });
                     setEditingGoal(!editingGoal);
@@ -738,7 +723,7 @@ export default function ClientSocialMediaModal({
                 >
                   <div>
                     <span className="text-[10px] font-mono uppercase text-grayscale-9 block mb-1">
-                      Total Meta (Posts)
+                      Meta Total (Publicaciones)
                     </span>
                     <Input
                       type="number"
@@ -753,7 +738,7 @@ export default function ClientSocialMediaModal({
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-grayscale-9 block mb-1">
-                      Target Reels
+                      Meta Reels / Shorts
                     </span>
                     <Input
                       type="number"
@@ -771,7 +756,7 @@ export default function ClientSocialMediaModal({
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-grayscale-9 block mb-1">
-                      Target Carruseles
+                      Meta Carruseles
                     </span>
                     <Input
                       type="number"
@@ -789,7 +774,7 @@ export default function ClientSocialMediaModal({
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-grayscale-9 block mb-1">
-                      Target Historias
+                      Meta Historias
                     </span>
                     <Input
                       type="number"
@@ -865,7 +850,8 @@ export default function ClientSocialMediaModal({
                           }
                           className="font-mono text-[10px] uppercase"
                         >
-                          {p.status}
+                          {POST_STATUSES.find((s) => s.value === p.status)
+                            ?.label || p.status.replace(/_/g, " ")}
                         </Badge>
                         {p.postUrl && (
                           <a
@@ -1395,7 +1381,7 @@ export default function ClientSocialMediaModal({
                           <button
                             type="button"
                             key={dp._id}
-                            title={`${dp.platform}: ${dp.title} (${dp.status})`}
+                            title={`${dp.platform}: ${dp.title} (${POST_STATUSES.find((s) => s.value === dp.status)?.label || dp.status})`}
                             onClick={() => {
                               setEditingPostId(dp._id);
                               setPostForm({
