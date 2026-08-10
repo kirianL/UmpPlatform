@@ -42,10 +42,13 @@ export default function LoginPage() {
     <div className="relative flex h-dvh w-screen flex-col justify-between overflow-hidden bg-grayscale-1 text-grayscale-12 p-6 font-sans">
       {/* Top Header Row */}
       <div className="flex items-center justify-center w-full animate-fade-in">
-        <div className="flex items-center gap-2">
-          <Logo iconSize={13} className="w-5 h-5 rounded-md" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-12">
-            UmpPlatform
+        <div className="flex items-center gap-1.5">
+          <Logo className="h-5 w-auto" />
+          <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+            |
+          </span>
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
+            Platform
           </span>
         </div>
       </div>

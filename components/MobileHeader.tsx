@@ -68,8 +68,11 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
             href={userRole === "produccion" ? "/inventario" : "/"}
             className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
           >
-            <Logo iconSize={14} className="w-5" />
-            UmpPlatform
+            <Logo className="h-4.5 w-auto" />
+            <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+              |
+            </span>
+            <span className="tracking-wider">Platform</span>
           </Link>
           <div className="flex items-center gap-2 text-grayscale-10">
             <MoonStarsIcon
@@ -93,9 +96,12 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
 
           {/* Top bar — logo + close */}
           <div className="flex items-center justify-between px-5 h-14 shrink-0 border-b border-grayscale-3 dark:border-grayscale-2">
-            <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase text-grayscale-12">
-              <Logo iconSize={16} className="w-6" />
-              UmpPlatform
+            <div className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12">
+              <Logo className="h-5 w-auto" />
+              <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+                |
+              </span>
+              <span className="tracking-wider">Platform</span>
             </div>
             <Dialog.Close
               aria-label="Close navigation"

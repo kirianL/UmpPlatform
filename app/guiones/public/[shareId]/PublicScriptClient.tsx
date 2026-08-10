@@ -85,10 +85,13 @@ export default function PublicScriptClient({ shareId }: { shareId: string }) {
       <div className="w-full max-w-4xl flex flex-col gap-5 sm:gap-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-grayscale-3 pb-4 dark:border-grayscale-4/60">
-          <div className="flex items-center gap-2.5">
-            <Logo iconSize={18} className="w-6" />
+          <div className="flex items-center gap-1.5">
+            <Logo className="h-5 w-auto" />
+            <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+              |
+            </span>
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
-              UmpPlatform
+              Platform
             </span>
           </div>
           <span className="font-mono text-xs text-grayscale-9">

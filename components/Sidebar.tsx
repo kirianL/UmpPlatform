@@ -58,10 +58,13 @@ function SidebarNavContent({
   return (
     <>
       {!hideLogo && (
-        <div className="flex items-center gap-2 px-2 py-1">
-          <Logo iconSize={16} className="w-6" />
-          <span className="font-mono text-xs font-bold uppercase text-grayscale-12">
-            UmpPlatform
+        <div className="flex items-center gap-1.5 px-2 py-1">
+          <Logo className="h-5 w-auto" />
+          <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+            |
+          </span>
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
+            Platform
           </span>
         </div>
       )}

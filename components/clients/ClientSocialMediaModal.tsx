@@ -336,7 +336,7 @@ export default function ClientSocialMediaModal({
 
   const handleSaveCredential = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!credForm.username || !credForm.password) return;
+    if (!client || !credForm.username || !credForm.password) return;
 
     const payload = {
       platform: String(credForm.platform || "instagram"),
@@ -357,7 +357,7 @@ export default function ClientSocialMediaModal({
       });
     } else {
       await createCredential({
-        clientId,
+        clientId: client._id,
         ...payload,
       });
     }
@@ -375,7 +375,7 @@ export default function ClientSocialMediaModal({
 
   const handleSavePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postForm.title || !postForm.scheduledDate) return;
+    if (!client || !postForm.title || !postForm.scheduledDate) return;
 
     const payload = {
       title: String(postForm.title || "").trim(),
@@ -402,7 +402,7 @@ export default function ClientSocialMediaModal({
       });
     } else {
       await createPost({
-        clientId,
+        clientId: client._id,
         ...payload,
       });
     }
@@ -427,8 +427,9 @@ export default function ClientSocialMediaModal({
 
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!client) return;
     await setGoal({
-      clientId,
+      clientId: client._id,
       month: selectedMonth,
       targetPosts: Number(goalForm.targetPosts),
       targetReels: Number(goalForm.targetReels),
