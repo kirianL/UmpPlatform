@@ -571,7 +571,7 @@ export default function ClientesPage() {
 
   return (
     <PageContainer size="wide">
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-5 sm:gap-8">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
