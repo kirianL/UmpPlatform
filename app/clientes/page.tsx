@@ -473,7 +473,7 @@ export default function ClientesPage() {
                 {count} {count === 1 ? "servicio" : "servicios"}
               </span>
             </div>
-            {totalValue > 0 && (
+            {!hidePrices && totalValue > 0 && (
               <span className="text-[11px] text-accent-10 font-mono font-semibold">
                 {formatCurrency(totalValue)}
               </span>
@@ -484,18 +484,22 @@ export default function ClientesPage() {
               className="text-[11px] text-accent-10 font-medium hover:underline flex items-center gap-1 mt-0.5 text-left cursor-pointer"
             >
               <PlusIcon size={12} weight="bold" />
-              Agregar servicio
+              {hidePrices ? "Ver servicios" : "Agregar servicio"}
             </button>
           </div>
         );
       },
     },
-    {
-      key: "paymentStatus",
-      header: "Estado de pago",
-      className: "hidden md:table-cell",
-      render: (c) => renderClientPaymentStatus(c._id),
-    },
+    ...(!hidePrices
+      ? [
+          {
+            key: "paymentStatus",
+            header: "Estado de pago",
+            className: "hidden md:table-cell",
+            render: (c: any) => renderClientPaymentStatus(c._id),
+          },
+        ]
+      : []),
     {
       key: "lastInteraction",
       header: "Primera interacción",
