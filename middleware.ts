@@ -83,18 +83,21 @@ async function verifySession(token: string): Promise<{
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow next assets, favicon, icon, manifest, public APIs, and public actor/script routes
+  // Allow next assets, favicon, icon, manifest, logos, public APIs, and public actor/script routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/guiones/public") ||
     pathname.startsWith("/calendario-actores/public") ||
+    pathname.startsWith("/logos") ||
+    pathname.startsWith("/ICO-UMP") ||
+    pathname.startsWith("/static") ||
     pathname.includes("/icon.svg") ||
     pathname.includes("/ICO-UMP") ||
-    pathname.startsWith("/static") ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.webmanifest" ||
-    pathname === "/sw.js"
+    pathname === "/sw.js" ||
+    /\.(svg|png|jpg|jpeg|webp|gif|ico|json|woff2?|ttf|css|js)$/i.test(pathname)
   ) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-pathname", pathname);
@@ -213,12 +216,13 @@ export const config = {
      * Match all request paths except for:
      * - static files (_next/static)
      * - image optimization files (_next/image)
-     * - favicon.ico (favicon file)
+     * - favicon.ico
      * - icon.svg
      * - manifest.webmanifest
      * - sw.js
      * - ICO-UMP icons
+     * - logos
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js|ICO-UMP).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js|ICO-UMP|logos).*)",
   ],
 };
