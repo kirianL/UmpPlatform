@@ -307,6 +307,12 @@ export default function PersonalPage() {
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
   const [leadToDeleteId, setLeadToDeleteId] = useState<string | null>(null);
   const [leadForm, setLeadForm] = useState(EMPTY_LEAD);
+  const [previewLeadPhoto, setPreviewLeadPhoto] = useState<{
+    url: string;
+    name: string;
+    phone?: string;
+    description?: string;
+  } | null>(null);
 
   // Ficha Personaje Modal State
   const [selectedFichaActor, setSelectedFichaActor] = useState<any | null>(
@@ -1161,21 +1167,43 @@ export default function PersonalPage() {
                   >
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="relative size-9 sm:size-10 overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3/40 border border-grayscale-3/60 dark:border-grayscale-4/60 shadow-inner shrink-0">
-                          {lead.photoUrl ? (
+                        {lead.photoUrl ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPreviewLeadPhoto({
+                                url: lead.photoUrl,
+                                name: lead.name || "Persona interesada",
+                                phone: lead.phone,
+                                description: lead.description,
+                              })
+                            }
+                            className="group/photo relative size-9 sm:size-10 overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3/40 border border-grayscale-3/60 dark:border-grayscale-4/60 shadow-inner shrink-0 cursor-pointer transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-accent-8"
+                            title="Ver foto en grande"
+                            aria-label={`Ver foto en grande de ${lead.name || "persona interesada"}`}
+                          >
                             <img
                               src={lead.photoUrl}
-                              alt={lead.name}
-                              className="size-full object-cover object-center"
+                              alt={lead.name || "Persona interesada"}
+                              className="size-full object-cover object-center transition-opacity duration-200 group-hover/photo:opacity-90"
                             />
-                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-200">
+                              <MagnifyingGlassIcon
+                                size={14}
+                                weight="bold"
+                                className="text-white drop-shadow"
+                              />
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="relative size-9 sm:size-10 overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3/40 border border-grayscale-3/60 dark:border-grayscale-4/60 shadow-inner shrink-0">
                             <div className="flex size-full items-center justify-center font-mono text-xs sm:text-sm font-bold text-accent-11 bg-accent-3">
                               {(lead.name || "Persona")
                                 .slice(0, 2)
                                 .toUpperCase()}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                         <div className="flex flex-col min-w-0">
                           <span className="font-extrabold text-xs sm:text-sm text-grayscale-12 truncate">
                             {lead.name || "Persona interesada"}
@@ -1710,13 +1738,32 @@ export default function PersonalPage() {
               </label>
               {leadForm.photoUrl ? (
                 <div className="flex items-center gap-4 rounded-xl border border-grayscale-3 bg-grayscale-1 p-3 dark:border-grayscale-4 dark:bg-grayscale-3/60">
-                  <div className="relative w-20 h-24 shrink-0 overflow-hidden rounded-lg border border-grayscale-4 shadow-sm bg-grayscale-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreviewLeadPhoto({
+                        url: leadForm.photoUrl,
+                        name: leadForm.name || "Fotografía seleccionada",
+                        phone: leadForm.phone,
+                        description: leadForm.description,
+                      })
+                    }
+                    className="group/leadthumb relative w-20 h-24 shrink-0 overflow-hidden rounded-lg border border-grayscale-4 shadow-sm bg-grayscale-3 cursor-pointer transition-transform hover:scale-102 active:scale-98 focus:outline-none focus:ring-2 focus:ring-accent-8"
+                    title="Ver foto en grande"
+                  >
                     <img
                       src={leadForm.photoUrl}
                       alt="Vista previa"
-                      className="size-full object-cover object-center"
+                      className="size-full object-cover object-center transition-opacity group-hover/leadthumb:opacity-90"
                     />
-                  </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/leadthumb:opacity-100 transition-opacity">
+                      <MagnifyingGlassIcon
+                        size={18}
+                        weight="bold"
+                        className="text-white drop-shadow"
+                      />
+                    </div>
+                  </button>
                   <div className="flex flex-col justify-between h-24 py-1 min-w-0 flex-1">
                     <div>
                       <span className="font-mono text-[10px] font-bold uppercase text-emerald-11 bg-emerald-2/40 border border-green-4/30 px-2 py-0.5 rounded-full inline-block mb-1">
@@ -1992,6 +2039,53 @@ export default function PersonalPage() {
             </div>
           </Modal>
         )}
+        {/* Modal Vista Foto en Grande de Interesado */}
+        <Modal
+          open={!!previewLeadPhoto}
+          onOpenChange={(open) => !open && setPreviewLeadPhoto(null)}
+          title={previewLeadPhoto?.name || "Fotografía"}
+          className="max-w-md sm:max-w-xl md:max-w-2xl"
+        >
+          {previewLeadPhoto && (
+            <div className="flex flex-col gap-3">
+              <div className="relative w-full max-h-[62vh] sm:max-h-[70vh] flex items-center justify-center overflow-hidden rounded-xl bg-grayscale-2/80 dark:bg-grayscale-3/50 border border-grayscale-3 dark:border-grayscale-4 p-2">
+                <img
+                  src={previewLeadPhoto.url}
+                  alt={previewLeadPhoto.name}
+                  className="max-h-[58vh] sm:max-h-[66vh] w-auto max-w-full rounded-lg object-contain select-none shadow-sm"
+                />
+              </div>
+
+              {(previewLeadPhoto.phone || previewLeadPhoto.description) && (
+                <div className="flex flex-col gap-2 rounded-xl bg-grayscale-2/60 dark:bg-grayscale-3/40 p-3 border border-grayscale-3/60 dark:border-grayscale-4/60">
+                  {previewLeadPhoto.phone && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-grayscale-10 font-mono">
+                        Contacto:
+                      </span>
+                      <a
+                        href={getWhatsAppLink(previewLeadPhoto.phone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-accent-11 hover:text-green-11 hover:underline transition-colors"
+                        title="Abrir chat de WhatsApp"
+                      >
+                        <PhoneIcon size={13} className="text-accent-9 shrink-0" />
+                        <span>{previewLeadPhoto.phone}</span>
+                      </a>
+                    </div>
+                  )}
+                  {previewLeadPhoto.description && (
+                    <p className="text-xs text-grayscale-11 leading-relaxed border-t border-grayscale-3/40 dark:border-grayscale-4/40 pt-2">
+                      {previewLeadPhoto.description}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
+
         {/* Confirm Delete Lead Modal */}
 
         <ConfirmModal

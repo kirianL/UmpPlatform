@@ -10,6 +10,7 @@ type ModalProps = {
   title: string;
   children: React.ReactNode;
   className?: string;
+  contentClassName?: string;
 };
 
 export default function Modal({
@@ -18,6 +19,7 @@ export default function Modal({
   title,
   children,
   className,
+  contentClassName,
 }: ModalProps) {
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && typeof window !== "undefined") {
@@ -34,7 +36,7 @@ export default function Modal({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-100 bg-black/50 backdrop-blur-md animate-backdrop" />
 
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
           <Dialog.Popup
             onKeyDown={(e) => {
               if (e.key === "Escape" && typeof window !== "undefined") {
@@ -45,12 +47,12 @@ export default function Modal({
               }
             }}
             className={cn(
-              "relative my-auto flex w-full max-w-lg max-h-[90vh] flex-col rounded-2xl border border-grayscale-3 bg-grayscale-1 shadow-2xl outline-none animate-modal dark:border-grayscale-4 dark:bg-grayscale-2 overflow-hidden",
+              "relative my-auto flex w-full max-w-lg max-h-[96vh] flex-col rounded-2xl border border-grayscale-3 bg-grayscale-1 shadow-2xl outline-none animate-modal dark:border-grayscale-4 dark:bg-grayscale-2 overflow-hidden",
               className,
             )}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-grayscale-3 px-4 sm:px-5 py-3.5 dark:border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2">
-              <Dialog.Title className="text-sm font-bold text-grayscale-12 truncate pr-2">
+            <div className="flex shrink-0 items-center justify-between border-b border-grayscale-3 px-3.5 sm:px-5 py-2.5 sm:py-3 dark:border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2">
+              <Dialog.Title className="text-xs sm:text-sm font-bold text-grayscale-12 truncate pr-2">
                 {title}
               </Dialog.Title>
               <Dialog.Close
@@ -60,7 +62,12 @@ export default function Modal({
                 <XIcon size={14} weight="bold" />
               </Dialog.Close>
             </div>
-            <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 flex flex-col min-h-0 max-h-[calc(90vh-3.5rem)]">
+            <div
+              className={cn(
+                "px-3.5 sm:px-5 py-3 sm:py-4 overflow-y-auto flex-1 flex flex-col min-h-0",
+                contentClassName,
+              )}
+            >
               {children}
             </div>
           </Dialog.Popup>

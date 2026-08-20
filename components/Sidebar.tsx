@@ -4,9 +4,11 @@ import {
   AddressBookIcon,
   CalendarDotsIcon,
   ChartBarIcon,
+  CheckSquareOffsetIcon,
   CurrencyDollarIcon,
   FilmSlateIcon,
   FunnelIcon,
+  LightbulbIcon,
   SquaresFourIcon,
   UsersIcon,
   SignOutIcon,
@@ -21,6 +23,8 @@ import { cn } from "@/helpers/classname-helper";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
+  { href: "/brainstorm", label: "Brainstorm", Icon: LightbulbIcon },
+  { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
   { href: "/personal", label: "Personal", Icon: UsersIcon },
   { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
   { href: "/calendario-actores", label: "Agenda Actores", Icon: UserCheckIcon },
@@ -49,7 +53,9 @@ function SidebarNavContent({
         item.href === "/inventario" ||
         item.href === "/calendario" ||
         item.href === "/guiones" ||
-        item.href === "/calendario-actores"
+        item.href === "/calendario-actores" ||
+        item.href === "/tareas" ||
+        item.href === "/brainstorm"
       );
     }
     return true;

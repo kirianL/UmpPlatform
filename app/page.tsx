@@ -3,8 +3,10 @@
 import {
   AddressBookIcon,
   CalendarDotsIcon,
+  CheckSquareOffsetIcon,
   CurrencyDollarIcon,
   FilmSlateIcon,
+  LightbulbIcon,
   TrendUpIcon,
   UsersIcon,
 } from "@phosphor-icons/react/dist/ssr";
@@ -76,8 +78,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           {[
+            { href: "/brainstorm", label: "Brainstorm", Icon: LightbulbIcon },
+            { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
             { href: "/personal", label: "Personal", Icon: UsersIcon },
             { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
             { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },

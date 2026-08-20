@@ -331,4 +331,51 @@ export default defineSchema({
     targetCarousels: v.optional(v.number()),
     notes: v.optional(v.string()),
   }).index("by_clientId", ["clientId"]),
+  tasks: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    category: v.optional(v.string()),
+    priority: v.optional(
+      v.union(v.literal("baja"), v.literal("media"), v.literal("alta")),
+    ),
+    status: v.union(v.literal("pendiente"), v.literal("realizada")),
+    createdAt: v.string(),
+    completedAt: v.optional(v.string()),
+    pinned: v.optional(v.boolean()),
+    imageUrl: v.optional(v.string()),
+  }),
+  brainstormBoards: defineTable({
+    title: v.string(),
+    clientId: v.optional(v.id("clients")),
+    coverUrl: v.optional(v.string()),
+    color: v.optional(v.string()),
+    description: v.optional(v.string()),
+    createdAt: v.string(),
+  }).index("by_clientId", ["clientId"]),
+  brainstormItems: defineTable({
+    boardId: v.id("brainstormBoards"),
+    type: v.union(
+      v.literal("note"),
+      v.literal("image"),
+      v.literal("color"),
+      v.literal("checklist"),
+      v.literal("link"),
+    ),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    color: v.optional(v.string()),
+    url: v.optional(v.string()),
+    checklist: v.optional(
+      v.array(
+        v.object({
+          text: v.string(),
+          done: v.boolean(),
+        }),
+      ),
+    ),
+    createdAt: v.string(),
+    positionX: v.optional(v.number()),
+    positionY: v.optional(v.number()),
+  }).index("by_boardId", ["boardId"]),
 });

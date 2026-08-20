@@ -67,6 +67,27 @@ export const run = mutation({
       });
     }
 
+    const michelleUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "michelle@ultimate.cr"))
+      .first();
+    if (michelleUser) {
+      await ctx.db.patch(michelleUser._id, {
+        name: "Michelle",
+        passwordHash:
+          "bc5ae01d02bf4bd1f8d0ef68d82c516fc9d0f82f312895f3315a59fffdb57c78",
+        role: "directorio",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "michelle@ultimate.cr",
+        name: "Michelle",
+        passwordHash:
+          "bc5ae01d02bf4bd1f8d0ef68d82c516fc9d0f82f312895f3315a59fffdb57c78",
+        role: "directorio",
+      });
+    }
+
     // Seed scripts if empty
     const existingScripts = await ctx.db.query("scripts").collect();
     if (existingScripts.length === 0) {
