@@ -7,6 +7,7 @@ import MobileHeader from "@/components/MobileHeader";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { AuthProvider } from "@/components/AuthProvider";
 import PwaRegister from "@/components/PwaRegister";
 import { cn } from "@/lib/utils";
 
@@ -102,19 +103,21 @@ export default async function RootLayout({
         <ThemeProvider>
           <PwaRegister />
           <ConvexClientProvider>
-            {isPublicPage ? (
-              children
-            ) : (
-              <div className="root min-h-screen flex flex-col xl:block">
-                <MobileHeader userRole={userRole} />
-                <Sidebar userRole={userRole} />
-                <main className="min-h-screen flex-1 xl:pl-56">
-                  <ViewTransition enter="page-enter" exit="page-exit">
-                    {children}
-                  </ViewTransition>
-                </main>
-              </div>
-            )}
+            <AuthProvider userRole={userRole}>
+              {isPublicPage ? (
+                children
+              ) : (
+                <div className="root min-h-screen flex flex-col xl:block">
+                  <MobileHeader userRole={userRole} />
+                  <Sidebar userRole={userRole} />
+                  <main className="min-h-screen flex-1 xl:pl-56">
+                    <ViewTransition enter="page-enter" exit="page-exit">
+                      {children}
+                    </ViewTransition>
+                  </main>
+                </div>
+              )}
+            </AuthProvider>
           </ConvexClientProvider>
         </ThemeProvider>
       </body>

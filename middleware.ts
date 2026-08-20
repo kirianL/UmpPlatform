@@ -131,13 +131,18 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // If path is /login and session is valid, redirect to dashboard (/)
+  // If path is /login and session is valid, redirect to appropriate start page
   if (pathname === "/login") {
     if (isSessionValid) {
       console.log(
         `[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`,
       );
-      const redirectUrl = userRole === "produccion" ? "/inventario" : "/";
+      const redirectUrl =
+        userRole === "produccion"
+          ? "/inventario"
+          : userRole === "directorio"
+            ? "/clientes"
+            : "/";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
@@ -162,6 +167,8 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/calendario") ||
       pathname.startsWith("/guiones") ||
       pathname.startsWith("/calendario-actores") ||
+      pathname.startsWith("/tareas") ||
+      pathname.startsWith("/brainstorm") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
@@ -169,6 +176,21 @@ export async function middleware(request: NextRequest) {
         `[Proxy Auth Check] Rol "produccion" intentó acceder a "${pathname}". Redirigiendo a /inventario.`,
       );
       return NextResponse.redirect(new URL("/inventario", request.url));
+    }
+  }
+
+  if (userRole === "directorio") {
+    const isAllowedPath =
+      pathname.startsWith("/clientes") ||
+      pathname.startsWith("/inventario") ||
+      pathname.startsWith("/calendario") ||
+      pathname.startsWith("/api/auth/logout");
+
+    if (!isAllowedPath) {
+      console.warn(
+        `[Proxy Auth Check] Rol "directorio" intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
+      );
+      return NextResponse.redirect(new URL("/clientes", request.url));
     }
   }
 

@@ -16,6 +16,7 @@ export const create = mutation({
     email: v.string(),
     passwordHash: v.string(),
     name: v.optional(v.string()),
+    role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -25,6 +26,32 @@ export const create = mutation({
 
     if (existing) {
       throw new Error("El usuario ya existe");
+    }
+
+    return await ctx.db.insert("users", args);
+  },
+});
+
+export const upsert = mutation({
+  args: {
+    email: v.string(),
+    passwordHash: v.string(),
+    name: v.optional(v.string()),
+    role: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        passwordHash: args.passwordHash,
+        name: args.name ?? existing.name,
+        role: args.role ?? existing.role,
+      });
+      return existing._id;
     }
 
     return await ctx.db.insert("users", args);

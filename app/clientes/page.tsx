@@ -33,6 +33,7 @@ import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
 import { Tabs } from "@/components/public/Tabs";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/components/AuthProvider";
 
 function formatCurrency(n: number): string {
   const formatted = new Intl.NumberFormat("es-CR", {
@@ -101,6 +102,9 @@ const EMPTY_PAYMENT = {
 };
 
 export default function ClientesPage() {
+  const { userRole } = useAuth();
+  const hidePrices = userRole === "directorio";
+
   const clients = useQuery(api.clients.get) ?? [];
   const allServices = useQuery(api.clientServices.listAll) ?? [];
   const allPayments = useQuery(api.clientPayments.listAll) ?? [];
@@ -518,7 +522,11 @@ export default function ClientesPage() {
           </button>
           <button
             type="button"
-            title="Gestionar servicios y pagos"
+            title={
+              hidePrices
+                ? "Gestionar servicios contratados"
+                : "Gestionar servicios y pagos"
+            }
             onClick={() => openManageModal(c, "services")}
             className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
           >
@@ -566,8 +574,9 @@ export default function ClientesPage() {
             Directorio de clientes
           </h1>
           <p className="text-sm text-grayscale-10">
-            Administra clientes activos, potenciales clientes, sus servicios
-            contratados y registro de pagos sincronizado con finanzas.
+            {hidePrices
+              ? "Administra clientes activos, potenciales clientes y sus servicios contratados."
+              : "Administra clientes activos, potenciales clientes, sus servicios contratados y registro de pagos sincronizado con finanzas."}
           </p>
         </div>
 
@@ -903,7 +912,11 @@ export default function ClientesPage() {
                 <span className="text-xs font-bold font-mono uppercase text-grayscale-11">
                   Servicio contratado inicial (opcional)
                 </span>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div
+                  className={`grid grid-cols-1 gap-3 ${
+                    hidePrices ? "sm:grid-cols-1" : "sm:grid-cols-3"
+                  }`}
+                >
                   <Input
                     label="Nombre del servicio"
                     id="init-service-name"
@@ -916,35 +929,39 @@ export default function ClientesPage() {
                     }
                     placeholder="Ej: Producción de comercial"
                   />
-                  <Input
-                    label="Monto pactado (CRC)"
-                    id="init-service-amount"
-                    type="number"
-                    min="0"
-                    value={initialService.amount || ""}
-                    onChange={(e) => {
-                      const val = Math.max(0, Number(e.target.value) || 0);
-                      setInitialService((s) => ({ ...s, amount: val }));
-                    }}
-                    placeholder="0"
-                  />
-                  <Select
-                    label="Estado de pago"
-                    id="init-service-status"
-                    value={initialService.paymentStatus}
-                    onChange={(e) =>
-                      setInitialService((s) => ({
-                        ...s,
-                        paymentStatus: e.target.value as any,
-                      }))
-                    }
-                    options={[
-                      { value: "pendiente", label: "Pendiente de pago" },
-                      { value: "pagado", label: "Pagado completamente" },
-                      { value: "parcial", label: "Pago parcial" },
-                      { value: "sin_pago", label: "Sin pago" },
-                    ]}
-                  />
+                  {!hidePrices && (
+                    <>
+                      <Input
+                        label="Monto pactado (CRC)"
+                        id="init-service-amount"
+                        type="number"
+                        min="0"
+                        value={initialService.amount || ""}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setInitialService((s) => ({ ...s, amount: val }));
+                        }}
+                        placeholder="0"
+                      />
+                      <Select
+                        label="Estado de pago"
+                        id="init-service-status"
+                        value={initialService.paymentStatus}
+                        onChange={(e) =>
+                          setInitialService((s) => ({
+                            ...s,
+                            paymentStatus: e.target.value as any,
+                          }))
+                        }
+                        options={[
+                          { value: "pendiente", label: "Pendiente de pago" },
+                          { value: "pagado", label: "Pagado completamente" },
+                          { value: "parcial", label: "Pago parcial" },
+                          { value: "sin_pago", label: "Sin pago" },
+                        ]}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -990,8 +1007,12 @@ export default function ClientesPage() {
           onOpenChange={setManageModalOpen}
           title={
             selectedClient
-              ? `Servicios y pagos: ${selectedClient.name} (${selectedClient.company})`
-              : "Gestión de servicios y pagos"
+              ? hidePrices
+                ? `Servicios contratados: ${selectedClient.name} (${selectedClient.company})`
+                : `Servicios y pagos: ${selectedClient.name} (${selectedClient.company})`
+              : hidePrices
+                ? "Gestión de servicios"
+                : "Gestión de servicios y pagos"
           }
         >
           {selectedClient && (
@@ -1024,468 +1045,571 @@ export default function ClientesPage() {
                   )}
                 </div>
 
-                {/* Balance Summary Header Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
-                  <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
-                    <span className="text-[10px] font-mono uppercase text-grayscale-10">
-                      Total contratado
-                    </span>
-                    <span className="font-mono text-sm font-bold text-grayscale-12">
-                      {formatCurrency(clientTotalContracted)}
-                    </span>
+                {/* Balance Summary Header Cards - Oculto si hidePrices */}
+                {!hidePrices && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
+                    <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
+                      <span className="text-[10px] font-mono uppercase text-grayscale-10">
+                        Total contratado
+                      </span>
+                      <span className="font-mono text-sm font-bold text-grayscale-12">
+                        {formatCurrency(clientTotalContracted)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
+                      <span className="text-[10px] font-mono uppercase text-grayscale-10">
+                        Total abonado
+                      </span>
+                      <span className="font-mono text-sm font-bold text-green-11">
+                        {formatCurrency(clientTotalPaid)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
+                      <span className="text-[10px] font-mono uppercase text-grayscale-10">
+                        Saldo pendiente
+                      </span>
+                      <span
+                        className={`font-mono text-sm font-bold ${clientTotalBalance > 0 ? "text-orange-11" : "text-grayscale-11"}`}
+                      >
+                        {formatCurrency(clientTotalBalance)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
-                    <span className="text-[10px] font-mono uppercase text-grayscale-10">
-                      Total abonado
-                    </span>
-                    <span className="font-mono text-sm font-bold text-green-11">
-                      {formatCurrency(clientTotalPaid)}
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 rounded-md bg-grayscale-1 dark:bg-grayscale-4 border border-grayscale-4 dark:border-grayscale-5">
-                    <span className="text-[10px] font-mono uppercase text-grayscale-10">
-                      Saldo pendiente
-                    </span>
-                    <span
-                      className={`font-mono text-sm font-bold ${clientTotalBalance > 0 ? "text-orange-11" : "text-grayscale-11"}`}
-                    >
-                      {formatCurrency(clientTotalBalance)}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Tabs System en el Modal de Gestión */}
-              <Tabs.Root
-                defaultValue={modalDefaultTab}
-                key={modalDefaultTab}
-                className="w-full flex flex-col gap-6"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
-                  <Tabs.List className="border-0 pb-0 gap-1.5">
-                    <Tabs.Tab
-                      value="services"
-                      className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-                    >
-                      Servicios contratados ({clientServices.length})
-                    </Tabs.Tab>
-                    <Tabs.Tab
-                      value="payments"
-                      className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-                    >
-                      Pagos y finanzas ({clientPayments.length})
-                    </Tabs.Tab>
-                    <Tabs.Indicator />
-                  </Tabs.List>
+              {/* Contenido de Servicios (con o sin Tabs según rol) */}
+              {hidePrices ? (
+                /* Vista limpia de Servicios sin pestañas de finanzas para rol directorio */
+                <div className="flex flex-col gap-5">
+                  {/* Form to add service */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAddService();
+                    }}
+                    className="flex flex-col gap-3 rounded-lg border border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2 p-3"
+                  >
+                    <span className="text-xs font-bold text-grayscale-11 uppercase font-mono">
+                      Contratar nuevo servicio
+                    </span>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Input
+                        label="Nombre del servicio"
+                        id="service-name"
+                        value={serviceForm.serviceName}
+                        onChange={(e) =>
+                          setServiceForm((f) => ({
+                            ...f,
+                            serviceName: e.target.value,
+                          }))
+                        }
+                        placeholder="Ej: Desarrollo web / Manejo de redes"
+                        required
+                      />
+                      <Input
+                        label="Fecha de contrato"
+                        id="service-date"
+                        type="date"
+                        value={serviceForm.contractDate}
+                        onChange={(e) =>
+                          setServiceForm((f) => ({
+                            ...f,
+                            contractDate: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        variant="primary"
+                        className="text-xs"
+                        type="submit"
+                      >
+                        <PlusIcon size={14} weight="bold" />
+                        Agregar servicio
+                      </Button>
+                    </div>
+                  </form>
+
+                  {/* List of services */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-grayscale-11 font-mono uppercase">
+                      Historial de servicios
+                    </span>
+                    {clientServices.length === 0 ? (
+                      <div className="text-xs text-grayscale-9 italic p-3 text-center border border-dashed border-grayscale-4 rounded-lg">
+                        No hay servicios contratados aún para este cliente.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
+                        {clientServices.map((s: any) => (
+                          <div
+                            key={s._id}
+                            className="flex flex-col gap-2 p-4 rounded-xl border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-2/60 dark:bg-grayscale-3/60 transition-all hover:border-grayscale-6"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex flex-col gap-0.5 min-w-0">
+                                <span className="font-bold text-sm text-grayscale-12 truncate">
+                                  {s.serviceName}
+                                </span>
+                                <span className="text-xs text-grayscale-9 font-mono">
+                                  Fecha de contrato: {formatDate(s.contractDate)}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteService(s._id)}
+                                className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
+                                title="Eliminar servicio"
+                              >
+                                <TrashIcon size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                {/* Tab Panel 1: Servicios contratados */}
-                <Tabs.Panel value="services">
-                  <div className="flex flex-col gap-5">
-                    {/* Form to add service */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleAddService();
-                      }}
-                      className="flex flex-col gap-3 rounded-lg border border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2 p-3"
-                    >
-                      <span className="text-xs font-bold text-grayscale-11 uppercase font-mono">
-                        Contratar nuevo servicio
-                      </span>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Input
-                          label="Nombre del servicio"
-                          id="service-name"
-                          value={serviceForm.serviceName}
-                          onChange={(e) =>
-                            setServiceForm((f) => ({
-                              ...f,
-                              serviceName: e.target.value,
-                            }))
-                          }
-                          placeholder="Ej: Desarrollo web / Manejo de redes"
-                          required
-                        />
-                        <Input
-                          label="Monto pactado (CRC)"
-                          id="service-amount"
-                          type="number"
-                          min="0"
-                          value={serviceForm.amount || ""}
-                          onChange={(e) => {
-                            const val = Math.max(
-                              0,
-                              Number(e.target.value) || 0,
-                            );
-                            setServiceForm((f) => ({ ...f, amount: val }));
-                          }}
-                          placeholder="0"
-                          required
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Select
-                          label="Estado inicial del servicio"
-                          id="service-status"
-                          value={serviceForm.paymentStatus}
-                          onChange={(e) =>
-                            setServiceForm((f) => ({
-                              ...f,
-                              paymentStatus: e.target.value as any,
-                            }))
-                          }
-                          options={[
-                            { value: "pendiente", label: "Pendiente de pago" },
-                            { value: "pagado", label: "Pagado completamente" },
-                            { value: "parcial", label: "Pago parcial" },
-                            { value: "sin_pago", label: "Sin pago" },
-                          ]}
-                        />
-                        <Input
-                          label="Fecha de contrato"
-                          id="service-date"
-                          type="date"
-                          value={serviceForm.contractDate}
-                          onChange={(e) =>
-                            setServiceForm((f) => ({
-                              ...f,
-                              contractDate: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="flex justify-end pt-1">
-                        <Button
-                          variant="primary"
-                          className="text-xs"
-                          type="submit"
-                        >
-                          <PlusIcon size={14} weight="bold" />
-                          Agregar servicio
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* List of services */}
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-grayscale-11 font-mono uppercase">
-                        Historial de servicios
-                      </span>
-                      {clientServices.length === 0 ? (
-                        <div className="text-xs text-grayscale-9 italic p-3 text-center border border-dashed border-grayscale-4 rounded-lg">
-                          No hay servicios contratados aún para este cliente.
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
-                          {clientServices.map((s: any) => {
-                            const paidForService = getServiceTotalPaid(s._id);
-                            const balanceService = Math.max(
-                              0,
-                              s.amount - paidForService,
-                            );
-                            const percentPaid =
-                              s.amount > 0
-                                ? Math.min(
-                                    100,
-                                    Math.round(
-                                      (paidForService / s.amount) * 100,
-                                    ),
-                                  )
-                                : 0;
-
-                            return (
-                              <div
-                                key={s._id}
-                                className="flex flex-col gap-3 p-4 rounded-xl border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-2/60 dark:bg-grayscale-3/60 transition-all hover:border-grayscale-6"
-                              >
-                                {/* Header: Title, Date, Badge, Actions */}
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex flex-col gap-0.5 min-w-0">
-                                    <span className="font-bold text-sm text-grayscale-12 truncate">
-                                      {s.serviceName}
-                                    </span>
-                                    <span className="text-xs text-grayscale-9 font-mono">
-                                      Fecha de contrato:{" "}
-                                      {formatDate(s.contractDate)}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <Badge
-                                      variant={
-                                        s.paymentStatus === "pagado"
-                                          ? "green"
-                                          : s.paymentStatus === "parcial"
-                                            ? "orange"
-                                            : s.paymentStatus === "pendiente"
-                                              ? "orange"
-                                              : "gray"
-                                      }
-                                    >
-                                      {s.paymentStatus === "pagado"
-                                        ? "Pagado"
-                                        : s.paymentStatus === "parcial"
-                                          ? "Pago parcial"
-                                          : s.paymentStatus === "pendiente"
-                                            ? "Pendiente"
-                                            : "Sin pago"}
-                                    </Badge>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteService(s._id)}
-                                      className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
-                                      title="Eliminar servicio"
-                                    >
-                                      <TrashIcon size={15} />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Financial Metrics Grid */}
-                                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-grayscale-1/80 dark:bg-grayscale-4/50 border border-grayscale-3 dark:border-grayscale-5 text-xs">
-                                  <div className="flex flex-col justify-between h-full min-w-0">
-                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
-                                      Monto pactado
-                                    </span>
-                                    <span className="font-mono font-bold text-grayscale-12 mt-1 truncate">
-                                      {formatCurrency(s.amount)}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col justify-between h-full min-w-0">
-                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
-                                      Abonado
-                                    </span>
-                                    <span className="font-mono font-bold text-green-11 mt-1 truncate">
-                                      {formatCurrency(paidForService)}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col justify-between h-full min-w-0">
-                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
-                                      Saldo pendiente
-                                    </span>
-                                    <span
-                                      className={`font-mono font-bold mt-1 truncate ${balanceService > 0 ? "text-orange-11" : "text-grayscale-11"}`}
-                                    >
-                                      {formatCurrency(balanceService)}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Progress Bar & Registrar Pago Action */}
-                                <div className="flex flex-col gap-2 pt-0.5">
-                                  <div className="flex items-center justify-between text-[11px] text-grayscale-10 font-mono">
-                                    <span>Progreso de pago</span>
-                                    <span>{percentPaid}%</span>
-                                  </div>
-                                  <div className="w-full bg-grayscale-4 dark:bg-grayscale-5 h-1.5 rounded-full overflow-hidden">
-                                    <div
-                                      className="bg-green-11 h-full transition-all duration-300 rounded-full"
-                                      style={{ width: `${percentPaid}%` }}
-                                    />
-                                  </div>
-                                  <div className="flex justify-end pt-1">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handlePrepareServicePayment(s)
-                                      }
-                                      className="text-xs font-semibold text-accent-10 hover:text-accent-11 transition-colors flex items-center gap-1.5 py-1 px-2.5 rounded-md hover:bg-accent-3/50 cursor-pointer"
-                                    >
-                                      <PlusIcon size={14} weight="bold" />
-                                      Registrar pago a este servicio
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+              ) : (
+                /* Tabs System completas con Finanzas para administradores */
+                <Tabs.Root
+                  defaultValue={modalDefaultTab}
+                  key={modalDefaultTab}
+                  className="w-full flex flex-col gap-6"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
+                    <Tabs.List className="border-0 pb-0 gap-1.5">
+                      <Tabs.Tab
+                        value="services"
+                        className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                      >
+                        Servicios contratados ({clientServices.length})
+                      </Tabs.Tab>
+                      <Tabs.Tab
+                        value="payments"
+                        className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                      >
+                        Pagos y finanzas ({clientPayments.length})
+                      </Tabs.Tab>
+                      <Tabs.Indicator />
+                    </Tabs.List>
                   </div>
-                </Tabs.Panel>
 
-                {/* Tab Panel 2: Pagos & Sincronización con Finanzas */}
-                <Tabs.Panel value="payments">
-                  <div className="flex flex-col gap-5">
-                    {/* Form to add payment */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleAddPayment();
-                      }}
-                      className="flex flex-col gap-3 rounded-lg border border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2 p-3"
-                    >
-                      <span className="text-xs font-bold text-grayscale-11 uppercase font-mono">
-                        Registrar nuevo pago
-                      </span>
-
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Select
-                          label="Servicio asociado"
-                          id="payment-service-id"
-                          value={paymentForm.serviceId}
-                          onChange={(e) =>
-                            setPaymentForm((f) => ({
-                              ...f,
-                              serviceId: e.target.value,
-                            }))
-                          }
-                          options={[
-                            {
-                              value: "",
-                              label: "General / sin servicio específico",
-                            },
-                            ...clientServices.map((s: any) => ({
-                              value: s._id,
-                              label: `${s.serviceName} (Pactado: ${formatCurrency(s.amount)})`,
-                            })),
-                          ]}
-                        />
-                        <Input
-                          label="Concepto / recibo"
-                          id="payment-concept"
-                          value={paymentForm.concept}
-                          onChange={(e) =>
-                            setPaymentForm((f) => ({
-                              ...f,
-                              concept: e.target.value,
-                            }))
-                          }
-                          placeholder="Ej: Abono 50% desarrollo web"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <Input
-                          label="Monto pagado (CRC)"
-                          id="payment-amount"
-                          type="number"
-                          min="0"
-                          value={paymentForm.amount || ""}
-                          onChange={(e) => {
-                            const val = Math.max(
-                              0,
-                              Number(e.target.value) || 0,
-                            );
-                            setPaymentForm((f) => ({ ...f, amount: val }));
-                          }}
-                          placeholder="0"
-                          required
-                        />
-                        <Input
-                          label="Fecha del pago"
-                          id="payment-date"
-                          type="date"
-                          value={paymentForm.date}
-                          onChange={(e) =>
-                            setPaymentForm((f) => ({
-                              ...f,
-                              date: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                        <Select
-                          label="Estado del pago"
-                          id="payment-status"
-                          value={paymentForm.status}
-                          onChange={(e) =>
-                            setPaymentForm((f) => ({
-                              ...f,
-                              status: e.target.value as "paid" | "pending",
-                            }))
-                          }
-                          options={[
-                            { value: "paid", label: "Pagado / confirmado" },
-                            { value: "pending", label: "Pendiente de cobro" },
-                          ]}
-                        />
-                      </div>
-
-                      <div className="flex justify-end pt-1">
-                        <Button
-                          variant="primary"
-                          className="text-xs"
-                          type="submit"
-                        >
-                          <CurrencyDollarIcon size={16} weight="bold" />
-                          Registrar pago en clientes y finanzas
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* List of payments */}
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-grayscale-11 font-mono uppercase">
-                        Historial de pagos registrados
-                      </span>
-                      {clientPayments.length === 0 ? (
-                        <div className="text-xs text-grayscale-9 italic p-3 text-center border border-dashed border-grayscale-4 rounded-lg">
-                          No se han registrado pagos para este cliente.
+                  {/* Tab Panel 1: Servicios contratados */}
+                  <Tabs.Panel value="services">
+                    <div className="flex flex-col gap-5">
+                      {/* Form to add service */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleAddService();
+                        }}
+                        className="flex flex-col gap-3 rounded-lg border border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2 p-3"
+                      >
+                        <span className="text-xs font-bold text-grayscale-11 uppercase font-mono">
+                          Contratar nuevo servicio
+                        </span>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Input
+                            label="Nombre del servicio"
+                            id="service-name"
+                            value={serviceForm.serviceName}
+                            onChange={(e) =>
+                              setServiceForm((f) => ({
+                                ...f,
+                                serviceName: e.target.value,
+                              }))
+                            }
+                            placeholder="Ej: Desarrollo web / Manejo de redes"
+                            required
+                          />
+                          <Input
+                            label="Monto pactado (CRC)"
+                            id="service-amount"
+                            type="number"
+                            min="0"
+                            value={serviceForm.amount || ""}
+                            onChange={(e) => {
+                              const val = Math.max(
+                                0,
+                                Number(e.target.value) || 0,
+                              );
+                              setServiceForm((f) => ({ ...f, amount: val }));
+                            }}
+                            placeholder="0"
+                            required
+                          />
                         </div>
-                      ) : (
-                        <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto">
-                          {clientPayments.map((p: any) => {
-                            const linkedService = allServices.find(
-                              (s: any) => s._id === p.serviceId,
-                            );
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Select
+                            label="Estado inicial del servicio"
+                            id="service-status"
+                            value={serviceForm.paymentStatus}
+                            onChange={(e) =>
+                              setServiceForm((f) => ({
+                                ...f,
+                                paymentStatus: e.target.value as any,
+                              }))
+                            }
+                            options={[
+                              { value: "pendiente", label: "Pendiente de pago" },
+                              { value: "pagado", label: "Pagado completamente" },
+                              { value: "parcial", label: "Pago parcial" },
+                              { value: "sin_pago", label: "Sin pago" },
+                            ]}
+                          />
+                          <Input
+                            label="Fecha de contrato"
+                            id="service-date"
+                            type="date"
+                            value={serviceForm.contractDate}
+                            onChange={(e) =>
+                              setServiceForm((f) => ({
+                                ...f,
+                                contractDate: e.target.value,
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="flex justify-end pt-1">
+                          <Button
+                            variant="primary"
+                            className="text-xs"
+                            type="submit"
+                          >
+                            <PlusIcon size={14} weight="bold" />
+                            Agregar servicio
+                          </Button>
+                        </div>
+                      </form>
 
-                            return (
-                              <div
-                                key={p._id}
-                                className="flex flex-col gap-2 p-3 rounded-xl border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-1 dark:bg-grayscale-3/60 transition-colors hover:border-grayscale-6"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex flex-col min-w-0">
-                                    <span className="font-bold text-xs sm:text-sm text-grayscale-12 truncate">
-                                      {p.concept}
-                                    </span>
-                                    {linkedService && (
-                                      <span className="text-[11px] font-medium text-grayscale-10 truncate mt-0.5">
-                                        Servicio: {linkedService.serviceName}
+                      {/* List of services */}
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-bold text-grayscale-11 font-mono uppercase">
+                          Historial de servicios
+                        </span>
+                        {clientServices.length === 0 ? (
+                          <div className="text-xs text-grayscale-9 italic p-3 text-center border border-dashed border-grayscale-4 rounded-lg">
+                            No hay servicios contratados aún para este cliente.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
+                            {clientServices.map((s: any) => {
+                              const paidForService = getServiceTotalPaid(s._id);
+                              const balanceService = Math.max(
+                                0,
+                                s.amount - paidForService,
+                              );
+                              const percentPaid =
+                                s.amount > 0
+                                  ? Math.min(
+                                      100,
+                                      Math.round(
+                                        (paidForService / s.amount) * 100,
+                                      ),
+                                    )
+                                  : 0;
+
+                              return (
+                                <div
+                                  key={s._id}
+                                  className="flex flex-col gap-3 p-4 rounded-xl border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-2/60 dark:bg-grayscale-3/60 transition-all hover:border-grayscale-6"
+                                >
+                                  {/* Header: Title, Date, Badge, Actions */}
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                      <span className="font-bold text-sm text-grayscale-12 truncate">
+                                        {s.serviceName}
                                       </span>
-                                    )}
+                                      <span className="text-xs text-grayscale-9 font-mono">
+                                        Fecha de contrato:{" "}
+                                        {formatDate(s.contractDate)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <Badge
+                                        variant={
+                                          s.paymentStatus === "pagado"
+                                            ? "green"
+                                            : s.paymentStatus === "parcial"
+                                              ? "orange"
+                                              : s.paymentStatus === "pendiente"
+                                                ? "orange"
+                                                : "gray"
+                                        }
+                                      >
+                                        {s.paymentStatus === "pagado"
+                                          ? "Pagado"
+                                          : s.paymentStatus === "parcial"
+                                            ? "Pago parcial"
+                                            : s.paymentStatus === "pendiente"
+                                              ? "Pendiente"
+                                              : "Sin pago"}
+                                      </Badge>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleDeleteService(s._id)
+                                        }
+                                        className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
+                                        title="Eliminar servicio"
+                                      >
+                                        <TrashIcon size={15} />
+                                      </button>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className="text-xs font-bold font-mono text-grayscale-12 bg-grayscale-2 dark:bg-grayscale-4 px-2 py-0.5 rounded border border-grayscale-4 dark:border-grayscale-5">
-                                      {formatCurrency(p.amount)}
-                                    </span>
-                                    <Badge
-                                      variant={
-                                        p.status === "paid" ? "green" : "orange"
-                                      }
-                                    >
-                                      {p.status === "paid"
-                                        ? "Pagado"
-                                        : "Pendiente"}
-                                    </Badge>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeletePayment(p._id)}
-                                      className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
-                                      title="Eliminar pago"
-                                    >
-                                      <TrashIcon size={14} />
-                                    </button>
+
+                                  {/* Financial Metrics Grid */}
+                                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-grayscale-1/80 dark:bg-grayscale-4/50 border border-grayscale-3 dark:border-grayscale-5 text-xs">
+                                    <div className="flex flex-col justify-between h-full min-w-0">
+                                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
+                                        Monto pactado
+                                      </span>
+                                      <span className="font-mono font-bold text-grayscale-12 mt-1 truncate">
+                                        {formatCurrency(s.amount)}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-col justify-between h-full min-w-0">
+                                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
+                                        Abonado
+                                      </span>
+                                      <span className="font-mono font-bold text-green-11 mt-1 truncate">
+                                        {formatCurrency(paidForService)}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-col justify-between h-full min-w-0">
+                                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 leading-tight min-h-[24px] flex items-end">
+                                        Saldo pendiente
+                                      </span>
+                                      <span
+                                        className={`font-mono font-bold mt-1 truncate ${balanceService > 0 ? "text-orange-11" : "text-grayscale-11"}`}
+                                      >
+                                        {formatCurrency(balanceService)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Progress Bar & Registrar Pago Action */}
+                                  <div className="flex flex-col gap-2 pt-0.5">
+                                    <div className="flex items-center justify-between text-[11px] text-grayscale-10 font-mono">
+                                      <span>Progreso de pago</span>
+                                      <span>{percentPaid}%</span>
+                                    </div>
+                                    <div className="w-full bg-grayscale-4 dark:bg-grayscale-5 h-1.5 rounded-full overflow-hidden">
+                                      <div
+                                        className="bg-green-11 h-full transition-all duration-300 rounded-full"
+                                        style={{ width: `${percentPaid}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex justify-end pt-1">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handlePrepareServicePayment(s)
+                                        }
+                                        className="text-xs font-semibold text-accent-10 hover:text-accent-11 transition-colors flex items-center gap-1.5 py-1 px-2.5 rounded-md hover:bg-accent-3/50 cursor-pointer"
+                                      >
+                                        <PlusIcon size={14} weight="bold" />
+                                        Registrar pago a este servicio
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center justify-between text-[10px] font-mono text-grayscale-9 border-t border-grayscale-3/60 dark:border-grayscale-5/40 pt-1.5 mt-0.5">
-                                  <span>
-                                    Fecha de pago: {formatDate(p.date)}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Tabs.Panel>
-              </Tabs.Root>
+                  </Tabs.Panel>
+
+                  {/* Tab Panel 2: Pagos & Sincronización con Finanzas */}
+                  <Tabs.Panel value="payments">
+                    <div className="flex flex-col gap-5">
+                      {/* Form to add payment */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleAddPayment();
+                        }}
+                        className="flex flex-col gap-3 rounded-lg border border-grayscale-4 bg-grayscale-1 dark:bg-grayscale-2 p-3"
+                      >
+                        <span className="text-xs font-bold text-grayscale-11 uppercase font-mono">
+                          Registrar nuevo pago
+                        </span>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Select
+                            label="Servicio asociado"
+                            id="payment-service-id"
+                            value={paymentForm.serviceId}
+                            onChange={(e) =>
+                              setPaymentForm((f) => ({
+                                ...f,
+                                serviceId: e.target.value,
+                              }))
+                            }
+                            options={[
+                              {
+                                value: "",
+                                label: "General / sin servicio específico",
+                              },
+                              ...clientServices.map((s: any) => ({
+                                value: s._id,
+                                label: `${s.serviceName} (Pactado: ${formatCurrency(s.amount)})`,
+                              })),
+                            ]}
+                          />
+                          <Input
+                            label="Concepto / recibo"
+                            id="payment-concept"
+                            value={paymentForm.concept}
+                            onChange={(e) =>
+                              setPaymentForm((f) => ({
+                                ...f,
+                                concept: e.target.value,
+                              }))
+                            }
+                            placeholder="Ej: Abono 50% desarrollo web"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <Input
+                            label="Monto pagado (CRC)"
+                            id="payment-amount"
+                            type="number"
+                            min="0"
+                            value={paymentForm.amount || ""}
+                            onChange={(e) => {
+                              const val = Math.max(
+                                0,
+                                Number(e.target.value) || 0,
+                              );
+                              setPaymentForm((f) => ({ ...f, amount: val }));
+                            }}
+                            placeholder="0"
+                            required
+                          />
+                          <Input
+                            label="Fecha del pago"
+                            id="payment-date"
+                            type="date"
+                            value={paymentForm.date}
+                            onChange={(e) =>
+                              setPaymentForm((f) => ({
+                                ...f,
+                                date: e.target.value,
+                              }))
+                            }
+                            required
+                          />
+                          <Select
+                            label="Estado del pago"
+                            id="payment-status"
+                            value={paymentForm.status}
+                            onChange={(e) =>
+                              setPaymentForm((f) => ({
+                                ...f,
+                                status: e.target.value as "paid" | "pending",
+                              }))
+                            }
+                            options={[
+                              { value: "paid", label: "Pagado / confirmado" },
+                              { value: "pending", label: "Pendiente de cobro" },
+                            ]}
+                          />
+                        </div>
+
+                        <div className="flex justify-end pt-1">
+                          <Button
+                            variant="primary"
+                            className="text-xs"
+                            type="submit"
+                          >
+                            <CurrencyDollarIcon size={16} weight="bold" />
+                            Registrar pago en clientes y finanzas
+                          </Button>
+                        </div>
+                      </form>
+
+                      {/* List of payments */}
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-bold text-grayscale-11 font-mono uppercase">
+                          Historial de pagos registrados
+                        </span>
+                        {clientPayments.length === 0 ? (
+                          <div className="text-xs text-grayscale-9 italic p-3 text-center border border-dashed border-grayscale-4 rounded-lg">
+                            No se han registrado pagos para este cliente.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto">
+                            {clientPayments.map((p: any) => {
+                              const linkedService = allServices.find(
+                                (s: any) => s._id === p.serviceId,
+                              );
+
+                              return (
+                                <div
+                                  key={p._id}
+                                  className="flex flex-col gap-2 p-3 rounded-xl border border-grayscale-4 dark:border-grayscale-5 bg-grayscale-1 dark:bg-grayscale-3/60 transition-colors hover:border-grayscale-6"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-bold text-xs sm:text-sm text-grayscale-12 truncate">
+                                        {p.concept}
+                                      </span>
+                                      {linkedService && (
+                                        <span className="text-[11px] font-medium text-grayscale-10 truncate mt-0.5">
+                                          Servicio: {linkedService.serviceName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <span className="text-xs font-bold font-mono text-grayscale-12 bg-grayscale-2 dark:bg-grayscale-4 px-2 py-0.5 rounded border border-grayscale-4 dark:border-grayscale-5">
+                                        {formatCurrency(p.amount)}
+                                      </span>
+                                      <Badge
+                                        variant={
+                                          p.status === "paid" ? "green" : "orange"
+                                        }
+                                      >
+                                        {p.status === "paid"
+                                          ? "Pagado"
+                                          : "Pendiente"}
+                                      </Badge>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleDeletePayment(p._id)
+                                        }
+                                        className="p-1 rounded text-grayscale-8 hover:text-red-11 hover:bg-red-3 transition-colors cursor-pointer"
+                                        title="Eliminar pago"
+                                      >
+                                        <TrashIcon size={14} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] font-mono text-grayscale-9 border-t border-grayscale-3/60 dark:border-grayscale-5/40 pt-1.5 mt-0.5">
+                                    <span>
+                                      Fecha de pago: {formatDate(p.date)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Tabs.Panel>
+                </Tabs.Root>
+              )}
             </div>
           )}
         </Modal>

@@ -56,6 +56,13 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
         item.href === "/brainstorm"
       );
     }
+    if (userRole === "directorio") {
+      return (
+        item.href === "/clientes" ||
+        item.href === "/inventario" ||
+        item.href === "/calendario"
+      );
+    }
     return true;
   });
 
@@ -72,7 +79,13 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
         </Dialog.Trigger>
 
         <Link
-          href={userRole === "produccion" ? "/inventario" : "/"}
+          href={
+            userRole === "produccion"
+              ? "/inventario"
+              : userRole === "directorio"
+                ? "/clientes"
+                : "/"
+          }
           className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
         >
           <Logo className="h-4.5 w-auto" />

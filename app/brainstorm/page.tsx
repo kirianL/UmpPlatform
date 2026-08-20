@@ -1198,11 +1198,11 @@ export default function BrainstormPage() {
                               title="Ver en grande"
                               onClick={() =>
                                 setPreviewImage({
-                                  url: item.imageUrl,
+                                  url: item.imageUrl!,
                                   title: item.title,
                                 })
                               }
-                              className="p-1 rounded text-grayscale-10 hover:text-accent-11 hover:bg-grayscale-3 dark:hover:bg-grayscale-4 cursor-pointer transition-colors"
+                              className="p-1 rounded text-grayscale-10 hover:text-grayscale-12 hover:bg-grayscale-3 dark:hover:bg-grayscale-4 cursor-pointer transition-colors"
                             >
                               <ArrowsOutSimpleIcon size={12} weight="bold" />
                             </motion.button>
@@ -1214,7 +1214,7 @@ export default function BrainstormPage() {
                               }
                               onClick={() =>
                                 handleDownloadFile(
-                                  item.imageUrl,
+                                  item.imageUrl!,
                                   item.title,
                                   item._id,
                                 )
@@ -1287,7 +1287,7 @@ export default function BrainstormPage() {
                                 className="w-full max-h-64 object-cover cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
                                 onClick={() =>
                                   setPreviewImage({
-                                    url: item.imageUrl,
+                                    url: item.imageUrl!,
                                     title: item.title,
                                   })
                                 }
@@ -1430,7 +1430,7 @@ export default function BrainstormPage() {
                                         : "Copiar enlace"
                                     }
                                     onClick={() =>
-                                      copyLinkToClipboard(item.url, item._id)
+                                      copyLinkToClipboard(item.url!, item._id)
                                     }
                                     className={`p-1 rounded cursor-pointer transition-colors ${
                                       copiedLinkId === item._id

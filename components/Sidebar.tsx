@@ -58,6 +58,13 @@ function SidebarNavContent({
         item.href === "/brainstorm"
       );
     }
+    if (userRole === "directorio") {
+      return (
+        item.href === "/clientes" ||
+        item.href === "/inventario" ||
+        item.href === "/calendario"
+      );
+    }
     return true;
   });
 
