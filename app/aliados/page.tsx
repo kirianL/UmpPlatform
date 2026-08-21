@@ -156,8 +156,8 @@ export default function AliadosPage() {
       whatsappOptIn: true,
       package: "elite",
       packageAmount: 10000,
-      status: "pendiente",
-      paymentStatus: "pendiente",
+      status: "no_pagado",
+      paymentStatus: "no_pagado",
       code: "",
       notes: "",
     });
@@ -168,6 +168,7 @@ export default function AliadosPage() {
   // Open Edit Modal
   const openEditModal = (ally: AllyRecord) => {
     setSelectedAlly(ally);
+    const isPaid = ally.status === "pagado" || ally.paymentStatus === "pagado";
     setFormData({
       fullName: ally.fullName,
       idCard: ally.idCard,
@@ -176,8 +177,8 @@ export default function AliadosPage() {
       whatsappOptIn: ally.whatsappOptIn,
       package: ally.package,
       packageAmount: ally.packageAmount,
-      status: ally.status || "pendiente",
-      paymentStatus: ally.paymentStatus || "pendiente",
+      status: isPaid ? "pagado" : "no_pagado",
+      paymentStatus: isPaid ? "pagado" : "no_pagado",
       code: ally.code || "",
       notes: ally.notes || "",
     });
@@ -316,8 +317,12 @@ export default function AliadosPage() {
         (whatsappFilter === "yes" && item.whatsappOptIn) ||
         (whatsappFilter === "no" && !item.whatsappOptIn);
 
+      const isPaid =
+        item.status === "pagado" || item.paymentStatus === "pagado";
       const matchStatus =
-        statusFilter === "all" || (item.status || "pendiente") === statusFilter;
+        statusFilter === "all" ||
+        (statusFilter === "pagado" && isPaid) ||
+        (statusFilter === "no_pagado" && !isPaid);
 
       return matchSearch && matchPackage && matchWhatsapp && matchStatus;
     });
@@ -329,18 +334,30 @@ export default function AliadosPage() {
     const eliteCount = allies.filter((a) => a.package === "elite").length;
     const vipCount = allies.filter((a) => a.package === "vip").length;
     const whatsappCount = allies.filter((a) => a.whatsappOptIn).length;
+    const paidCount = allies.filter(
+      (a) => a.status === "pagado" || a.paymentStatus === "pagado",
+    ).length;
     const totalProjected = allies.reduce(
       (acc, a) =>
         acc + (a.packageAmount || (a.package === "vip" ? 12000 : 10000)),
       0,
     );
+    const totalPaidAmount = allies
+      .filter((a) => a.status === "pagado" || a.paymentStatus === "pagado")
+      .reduce(
+        (acc, a) =>
+          acc + (a.packageAmount || (a.package === "vip" ? 12000 : 10000)),
+        0,
+      );
 
     return {
       total,
       eliteCount,
       vipCount,
       whatsappCount,
+      paidCount,
       totalProjected,
+      totalPaidAmount,
     };
   }, [allies]);
 
@@ -435,16 +452,16 @@ export default function AliadosPage() {
             icon={<CrownIcon size={20} />}
           />
           <StatCard
-            label="WhatsApp Activo"
-            value={stats.whatsappCount}
-            detail={`${stats.total > 0 ? Math.round((stats.whatsappCount / stats.total) * 100) : 0}% del total`}
-            icon={<WhatsappLogoIcon size={20} />}
+            label="Aliados Pagados"
+            value={stats.paidCount}
+            detail={`${stats.total > 0 ? Math.round((stats.paidCount / stats.total) * 100) : 0}% del total`}
+            icon={<CheckIcon size={20} />}
           />
           <StatCard
-            label="Recaudación Est."
-            value={formatCurrency(stats.totalProjected)}
-            detail="Proyección total"
-            icon={<HandshakeIcon size={20} />}
+            label="Recaudación Real"
+            value={formatCurrency(stats.totalPaidAmount)}
+            detail={`Proy: ${formatCurrency(stats.totalProjected)}`}
+            icon={<CurrencyDollarIcon size={20} />}
           />
         </div>
 
@@ -497,9 +514,8 @@ export default function AliadosPage() {
               className="rounded-lg border border-grayscale-4 bg-grayscale-1 px-2.5 py-1.5 text-xs text-grayscale-12 focus:border-accent focus:outline-none dark:border-grayscale-4 dark:bg-grayscale-3"
             >
               <option value="all">Todos los Estados</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
+              <option value="pagado">Pagado</option>
+              <option value="no_pagado">No Pagado</option>
             </select>
           </div>
         </div>
@@ -585,7 +601,9 @@ export default function AliadosPage() {
                 <tbody className="divide-y divide-grayscale-3 dark:divide-grayscale-3">
                   {filteredAllies.map((item) => {
                     const isVip = item.package === "vip";
-                    const status = item.status || "pendiente";
+                    const isPaid =
+                      item.status === "pagado" ||
+                      item.paymentStatus === "pagado";
 
                     return (
                       <tr
@@ -719,18 +737,41 @@ export default function AliadosPage() {
 
                         {/* ESTADO */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
-                          <Badge
-                            variant={
-                              status === "activo"
-                                ? "green"
-                                : status === "inactivo"
-                                  ? "red"
-                                  : "orange"
-                            }
-                            className="capitalize font-mono whitespace-nowrap"
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const nextStatus = isPaid
+                                  ? "no_pagado"
+                                  : "pagado";
+                                await updateAlly({
+                                  id: item._id,
+                                  status: nextStatus,
+                                  paymentStatus: nextStatus,
+                                });
+                              } catch (err) {
+                                console.error("Error al cambiar estado:", err);
+                              }
+                            }}
+                            title="Clic para cambiar entre Pagado y No Pagado"
+                            className="cursor-pointer transition-transform active:scale-95 whitespace-nowrap inline-flex items-center"
                           >
-                            {status}
-                          </Badge>
+                            {isPaid ? (
+                              <Badge
+                                variant="green"
+                                className="font-mono whitespace-nowrap"
+                              >
+                                Pagado
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="orange"
+                                className="font-mono whitespace-nowrap"
+                              >
+                                No Pagado
+                              </Badge>
+                            )}
+                          </button>
                         </td>
 
                         {/* ACCIONES */}
@@ -884,18 +925,18 @@ export default function AliadosPage() {
 
             <Select
               id="create-status"
-              label="Estado *"
-              value={formData.status}
+              label="Estado de Pago *"
+              value={formData.status === "pagado" ? "pagado" : "no_pagado"}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  status: e.target.value as "pendiente" | "activo" | "inactivo",
+                  status: e.target.value as "pagado" | "no_pagado",
+                  paymentStatus: e.target.value as "pagado" | "no_pagado",
                 })
               }
               options={[
-                { value: "pendiente", label: "Pendiente" },
-                { value: "activo", label: "Activo" },
-                { value: "inactivo", label: "Inactivo" },
+                { value: "no_pagado", label: "No Pagado" },
+                { value: "pagado", label: "Pagado" },
               ]}
             />
           </div>
@@ -1046,18 +1087,18 @@ export default function AliadosPage() {
 
             <Select
               id="edit-status"
-              label="Estado *"
-              value={formData.status}
+              label="Estado de Pago *"
+              value={formData.status === "pagado" ? "pagado" : "no_pagado"}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  status: e.target.value as "pendiente" | "activo" | "inactivo",
+                  status: e.target.value as "pagado" | "no_pagado",
+                  paymentStatus: e.target.value as "pagado" | "no_pagado",
                 })
               }
               options={[
-                { value: "pendiente", label: "Pendiente" },
-                { value: "activo", label: "Activo" },
-                { value: "inactivo", label: "Inactivo" },
+                { value: "no_pagado", label: "No Pagado" },
+                { value: "pagado", label: "Pagado" },
               ]}
             />
           </div>

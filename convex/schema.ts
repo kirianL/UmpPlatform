@@ -388,6 +388,8 @@ export default defineSchema({
     packageAmount: v.number(),
     status: v.optional(
       v.union(
+        v.literal("pagado"),
+        v.literal("no_pagado"),
         v.literal("pendiente"),
         v.literal("activo"),
         v.literal("inactivo"),
@@ -395,8 +397,9 @@ export default defineSchema({
     ),
     paymentStatus: v.optional(
       v.union(
-        v.literal("pendiente"),
         v.literal("pagado"),
+        v.literal("no_pagado"),
+        v.literal("pendiente"),
         v.literal("cancelado"),
       ),
     ),

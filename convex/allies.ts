@@ -76,8 +76,8 @@ export const createPublic = mutation({
       whatsappOptIn: args.whatsappOptIn,
       package: args.package,
       packageAmount,
-      status: "pendiente",
-      paymentStatus: "pendiente",
+      status: "no_pagado",
+      paymentStatus: "no_pagado",
       code,
       notes: args.notes?.trim() || undefined,
       createdAt,
@@ -98,6 +98,8 @@ export const create = mutation({
     packageAmount: v.optional(v.number()),
     status: v.optional(
       v.union(
+        v.literal("pagado"),
+        v.literal("no_pagado"),
         v.literal("pendiente"),
         v.literal("activo"),
         v.literal("inactivo"),
@@ -105,8 +107,9 @@ export const create = mutation({
     ),
     paymentStatus: v.optional(
       v.union(
-        v.literal("pendiente"),
         v.literal("pagado"),
+        v.literal("no_pagado"),
+        v.literal("pendiente"),
         v.literal("cancelado"),
       ),
     ),
@@ -118,8 +121,8 @@ export const create = mutation({
     const packageAmount =
       args.packageAmount ?? (args.package === "vip" ? 12000 : 10000);
     const createdAt = args.createdAt || new Date().toISOString();
-    const status = args.status || "pendiente";
-    const paymentStatus = args.paymentStatus || "pendiente";
+    const status = args.status || "no_pagado";
+    const paymentStatus = args.paymentStatus || status;
     const code = args.code?.trim().toUpperCase() || generateAllyCode();
 
     return await ctx.db.insert("allies", {
@@ -151,6 +154,8 @@ export const update = mutation({
     packageAmount: v.optional(v.number()),
     status: v.optional(
       v.union(
+        v.literal("pagado"),
+        v.literal("no_pagado"),
         v.literal("pendiente"),
         v.literal("activo"),
         v.literal("inactivo"),
@@ -158,8 +163,9 @@ export const update = mutation({
     ),
     paymentStatus: v.optional(
       v.union(
-        v.literal("pendiente"),
         v.literal("pagado"),
+        v.literal("no_pagado"),
+        v.literal("pendiente"),
         v.literal("cancelado"),
       ),
     ),
