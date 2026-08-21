@@ -5,6 +5,7 @@ import {
   CheckIcon,
   CopyIcon,
   CrownIcon,
+  CurrencyDollarIcon,
   EnvelopeSimpleIcon,
   HandshakeIcon,
   MagnifyingGlassIcon,
@@ -40,8 +41,8 @@ type AllyRecord = {
   whatsappOptIn: boolean;
   package: "elite" | "vip";
   packageAmount: number;
-  status?: "pendiente" | "activo" | "inactivo";
-  paymentStatus?: "pendiente" | "pagado" | "cancelado";
+  status?: "pagado" | "no_pagado" | "pendiente" | "activo" | "inactivo";
+  paymentStatus?: "pagado" | "no_pagado" | "pendiente" | "cancelado";
   code?: string;
   notes?: string;
   createdAt: string;
@@ -73,16 +74,13 @@ function getWhatsAppLink(
   pkg: string,
   code?: string,
 ): string {
-  if (!phone) return "#";
-  let clean = phone.replace(/[^\d]/g, "");
-  if (clean.length === 8) {
-    clean = `506${clean}`;
-  }
-  const idText = code ? ` [ID: ${code}]` : "";
-  const text = encodeURIComponent(
-    `Hola ${fullName}${idText}, te saludamos de Producciones UMP respecto a tu membresía como Aliado (Paquete ${pkg.toUpperCase()}).`,
-  );
-  return `https://wa.me/${clean}?text=${text}`;
+  const cleanPhone = phone.replace(/\D/g, "");
+  const formattedPhone = cleanPhone.startsWith("506")
+    ? cleanPhone
+    : `506${cleanPhone}`;
+  const codeInfo = code ? ` (ID: ${code})` : "";
+  const message = `Hola ${fullName}${codeInfo}, te contactamos desde Producciones UMP respecto a tu membresía ${pkg.toUpperCase()}.`;
+  return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 }
 
 export default function AliadosPage() {
@@ -92,36 +90,49 @@ export default function AliadosPage() {
   const removeAlly = useMutation(api.allies.remove);
 
   const allies: AllyRecord[] = useMemo(() => {
-    return (rawAllies as AllyRecord[]) || [];
+    if (!rawAllies) return [];
+    return rawAllies as AllyRecord[];
   }, [rawAllies]);
 
-  // Search & Filter state
+  // Filters & Search States
   const [search, setSearch] = useState("");
   const [packageFilter, setPackageFilter] = useState("all");
   const [whatsappFilter, setWhatsappFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Copy Link & ID States
+  // Feedback states
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Modal States
+  // Modals state
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedAlly, setSelectedAlly] = useState<AllyRecord | null>(null);
 
-  // Form State for Create / Edit
-  const [formData, setFormData] = useState({
+  // Form State for Create/Edit
+  const [formData, setFormData] = useState<{
+    fullName: string;
+    idCard: string;
+    phone: string;
+    email: string;
+    whatsappOptIn: boolean;
+    package: "elite" | "vip";
+    packageAmount: number;
+    status: "pagado" | "no_pagado";
+    paymentStatus: "pagado" | "no_pagado";
+    code: string;
+    notes: string;
+  }>({
     fullName: "",
     idCard: "",
     phone: "",
     email: "",
     whatsappOptIn: true,
-    package: "elite" as "elite" | "vip",
+    package: "elite",
     packageAmount: 10000,
-    status: "pendiente" as "pendiente" | "activo" | "inactivo",
-    paymentStatus: "pendiente" as "pendiente" | "pagado" | "cancelado",
+    status: "no_pagado",
+    paymentStatus: "no_pagado",
     code: "",
     notes: "",
   });

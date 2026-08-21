@@ -122,7 +122,7 @@ export const create = mutation({
       args.packageAmount ?? (args.package === "vip" ? 12000 : 10000);
     const createdAt = args.createdAt || new Date().toISOString();
     const status = args.status || "no_pagado";
-    const paymentStatus = args.paymentStatus || status;
+    const paymentStatus = args.paymentStatus || (status === "pagado" ? "pagado" : "no_pagado");
     const code = args.code?.trim().toUpperCase() || generateAllyCode();
 
     return await ctx.db.insert("allies", {
