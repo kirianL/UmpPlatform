@@ -240,32 +240,61 @@ export default function PublicAllyFormClient() {
       {/* IMMERSIVE CENTER CANVAS (FULL SCREEN, NO BOX WRAPPER, NO SCROLL) */}
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-8 flex flex-col justify-center items-stretch py-2 overflow-y-auto sm:overflow-hidden">
         {submitted && submittedData ? (
-          /* SUCCESS CONFIRMATION VIEW */
+          /* SUCCESS CONFIRMATION VIEW (OPEN & ANIMATED) */
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="w-full max-w-lg mx-auto text-center py-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-lg mx-auto py-2"
           >
-            <div className="flex size-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto mb-4 ring-8 ring-emerald-500/5">
-              <CheckCircleIcon size={38} weight="fill" />
+            {/* ICON & TITLE */}
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                  delay: 0.05,
+                }}
+                className="flex size-14 sm:size-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto mb-3.5 ring-8 ring-emerald-500/5"
+              >
+                <CheckCircleIcon size={36} weight="fill" />
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.15 }}
+                className="text-2xl sm:text-3xl font-extrabold tracking-tight text-grayscale-12 font-mono uppercase"
+              >
+                Registro Completado
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.2 }}
+                className="mt-1 text-xs sm:text-sm text-grayscale-10 max-w-sm mx-auto"
+              >
+                Tu afiliación ha sido registrada con éxito en Producciones UMP.
+              </motion.p>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-grayscale-12 font-mono uppercase">
-              Registro Completado
-            </h1>
-            <p className="mt-1.5 text-xs sm:text-sm text-grayscale-10 max-w-md mx-auto">
-              Tu afiliación ha sido registrada con éxito en Producciones UMP.
-            </p>
-
-            {/* ID BANNER */}
+            {/* ID BANNER (OPEN & MINIMALIST) */}
             {submittedData.code && (
-              <div className="mt-5 flex items-center justify-between p-4 rounded-2xl bg-grayscale-2 border border-grayscale-4 dark:bg-grayscale-3/80 dark:border-grayscale-4 text-left">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.25 }}
+                className="mt-5 flex items-center justify-between pb-3.5 border-b border-grayscale-3 dark:border-grayscale-3"
+              >
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-grayscale-10 block">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-grayscale-9 block">
                     Tu ID Oficial de Aliado
                   </span>
-                  <span className="font-mono text-xl font-black text-grayscale-12 tracking-wider">
+                  <span className="font-mono text-xl sm:text-2xl font-black text-grayscale-12 tracking-wider">
                     {submittedData.code}
                   </span>
                 </div>
@@ -276,7 +305,7 @@ export default function PublicAllyFormClient() {
                     setCopiedCode(true);
                     setTimeout(() => setCopiedCode(false), 2500);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-xl border border-grayscale-4 bg-grayscale-1 text-grayscale-12 hover:bg-grayscale-3 active:scale-95 transition-all cursor-pointer dark:bg-grayscale-2 dark:border-grayscale-5"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-xl border border-grayscale-4 bg-grayscale-2/60 text-grayscale-12 hover:bg-grayscale-3 active:scale-95 transition-all cursor-pointer dark:bg-grayscale-3 dark:border-grayscale-5"
                 >
                   {copiedCode ? (
                     <>
@@ -298,70 +327,86 @@ export default function PublicAllyFormClient() {
                     </>
                   )}
                 </button>
-              </div>
+              </motion.div>
             )}
 
-            {/* SUMMARY PILLS */}
-            <div className="mt-4 rounded-2xl border border-grayscale-3 bg-grayscale-2/60 p-4 text-left text-xs space-y-2 dark:border-grayscale-4/60 dark:bg-grayscale-3/40">
-              <div className="flex justify-between items-center py-0.5 border-b border-grayscale-3 dark:border-grayscale-4/60">
+            {/* OPEN DATA LIST (NO BOX CONTAINER) */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="mt-3 text-xs space-y-2"
+            >
+              <div className="flex justify-between items-center py-1 border-b border-grayscale-3/60 dark:border-grayscale-3/40">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
                   Nombre
                 </span>
-                <span className="font-semibold text-grayscale-12">
+                <span className="font-semibold text-grayscale-12 text-right">
                   {submittedData.fullName}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-grayscale-3 dark:border-grayscale-4/60">
+
+              <div className="flex justify-between items-center py-1 border-b border-grayscale-3/60 dark:border-grayscale-3/40">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
                   Cédula
                 </span>
-                <span className="font-semibold font-mono text-grayscale-12">
+                <span className="font-semibold font-mono text-grayscale-12 text-right">
                   {submittedData.idCard}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-grayscale-3 dark:border-grayscale-4/60">
+
+              <div className="flex justify-between items-center py-1 border-b border-grayscale-3/60 dark:border-grayscale-3/40">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
                   Celular
                 </span>
-                <span className="font-semibold font-mono text-grayscale-12">
+                <span className="font-semibold font-mono text-grayscale-12 text-right">
                   {submittedData.phone}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-grayscale-3 dark:border-grayscale-4/60">
+
+              <div className="flex justify-between items-center py-1 border-b border-grayscale-3/60 dark:border-grayscale-3/40">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
                   Correo
                 </span>
-                <span className="font-semibold text-grayscale-12 truncate max-w-[190px] sm:max-w-xs">
+                <span className="font-semibold text-grayscale-12 truncate max-w-[200px] sm:max-w-xs text-right">
                   {submittedData.email}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-grayscale-3 dark:border-grayscale-4/60">
+
+              <div className="flex justify-between items-center py-1 border-b border-grayscale-3/60 dark:border-grayscale-3/40">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
                   Paquete
                 </span>
-                <span className="font-bold font-mono text-grayscale-12 uppercase">
+                <span className="font-bold font-mono text-grayscale-12 uppercase text-right">
                   {submittedData.package === "vip" ? "VIP" : "Élite"} — ₡
                   {submittedData.packageAmount.toLocaleString("es-CR")}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5">
+
+              <div className="flex justify-between items-center py-1">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
                   WhatsApp Exclusivo
                 </span>
-                <span className="font-semibold text-grayscale-12">
+                <span className="font-semibold text-grayscale-12 text-right">
                   {submittedData.whatsappOptIn ? "Sí" : "No"}
                 </span>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {/* ACTION BUTTONS */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.38 }}
+              className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3"
+            >
               <a
                 href={`https://wa.me/50688888888?text=${encodeURIComponent(
                   `Hola, acabo de registrarme como Aliado en UMP (${submittedData.fullName} - ID: ${submittedData.code} - Paquete ${submittedData.package.toUpperCase()}).`,
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-[#20ba5a] active:scale-[0.99] transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-3.5 text-sm font-bold text-white shadow-md hover:bg-[#20ba5a] active:scale-[0.99] transition-all"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -378,11 +423,11 @@ export default function PublicAllyFormClient() {
               <button
                 type="button"
                 onClick={handleReset}
-                className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-grayscale-4 bg-transparent px-5 py-3 text-xs font-medium text-grayscale-11 hover:bg-grayscale-2 dark:hover:bg-grayscale-3 transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-grayscale-4 bg-transparent px-5 py-3.5 text-xs font-medium text-grayscale-11 hover:bg-grayscale-2 dark:hover:bg-grayscale-3 transition-colors cursor-pointer"
               >
                 Nuevo registro
               </button>
-            </div>
+            </motion.div>
           </motion.div>
         ) : (
           /* QUESTION CANVAS WITHOUT CONTAINER */

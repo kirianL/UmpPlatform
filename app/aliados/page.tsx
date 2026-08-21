@@ -553,17 +553,31 @@ export default function AliadosPage() {
               <table className="w-full text-left text-xs text-grayscale-11">
                 <thead className="border-b border-grayscale-3 bg-grayscale-2 text-[11px] font-mono uppercase tracking-wider text-grayscale-9 dark:border-grayscale-3 dark:bg-grayscale-3/60">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">ID Aliado</th>
-                    <th className="px-4 py-3 font-semibold">Nombre Completo</th>
-                    <th className="px-4 py-3 font-semibold">Cédula</th>
-                    <th className="px-4 py-3 font-semibold">Contacto</th>
-                    <th className="px-4 py-3 font-semibold">Paquete</th>
-                    <th className="px-4 py-3 font-semibold text-center">
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      ID Aliado
+                    </th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Nombre Completo
+                    </th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Cédula
+                    </th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Contacto
+                    </th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Paquete
+                    </th>
+                    <th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
                       WhatsApp Exclusivo
                     </th>
-                    <th className="px-4 py-3 font-semibold">Fecha Registro</th>
-                    <th className="px-4 py-3 font-semibold">Estado</th>
-                    <th className="px-4 py-3 font-semibold text-right">
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Fecha Registro
+                    </th>
+                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Estado
+                    </th>
+                    <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">
                       Acciones
                     </th>
                   </tr>
@@ -579,7 +593,7 @@ export default function AliadosPage() {
                         className="hover:bg-grayscale-2/60 transition-colors dark:hover:bg-grayscale-3/40"
                       >
                         {/* ID CODE */}
-                        <td className="px-4 py-3.5 font-mono">
+                        <td className="px-4 py-3.5 font-mono whitespace-nowrap">
                           {item.code ? (
                             <button
                               type="button"
@@ -587,9 +601,11 @@ export default function AliadosPage() {
                                 if (item.code) handleCopyId(item.code);
                               }}
                               title="Copiar ID"
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold text-xs bg-grayscale-3 text-grayscale-12 hover:bg-accent/15 hover:text-accent border border-grayscale-4 dark:border-grayscale-5 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded font-bold text-xs bg-grayscale-3 text-grayscale-12 hover:bg-accent/15 hover:text-accent border border-grayscale-4 dark:border-grayscale-5 transition-colors cursor-pointer whitespace-nowrap"
                             >
-                              <span>{item.code}</span>
+                              <span className="whitespace-nowrap">
+                                {item.code}
+                              </span>
                               {copiedId === item.code ? (
                                 <CheckIcon
                                   size={12}
@@ -609,8 +625,8 @@ export default function AliadosPage() {
                         </td>
 
                         {/* NOMBRE */}
-                        <td className="px-4 py-3.5">
-                          <div className="font-semibold text-grayscale-12">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="font-semibold text-grayscale-12 whitespace-nowrap">
                             {item.fullName}
                           </div>
                           {item.notes && (
@@ -624,26 +640,28 @@ export default function AliadosPage() {
                         </td>
 
                         {/* CEDULA */}
-                        <td className="px-4 py-3.5 font-mono text-grayscale-12">
+                        <td className="px-4 py-3.5 font-mono text-grayscale-12 whitespace-nowrap">
                           {item.idCard}
                         </td>
 
                         {/* CONTACTO */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1.5 text-grayscale-12">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex flex-col gap-0.5 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-grayscale-12 whitespace-nowrap">
                               <PhoneIcon
                                 size={13}
-                                className="text-grayscale-8"
+                                className="text-grayscale-8 shrink-0"
                               />
-                              <span>{item.phone}</span>
+                              <span className="whitespace-nowrap">
+                                {item.phone}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-grayscale-9 text-[11px]">
+                            <div className="flex items-center gap-1.5 text-grayscale-9 text-[11px] whitespace-nowrap">
                               <EnvelopeSimpleIcon
                                 size={13}
-                                className="text-grayscale-8"
+                                className="text-grayscale-8 shrink-0"
                               />
-                              <span className="truncate max-w-[160px]">
+                              <span className="truncate max-w-[160px] whitespace-nowrap">
                                 {item.email}
                               </span>
                             </div>
@@ -651,46 +669,56 @@ export default function AliadosPage() {
                         </td>
 
                         {/* PAQUETE */}
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
                           {isVip ? (
                             <Badge
                               variant="accent"
-                              className="font-mono inline-flex items-center gap-1"
+                              className="font-mono inline-flex items-center gap-1 whitespace-nowrap shrink-0"
                             >
                               <CrownIcon size={12} weight="bold" />
-                              <span>VIP (₡12k)</span>
+                              <span className="whitespace-nowrap">
+                                VIP (₡12k)
+                              </span>
                             </Badge>
                           ) : (
                             <Badge
                               variant="gray"
-                              className="font-mono inline-flex items-center gap-1"
+                              className="font-mono inline-flex items-center gap-1 whitespace-nowrap shrink-0"
                             >
                               <ShieldCheckIcon size={12} weight="bold" />
-                              <span>Élite (₡10k)</span>
+                              <span className="whitespace-nowrap">
+                                Élite (₡10k)
+                              </span>
                             </Badge>
                           )}
                         </td>
 
                         {/* WHATSAPP EXCLUSIVO */}
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
                           {item.whatsappOptIn ? (
-                            <Badge variant="green" className="font-mono">
+                            <Badge
+                              variant="green"
+                              className="font-mono whitespace-nowrap"
+                            >
                               Sí
                             </Badge>
                           ) : (
-                            <Badge variant="gray" className="font-mono">
+                            <Badge
+                              variant="gray"
+                              className="font-mono whitespace-nowrap"
+                            >
                               No
                             </Badge>
                           )}
                         </td>
 
                         {/* FECHA REGISTRO */}
-                        <td className="px-4 py-3.5 font-mono text-grayscale-10">
+                        <td className="px-4 py-3.5 font-mono text-grayscale-10 whitespace-nowrap">
                           {formatDate(item.createdAt)}
                         </td>
 
                         {/* ESTADO */}
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
                           <Badge
                             variant={
                               status === "activo"
@@ -699,15 +727,15 @@ export default function AliadosPage() {
                                   ? "red"
                                   : "orange"
                             }
-                            className="capitalize font-mono"
+                            className="capitalize font-mono whitespace-nowrap"
                           >
                             {status}
                           </Badge>
                         </td>
 
                         {/* ACCIONES */}
-                        <td className="px-4 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                             {/* WHATSAPP DIRECT MESSAGE */}
                             <a
                               href={getWhatsAppLink(
