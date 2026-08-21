@@ -15,7 +15,6 @@ import {
   ShieldCheckIcon,
   TrashIcon,
   UsersIcon,
-  WhatsappLogoIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
@@ -659,25 +658,42 @@ export default function AliadosPage() {
 
                         {/* CONTACTO */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
-                          <div className="flex flex-col gap-0.5 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-grayscale-12 whitespace-nowrap">
+                          <div className="flex flex-col gap-1 whitespace-nowrap">
+                            <a
+                              href={getWhatsAppLink(
+                                item.phone,
+                                item.fullName,
+                                item.package,
+                                item.code,
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Abrir chat de WhatsApp"
+                              className="group inline-flex items-center gap-1.5 text-grayscale-12 hover:text-[#25D366] transition-colors whitespace-nowrap"
+                            >
                               <PhoneIcon
                                 size={13}
-                                className="text-grayscale-8 shrink-0"
+                                className="text-grayscale-8 group-hover:text-[#25D366] transition-colors shrink-0"
                               />
-                              <span className="whitespace-nowrap">
+                              <span className="font-mono hover:underline">
                                 {item.phone}
                               </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-grayscale-9 text-[11px] whitespace-nowrap">
+                            </a>
+                            <a
+                              href={`mailto:${item.email}?subject=${encodeURIComponent(
+                                "Producciones UMP - Membresía Aliados",
+                              )}`}
+                              title="Enviar correo electrónico"
+                              className="group inline-flex items-center gap-1.5 text-grayscale-9 text-[11px] hover:text-grayscale-12 transition-colors whitespace-nowrap"
+                            >
                               <EnvelopeSimpleIcon
                                 size={13}
-                                className="text-grayscale-8 shrink-0"
+                                className="text-grayscale-8 group-hover:text-grayscale-12 transition-colors shrink-0"
                               />
-                              <span className="truncate max-w-[160px] whitespace-nowrap">
+                              <span className="truncate max-w-[160px] hover:underline">
                                 {item.email}
                               </span>
-                            </div>
+                            </a>
                           </div>
                         </td>
 
@@ -767,23 +783,6 @@ export default function AliadosPage() {
                         {/* ACCIONES */}
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                            {/* WHATSAPP DIRECT MESSAGE */}
-                            <a
-                              href={getWhatsAppLink(
-                                item.phone,
-                                item.fullName,
-                                item.package,
-                                item.code,
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Abrir chat en WhatsApp con ${item.fullName}`}
-                              title="Abrir chat en WhatsApp"
-                              className="flex size-7 items-center justify-center rounded-lg border border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors"
-                            >
-                              <WhatsappLogoIcon size={15} weight="fill" />
-                            </a>
-
                             {/* EDIT BUTTON */}
                             <button
                               type="button"
