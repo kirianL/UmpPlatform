@@ -14,6 +14,7 @@ import {
   SignOutIcon,
   ScrollIcon,
   UserCheckIcon,
+  HandshakeIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
   { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
   { href: "/crm", label: "CRM", Icon: FunnelIcon },
+  { href: "/aliados", label: "Aliados", Icon: HandshakeIcon },
   { href: "/analytics", label: "Analytics", Icon: ChartBarIcon },
   { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
 ];

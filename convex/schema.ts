@@ -378,4 +378,32 @@ export default defineSchema({
     positionX: v.optional(v.number()),
     positionY: v.optional(v.number()),
   }).index("by_boardId", ["boardId"]),
+  allies: defineTable({
+    fullName: v.string(),
+    idCard: v.string(),
+    phone: v.string(),
+    email: v.string(),
+    whatsappOptIn: v.boolean(),
+    package: v.union(v.literal("elite"), v.literal("vip")),
+    packageAmount: v.number(),
+    status: v.optional(
+      v.union(
+        v.literal("pendiente"),
+        v.literal("activo"),
+        v.literal("inactivo"),
+      ),
+    ),
+    paymentStatus: v.optional(
+      v.union(
+        v.literal("pendiente"),
+        v.literal("pagado"),
+        v.literal("cancelado"),
+      ),
+    ),
+    notes: v.optional(v.string()),
+    code: v.optional(v.string()),
+    createdAt: v.string(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_code", ["code"]),
 });
