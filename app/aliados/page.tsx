@@ -614,21 +614,21 @@ export default function AliadosPage() {
                                 if (item.code) handleCopyId(item.code);
                               }}
                               title="Copiar ID"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded font-bold text-xs bg-grayscale-3 text-grayscale-12 hover:bg-accent/15 hover:text-accent border border-grayscale-4 dark:border-grayscale-5 transition-colors cursor-pointer whitespace-nowrap"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-xs bg-grayscale-2 text-grayscale-12 hover:bg-grayscale-3 hover:border-grayscale-5 border border-grayscale-4 dark:bg-grayscale-3 dark:border-grayscale-4 dark:hover:bg-grayscale-4 dark:hover:border-grayscale-5 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
                             >
-                              <span className="whitespace-nowrap">
+                              <span className="whitespace-nowrap font-mono text-grayscale-12">
                                 {item.code}
                               </span>
                               {copiedId === item.code ? (
                                 <CheckIcon
-                                  size={12}
+                                  size={13}
                                   weight="bold"
-                                  className="text-green-600 dark:text-green-400"
+                                  className="text-emerald-600 dark:text-emerald-400 shrink-0"
                                 />
                               ) : (
                                 <CopyIcon
-                                  size={12}
-                                  className="text-grayscale-8"
+                                  size={13}
+                                  className="text-grayscale-9 shrink-0"
                                 />
                               )}
                             </button>
