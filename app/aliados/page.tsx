@@ -55,19 +55,6 @@ function formatCurrency(n: number): string {
   return `₡ ${formatted}`;
 }
 
-function formatDate(iso: string): string {
-  if (!iso) return "N/A";
-  const dateStr = iso.slice(0, 10);
-  const parts = dateStr.split("-");
-  if (parts.length === 3) {
-    const [year, month, day] = parts;
-    return `${day}/${month}/${year}`;
-  }
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "N/A";
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-}
-
 function getWhatsAppLink(
   phone: string,
   fullName: string,
@@ -599,9 +586,6 @@ export default function AliadosPage() {
                       WhatsApp Exclusivo
                     </th>
                     <th className="px-4 py-3 font-semibold whitespace-nowrap">
-                      Fecha Registro
-                    </th>
-                    <th className="px-4 py-3 font-semibold whitespace-nowrap">
                       Estado
                     </th>
                     <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">
@@ -739,11 +723,6 @@ export default function AliadosPage() {
                               No
                             </Badge>
                           )}
-                        </td>
-
-                        {/* FECHA REGISTRO */}
-                        <td className="px-4 py-3.5 font-mono text-grayscale-10 whitespace-nowrap">
-                          {formatDate(item.createdAt)}
                         </td>
 
                         {/* ESTADO */}
