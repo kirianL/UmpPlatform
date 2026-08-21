@@ -401,7 +401,7 @@ export default function PublicAllyFormClient() {
               className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3"
             >
               <a
-                href={`https://wa.me/50688888888?text=${encodeURIComponent(
+                href={`https://wa.me/50660709325?text=${encodeURIComponent(
                   `Hola, acabo de registrarme como Aliado en UMP (${submittedData.fullName} - ID: ${submittedData.code} - Paquete ${submittedData.package.toUpperCase()}).`,
                 )}`}
                 target="_blank"
