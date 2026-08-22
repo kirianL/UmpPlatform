@@ -84,8 +84,10 @@ export function getAutomaticExpiration(dateInput?: string | Date): {
   };
 }
 
-// Draw high-resolution canvas and trigger download with custom Pattanakarn font
-export async function downloadCarnetAsImage(data: CarnetData) {
+// Draw high-resolution canvas with custom font
+export async function generateCarnetCanvas(
+  data: CarnetData,
+): Promise<HTMLCanvasElement> {
   const isVip = (data.package || "").toLowerCase() === "vip";
   const imageSrc = isVip
     ? "/Carnet/Afiliado_VIP.jpg"
@@ -123,7 +125,9 @@ export async function downloadCarnetAsImage(data: CarnetData) {
 
   // 1. Load and draw background image
   const img = new Image();
-  img.crossOrigin = "anonymous";
+  if (imageSrc.startsWith("http://") || imageSrc.startsWith("https://")) {
+    img.crossOrigin = "anonymous";
+  }
 
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
@@ -251,17 +255,88 @@ export async function downloadCarnetAsImage(data: CarnetData) {
   ctx.shadowBlur = 8;
   ctx.fillText(displayCode, nameX, currentY + 46);
 
-  // Export and download
+  return canvas;
+}
+
+// Draw high-resolution canvas and trigger download with mobile Web Share API & Blob fallbacks
+export async function downloadCarnetAsImage(data: CarnetData): Promise<{
+  success: boolean;
+  dataUrl?: string;
+  blob?: Blob;
+  shared?: boolean;
+}> {
+  const canvas = await generateCarnetCanvas(data);
+  const cleanFileName = `Carnet_UMP_${data.code || "ID"}_${(data.fullName || "Afiliado").toLowerCase().replace(/[^a-z0-9]/g, "_")}.png`;
+
+  // 1. Generate Blob
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), "image/png", 1.0);
+  });
+
   const dataUrl = canvas.toDataURL("image/png");
-  const link = document.createElement("a");
-  const cleanFileName = (data.fullName || "Afiliado")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "_");
-  link.download = `Carnet_UMP_${data.code || "ID"}_${cleanFileName}.png`;
-  link.href = dataUrl;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+
+  // 2. Web Share API on mobile (iOS Safari / Android Chrome / WebViews)
+  if (
+    blob &&
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function"
+  ) {
+    try {
+      const file = new File([blob], cleanFileName, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Carnet Oficial UMP",
+          text: `Carnet de Afiliado UMP - ${data.fullName}`,
+        });
+        return { success: true, dataUrl, blob, shared: true };
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        return { success: true, dataUrl, blob, shared: false };
+      }
+      console.warn("Navigator share fallback to download:", err);
+    }
+  }
+
+  // 3. Blob URL download fallback
+  if (blob && typeof window !== "undefined") {
+    try {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = cleanFileName;
+      link.href = blobUrl;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+        URL.revokeObjectURL(blobUrl);
+      }, 4000);
+      return { success: true, dataUrl, blob, shared: false };
+    } catch (err) {
+      console.warn("Blob URL download error:", err);
+    }
+  }
+
+  // 4. Data URL fallback
+  if (typeof window !== "undefined") {
+    const link = document.createElement("a");
+    link.download = cleanFileName;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 1000);
+  }
+
+  return { success: true, dataUrl, blob: blob || undefined, shared: false };
 }
 
 // Levitating Card Component with Pure Vertical Smooth Floating and Package Template

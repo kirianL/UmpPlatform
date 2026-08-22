@@ -241,7 +241,7 @@ export default function PublicAllyFormClient() {
         token: tokenParam || undefined,
       });
 
-      setSubmittedData({
+      const newSubmittedData = {
         fullName: fullName.trim(),
         idCard: idCard.trim(),
         phone: phone.trim(),
@@ -250,8 +250,24 @@ export default function PublicAllyFormClient() {
         package: selectedPackage,
         packageAmount: selectedPackage === "vip" ? 12000 : 10000,
         code: res?.code || "",
-      });
+      };
+
+      setSubmittedData(newSubmittedData);
       setSubmitted(true);
+
+      // Auto trigger carnet download/share after short delay for animation
+      setTimeout(async () => {
+        try {
+          await downloadCarnetAsImage({
+            fullName: newSubmittedData.fullName,
+            code: newSubmittedData.code,
+            package: newSubmittedData.package,
+            idCard: newSubmittedData.idCard,
+          });
+        } catch (downloadErr) {
+          console.warn("Auto download carnet note:", downloadErr);
+        }
+      }, 500);
     } catch (err: unknown) {
       const msg =
         err instanceof Error
@@ -497,22 +513,25 @@ export default function PublicAllyFormClient() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.35 }}
-              className="mt-5 flex items-center justify-center"
+              className="mt-5 flex flex-col items-center gap-2"
             >
               {/* DOWNLOAD CARNET BUTTON */}
               <Button
                 variant="primary"
                 onClick={handleDownloadCarnet}
                 disabled={downloadingCarnet}
-                className="w-full sm:w-auto px-8 py-3 text-sm font-bold shadow-xl"
+                className="w-full sm:w-auto px-8 py-3 text-sm font-bold shadow-xl cursor-pointer justify-center"
               >
                 <DownloadSimpleIcon size={18} weight="bold" />
                 <span>
                   {downloadingCarnet
                     ? "Generando carnet..."
-                    : "Descargar mi carnet"}
+                    : "Descargar / Guardar carnet"}
                 </span>
               </Button>
+              <p className="text-[11px] text-grayscale-9 text-center font-mono">
+                En dispositivos móviles puedes guardarlo directamente en tu galería de fotos o compartirlo.
+              </p>
             </motion.div>
           </motion.div>
         ) : !tokenParam ? (
@@ -1245,6 +1264,61 @@ export default function PublicAllyFormClient() {
                         {whatsappOptIn ? "Sí" : "No"}
                       </span>
                     </div>
+                  </div>
+
+                  {stepError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-2 flex items-center gap-1.5 text-xs font-mono font-medium text-rose-600 dark:text-rose-400"
+                    >
+                      <span className="size-1.5 rounded-full bg-rose-500 dark:bg-rose-400 animate-pulse" />
+                      <span>{stepError}</span>
+                    </motion.div>
+                  )}
+
+                  {/* IN-CARD SUBMIT BUTTON FOR MOBILE COMFORT */}
+                  <div className="pt-2 sm:hidden">
+                    <Button
+                      variant="primary"
+                      disabled={loading}
+                      onClick={() => handleSubmitFinal()}
+                      className="w-full py-3 text-xs font-bold uppercase font-mono tracking-wider shadow-md justify-center"
+                    >
+                      {loading ? (
+                        <span className="inline-flex items-center gap-2">
+                          <svg
+                            className="animate-spin size-4 text-grayscale-1"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            role="img"
+                            aria-label="Cargando"
+                          >
+                            <title>Cargando</title>
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8H4z"
+                            />
+                          </svg>
+                          Completando...
+                        </span>
+                      ) : (
+                        <>
+                          <CheckIcon size={16} weight="bold" />
+                          <span>Completar mi registro</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </motion.div>
               )}
