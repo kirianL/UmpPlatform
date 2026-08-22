@@ -510,11 +510,11 @@ export default function PublicAllyFormClient() {
                 <span>
                   {downloadingCarnet
                     ? "Generando carnet..."
-                    : "Descargar / Guardar carnet"}
+                    : "Descargar carnet"}
                 </span>
               </Button>
               <p className="text-[11px] text-grayscale-9 text-center font-mono">
-                En dispositivos móviles puedes guardarlo directamente en tu galería de fotos o compartirlo.
+                El archivo se guardará directamente en la carpeta de Descargas de tu dispositivo.
               </p>
             </motion.div>
           </motion.div>

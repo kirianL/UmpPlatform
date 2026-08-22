@@ -258,12 +258,11 @@ export async function generateCarnetCanvas(
   return canvas;
 }
 
-// Draw high-resolution canvas and trigger download with mobile Web Share API & Blob fallbacks
+// Draw high-resolution canvas and trigger direct file download
 export async function downloadCarnetAsImage(data: CarnetData): Promise<{
   success: boolean;
   dataUrl?: string;
   blob?: Blob;
-  shared?: boolean;
 }> {
   const canvas = await generateCarnetCanvas(data);
   const cleanFileName = `Carnet_UMP_${data.code || "ID"}_${(data.fullName || "Afiliado").toLowerCase().replace(/[^a-z0-9]/g, "_")}.png`;
@@ -275,7 +274,55 @@ export async function downloadCarnetAsImage(data: CarnetData): Promise<{
 
   const dataUrl = canvas.toDataURL("image/png");
 
-  // 2. Web Share API on mobile (iOS Safari / Android Chrome / WebViews)
+  // 2. Direct Blob Download (Direct file download to Downloads on Android, iOS, Windows, Mac)
+  if (blob && typeof window !== "undefined") {
+    try {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = cleanFileName;
+      link.href = blobUrl;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+        URL.revokeObjectURL(blobUrl);
+      }, 5000);
+      return { success: true, dataUrl, blob };
+    } catch (err) {
+      console.warn("Blob URL download error:", err);
+    }
+  }
+
+  // 3. Data URL fallback
+  if (typeof window !== "undefined") {
+    const link = document.createElement("a");
+    link.download = cleanFileName;
+    link.href = dataUrl;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 1000);
+  }
+
+  return { success: true, dataUrl, blob: blob || undefined };
+}
+
+// Function to explicitly share carnet if user wishes to share via social media / WhatsApp
+export async function shareCarnetAsImage(data: CarnetData): Promise<boolean> {
+  const canvas = await generateCarnetCanvas(data);
+  const cleanFileName = `Carnet_UMP_${data.code || "ID"}_${(data.fullName || "Afiliado").toLowerCase().replace(/[^a-z0-9]/g, "_")}.png`;
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), "image/png", 1.0);
+  });
+
   if (
     blob &&
     typeof navigator !== "undefined" &&
@@ -290,53 +337,15 @@ export async function downloadCarnetAsImage(data: CarnetData): Promise<{
           title: "Carnet Oficial UMP",
           text: `Carnet de Afiliado UMP - ${data.fullName}`,
         });
-        return { success: true, dataUrl, blob, shared: true };
+        return true;
       }
     } catch (err: any) {
-      if (err?.name === "AbortError") {
-        return { success: true, dataUrl, blob, shared: false };
-      }
-      console.warn("Navigator share fallback to download:", err);
+      if (err?.name === "AbortError") return false;
+      console.warn("Share error:", err);
     }
   }
 
-  // 3. Blob URL download fallback
-  if (blob && typeof window !== "undefined") {
-    try {
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = cleanFileName;
-      link.href = blobUrl;
-      link.rel = "noopener";
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        if (document.body.contains(link)) {
-          document.body.removeChild(link);
-        }
-        URL.revokeObjectURL(blobUrl);
-      }, 4000);
-      return { success: true, dataUrl, blob, shared: false };
-    } catch (err) {
-      console.warn("Blob URL download error:", err);
-    }
-  }
-
-  // 4. Data URL fallback
-  if (typeof window !== "undefined") {
-    const link = document.createElement("a");
-    link.download = cleanFileName;
-    link.href = dataUrl;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-    }, 1000);
-  }
-
-  return { success: true, dataUrl, blob: blob || undefined, shared: false };
+  return false;
 }
 
 // Levitating Card Component with Pure Vertical Smooth Floating and Package Template
