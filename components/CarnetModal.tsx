@@ -177,19 +177,19 @@ export async function generateCarnetCanvas(
   });
 
   // 3. Right Column: QR Code + Date perfectly aligned and centered with each other
-  const qrSize = 124;
-  const qrX = 788;
-  const qrY = 316;
+  const qrSize = 150;
+  const qrX = 775;
+  const qrY = 295;
   const qrCenterX = qrX + qrSize / 2; // 850
 
   // Rounded background badge for QR (generous white border for instant camera recognition)
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = 14;
   ctx.shadowOffsetY = 4;
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12);
+  ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 14);
   ctx.fill();
   ctx.restore();
 
@@ -205,7 +205,7 @@ export async function generateCarnetCanvas(
   ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
   ctx.shadowBlur = 8;
   ctx.shadowOffsetY = 2;
-  ctx.fillText(dateStr, qrCenterX, qrY + qrSize + 32);
+  ctx.fillText(dateStr, qrCenterX, qrY + qrSize + 34);
   ctx.restore();
 
   // 5. Expiration Date (Top-Right)
@@ -476,11 +476,11 @@ export function CarnetCard({
               {/* Right Side: QR Code + Date centered below QR */}
               <div className="flex flex-col items-center shrink-0">
                 {qrUrl && (
-                  <div className="bg-white p-1 sm:p-2 rounded-xl shadow-md border border-black/5">
+                  <div className="bg-white p-1.5 sm:p-2 rounded-xl shadow-lg border border-black/5">
                     <img
                       src={qrUrl}
                       alt={`QR ${data.code}`}
-                      className="w-16 h-16 sm:w-22 sm:h-22 object-contain block rounded-xs"
+                      className="w-[72px] h-[72px] sm:w-[96px] sm:h-[96px] object-contain block rounded-xs"
                     />
                   </div>
                 )}
