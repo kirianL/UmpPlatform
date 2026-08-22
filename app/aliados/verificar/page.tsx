@@ -15,7 +15,7 @@ import {
 import { useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   CarnetCard,
   downloadCarnetAsImage,
@@ -45,6 +45,14 @@ function VerificationContent() {
   const [searchCode, setSearchCode] = useState(initialCode);
   const [activeCode, setActiveCode] = useState(initialCode);
   const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    const codeParam = searchParams.get("code") || "";
+    if (codeParam) {
+      setSearchCode(codeParam);
+      setActiveCode(codeParam);
+    }
+  }, [searchParams]);
 
   const verification = useQuery(
     api.allies.verifyByCode,

@@ -87,17 +87,21 @@ export function getAutomaticExpiration(dateInput?: string | Date): {
 // Generate the public verification URL for smartphone camera scanning
 export function getVerificationUrl(code?: string): string {
   const cleanCode = (code || "").replace(/^#/, "").trim().toUpperCase();
-  if (!cleanCode) {
-    if (typeof window !== "undefined" && window.location.origin) {
-      return `${window.location.origin}/aliados/verificar`;
+
+  // Use the public production domain by default so smartphone cameras scanning a screen or print can open it directly
+  let baseDomain = "https://platform.ultimatemediaproductions.com";
+  if (typeof window !== "undefined" && window.location.origin) {
+    const origin = window.location.origin;
+    if (!origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+      baseDomain = origin;
     }
-    return "https://platform.ultimatemediaproductions.com/aliados/verificar";
   }
 
-  if (typeof window !== "undefined" && window.location.origin) {
-    return `${window.location.origin}/aliados/verificar?code=${encodeURIComponent(cleanCode)}`;
+  if (!cleanCode) {
+    return `${baseDomain}/aliados/verificar`;
   }
-  return `https://platform.ultimatemediaproductions.com/aliados/verificar?code=${encodeURIComponent(cleanCode)}`;
+
+  return `${baseDomain}/v/${encodeURIComponent(cleanCode)}`;
 }
 
 // Draw high-resolution canvas with custom font
@@ -153,11 +157,11 @@ export async function generateCarnetCanvas(
 
   ctx.drawImage(img, 0, 0, width, height);
 
-  // 2. Generate QR code encoding full verification URL
+  // 2. Generate QR code encoding short verification URL with high contrast
   const qrTarget = getVerificationUrl(data.code);
   const qrDataUrl = await QRCode.toDataURL(qrTarget, {
-    margin: 1,
-    width: 180,
+    margin: 2,
+    width: 320,
     color: {
       dark: "#000000",
       light: "#ffffff",
@@ -173,19 +177,19 @@ export async function generateCarnetCanvas(
   });
 
   // 3. Right Column: QR Code + Date perfectly aligned and centered with each other
-  const qrSize = 110;
-  const qrX = 795;
-  const qrY = 325;
+  const qrSize = 118;
+  const qrX = 791;
+  const qrY = 320;
   const qrCenterX = qrX + qrSize / 2; // 850
 
-  // Rounded badge for QR
+  // Rounded background badge for QR (generous white border for camera recognition)
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
   ctx.shadowBlur = 12;
   ctx.shadowOffsetY = 4;
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.roundRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, 10);
+  ctx.roundRect(qrX - 7, qrY - 7, qrSize + 14, qrSize + 14, 10);
   ctx.fill();
   ctx.restore();
 
@@ -393,8 +397,8 @@ export function CarnetCard({
   useEffect(() => {
     const text = getVerificationUrl(data.code);
     QRCode.toDataURL(text, {
-      margin: 1,
-      width: 180,
+      margin: 2,
+      width: 260,
       color: {
         dark: "#000000",
         light: "#ffffff",
@@ -476,11 +480,11 @@ export function CarnetCard({
               {/* Right Side: QR Code + Date centered below QR */}
               <div className="flex flex-col items-center shrink-0">
                 {qrUrl && (
-                  <div className="bg-white p-1 sm:p-1.5 rounded-lg shadow-lg border border-black/10">
+                  <div className="bg-white p-1.5 sm:p-2 rounded-xl shadow-lg border border-black/10">
                     <img
                       src={qrUrl}
                       alt={`QR ${data.code}`}
-                      className="w-12 h-12 sm:w-16 sm:h-16 object-contain block rounded-sm"
+                      className="w-14 h-14 sm:w-20 sm:h-20 object-contain block rounded-sm"
                     />
                   </div>
                 )}
