@@ -438,4 +438,46 @@ export default defineSchema({
     birthDate: v.optional(v.string()),
     createdAt: v.optional(v.string()),
   }),
+  partnerBusinesses: defineTable({
+    name: v.string(),
+    pin: v.string(),
+    category: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("activo"), v.literal("inactivo"))),
+    createdAt: v.string(),
+  }).index("by_name", ["name"]),
+  allyBenefits: defineTable({
+    businessId: v.optional(v.id("partnerBusinesses")),
+    businessName: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    applicablePackage: v.union(
+      v.literal("all"),
+      v.literal("vip"),
+      v.literal("elite"),
+    ),
+    frequency: v.union(
+      v.literal("monthly"),
+      v.literal("once"),
+      v.literal("unlimited"),
+    ),
+    active: v.boolean(),
+    createdAt: v.string(),
+  })
+    .index("by_businessId", ["businessId"])
+    .index("by_active", ["active"]),
+  allyBenefitRedemptions: defineTable({
+    allyId: v.id("allies"),
+    allyCode: v.string(),
+    allyName: v.string(),
+    benefitId: v.id("allyBenefits"),
+    benefitTitle: v.string(),
+    businessId: v.optional(v.id("partnerBusinesses")),
+    businessName: v.string(),
+    period: v.string(), // e.g. "2026-08"
+    redeemedAt: v.string(),
+  })
+    .index("by_allyId", ["allyId"])
+    .index("by_benefitId", ["benefitId"])
+    .index("by_period", ["period"])
+    .index("by_redeemedAt", ["redeemedAt"]),
 });
