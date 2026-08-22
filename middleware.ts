@@ -204,6 +204,7 @@ export async function middleware(request: NextRequest) {
   if (userRole === "directorio") {
     const isAllowedPath =
       pathname.startsWith("/clientes") ||
+      pathname.startsWith("/personal") ||
       pathname.startsWith("/inventario") ||
       pathname.startsWith("/calendario") ||
       pathname.startsWith("/api/auth/logout");

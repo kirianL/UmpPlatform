@@ -63,6 +63,7 @@ function SidebarNavContent({
     if (userRole === "directorio") {
       return (
         item.href === "/clientes" ||
+        item.href === "/personal" ||
         item.href === "/inventario" ||
         item.href === "/calendario"
       );

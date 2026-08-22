@@ -306,7 +306,10 @@ const EMPTY_COLLABORATOR = {
 };
 
 export default function PersonalPage() {
-  const { userRole } = useAuth();
+  const { userRole, userEmail } = useAuth();
+  const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const canViewStaff =
+    userRole !== "actores" && userRole !== "directorio" && !isMichelle;
 
   // Employees (Staff)
   const employees = useQuery(api.employees.get) ?? [];
@@ -790,7 +793,7 @@ export default function PersonalPage() {
 
   // Birthdays aggregation across all groups
   const allPeopleBirthdays = [
-    ...(userRole !== "actores"
+    ...(canViewStaff
       ? employees.map((e) => ({
           id: e._id,
           name: e.name,
@@ -843,12 +846,12 @@ export default function PersonalPage() {
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-            {userRole === "actores"
+            {!canViewStaff
               ? "Gestión de elenco y casting"
               : "Gestión de personal"}
           </h1>
           <p className="text-sm text-grayscale-10">
-            {userRole === "actores"
+            {!canViewStaff
               ? "Administra el elenco de actores, personajes, interesados en grabar y colaboradores potenciales."
               : "Administra el equipo técnico de producción, actores del elenco, interesados en grabar y colaboradores potenciales."}
           </p>
@@ -857,12 +860,12 @@ export default function PersonalPage() {
         {/* Stat Cards */}
         <div
           className={`grid grid-cols-1 gap-3 ${
-            userRole === "actores"
+            !canViewStaff
               ? "sm:grid-cols-3"
               : "sm:grid-cols-2 lg:grid-cols-4"
           }`}
         >
-          {userRole !== "actores" && (
+          {canViewStaff && (
             <StatCard
               label="Equipo de producción"
               value={activeEmpCount}
@@ -876,21 +879,21 @@ export default function PersonalPage() {
             value={activeActorCount}
             detail={`${actors.length} actores registrados`}
             icon={<UserCheckIcon size={18} weight="fill" />}
-            index={userRole === "actores" ? 0 : 1}
+            index={!canViewStaff ? 0 : 1}
           />
           <StatCard
             label="Interesados en grabar"
             value={castingLeads.length}
             detail="Candidatos en prospección"
             icon={<UserPlusIcon size={18} weight="fill" />}
-            index={userRole === "actores" ? 1 : 2}
+            index={!canViewStaff ? 1 : 2}
           />
           <StatCard
             label="Colaboradores potenciales"
             value={potentialCollaborators.length}
             detail={`${activeCollabCount} confirmados`}
             icon={<HandshakeIcon size={18} weight="fill" />}
-            index={userRole === "actores" ? 2 : 3}
+            index={!canViewStaff ? 2 : 3}
           />
         </div>
 
@@ -945,12 +948,12 @@ export default function PersonalPage() {
 
         {/* Tabs System */}
         <Tabs.Root
-          defaultValue={userRole === "actores" ? "actors" : "staff"}
+          defaultValue={canViewStaff ? "staff" : "actors"}
           className="w-full flex flex-col gap-6"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
-              {userRole !== "actores" && (
+              {canViewStaff && (
                 <Tabs.Tab
                   value="staff"
                   className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
@@ -981,7 +984,7 @@ export default function PersonalPage() {
           </div>
 
           {/* Tab Panel 1: Equipo de producción */}
-          {userRole !== "actores" && (
+          {canViewStaff && (
             <Tabs.Panel value="staff">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
