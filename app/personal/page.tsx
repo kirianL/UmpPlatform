@@ -625,9 +625,12 @@ export default function PersonalPage() {
   }
 
   async function handleSaveCollab() {
+    const name = collabForm.name.trim();
+    if (!name) return;
+
     try {
       const payload = {
-        name: collabForm.name.trim() || "Colaborador potencial",
+        name,
         area: collabForm.area.trim() || undefined,
         phone: collabForm.phone.trim() || undefined,
         email: collabForm.email.trim() || undefined,
@@ -2534,6 +2537,7 @@ export default function PersonalPage() {
               <Input
                 label="Nombre completo o marca"
                 id="collab-name"
+                required
                 value={collabForm.name}
                 onChange={(e) =>
                   setCollabForm((f) => ({ ...f, name: e.target.value }))
