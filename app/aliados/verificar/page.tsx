@@ -17,7 +17,7 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
@@ -66,6 +66,7 @@ function VerificationContent() {
   const [rememberPin, setRememberPin] = useState(true);
   const [savedPin, setSavedPin] = useState<string>("");
   const [pinError, setPinError] = useState("");
+  const [shakeKey, setShakeKey] = useState(0);
   const [redeeming, setRedeeming] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState<string | null>(null);
 
@@ -161,7 +162,21 @@ function VerificationContent() {
       setRedeemSuccess(`Beneficio "${benefit.title}" canjeado con éxito.`);
       setTimeout(() => setRedeemSuccess(null), 4000);
     } catch (err: any) {
-      setPinError(err?.message || "Error al canjear el beneficio.");
+      const errorMsg = err?.message || "Error al canjear el beneficio.";
+      setPinError(errorMsg);
+      setShakeKey((prev) => prev + 1);
+
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate([35, 45, 35]);
+        } catch (_) {}
+      }
+
+      if (savedPin) {
+        handleClearSavedPin();
+        setEnteredPin("");
+      }
+
       setPinModalOpen(true);
     } finally {
       setRedeeming(false);
@@ -172,6 +187,7 @@ function VerificationContent() {
     e.preventDefault();
     if (!enteredPin.trim()) {
       setPinError("Ingresa el PIN de 4 dígitos.");
+      setShakeKey((prev) => prev + 1);
       return;
     }
     if (selectedBenefit) {
@@ -486,32 +502,62 @@ function VerificationContent() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <motion.div
+            key={shakeKey}
+            animate={shakeKey > 0 ? { x: [-8, 8, -6, 6, -3, 3, 0] } : {}}
+            transition={{ duration: 0.38, ease: "easeInOut" }}
+            className="flex flex-col gap-1.5"
+          >
             <label
               htmlFor="partner-pin"
-              className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9"
+              className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9 flex items-center justify-between"
             >
-              PIN de 4 dígitos del local
+              <span>PIN de 4 dígitos del local</span>
+              {selectedBenefit?.businessName && (
+                <span className="text-grayscale-10 text-[9px] font-normal">
+                  ({selectedBenefit.businessName})
+                </span>
+              )}
             </label>
-            <input
-              id="partner-pin"
-              type="password"
-              maxLength={8}
-              autoFocus
-              placeholder="Ingresar PIN..."
-              value={enteredPin}
-              onChange={(e) => {
-                setEnteredPin(e.target.value);
-                if (pinError) setPinError("");
-              }}
-              className="w-full bg-grayscale-1 border border-grayscale-4 rounded-xl px-3.5 py-2.5 text-center font-mono text-lg tracking-widest text-grayscale-12 focus:outline-none focus:border-grayscale-12 dark:bg-grayscale-3"
-            />
-            {pinError && (
-              <p className="text-xs font-mono text-rose-600 dark:text-rose-400">
-                {pinError}
-              </p>
-            )}
-          </div>
+            <div className="relative">
+              <input
+                id="partner-pin"
+                type="password"
+                maxLength={8}
+                autoFocus
+                placeholder="••••"
+                value={enteredPin}
+                onChange={(e) => {
+                  setEnteredPin(e.target.value);
+                  if (pinError) setPinError("");
+                }}
+                className={`w-full bg-grayscale-1 border rounded-xl px-3.5 py-2.5 text-center font-mono text-xl tracking-[0.3em] text-grayscale-12 focus:outline-none transition-all duration-200 dark:bg-grayscale-3 ${
+                  pinError
+                    ? "border-rose-500 bg-rose-500/5 ring-2 ring-rose-500/20 text-rose-600 dark:text-rose-400"
+                    : "border-grayscale-4 focus:border-grayscale-12"
+                }`}
+              />
+            </div>
+
+            <AnimatePresence mode="wait">
+              {pinError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: -4, height: 0 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="flex items-center gap-1.5 text-xs font-mono text-rose-600 dark:text-rose-400 pt-0.5"
+                >
+                  <WarningCircleIcon
+                    size={14}
+                    weight="bold"
+                    className="shrink-0"
+                  />
+                  <span>{pinError}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
           <label className="flex items-center gap-2 cursor-pointer text-xs text-grayscale-11">
             <input
