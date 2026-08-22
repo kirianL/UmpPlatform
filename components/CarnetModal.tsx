@@ -432,11 +432,7 @@ export function CarnetCard({
       >
         {/* Card Container (Static, Stable, No Continuous Motion) */}
         <div
-          className={`relative aspect-[1011/639] w-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 transition-all duration-300 ${
-            isVip
-              ? "shadow-[0_15px_35px_rgba(20,184,166,0.22),0_8px_16px_rgba(0,0,0,0.5)]"
-              : "shadow-[0_15px_35px_rgba(148,163,184,0.22),0_8px_16px_rgba(0,0,0,0.5)]"
-          }`}
+          className="relative aspect-[1011/639] w-full rounded-2xl overflow-hidden shadow-lg border border-white/20 transition-all duration-300"
           style={{ fontFamily: "'Pattanakarn', sans-serif" }}
         >
           {/* Background Card Image Template (VIP or Elite) */}
