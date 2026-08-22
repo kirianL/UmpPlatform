@@ -253,13 +253,13 @@ export async function generateCarnetCanvas(
   ctx.shadowOffsetY = 4;
 
   const nameX = 96;
-  let currentY = line2 ? 315 : 340;
+  let currentY = line2 ? 305 : 335;
 
   ctx.font = "700 46px 'Pattanakarn', sans-serif";
   ctx.fillText(line1, nameX, currentY);
 
   if (line2) {
-    currentY += 54;
+    currentY += 58;
     ctx.fillText(line2, nameX, currentY);
   }
 
@@ -273,7 +273,7 @@ export async function generateCarnetCanvas(
   ctx.font = "700 26px 'Pattanakarn', monospace";
   ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
   ctx.shadowBlur = 8;
-  ctx.fillText(displayCode, nameX, currentY + 46);
+  ctx.fillText(displayCode, nameX, currentY + 48);
 
   return canvas;
 }
@@ -464,11 +464,11 @@ export function CarnetCard({
             <div className="flex items-end justify-between gap-2 pb-[3%]">
               {/* Left Side: Name and ID */}
               <div className="flex-1 pr-2">
-                <div className="text-white font-bold tracking-normal leading-[1.08] text-lg sm:text-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+                <div className="text-white font-bold tracking-normal leading-[1.2] text-lg sm:text-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] flex flex-col gap-0.5 sm:gap-1">
                   <div>{line1}</div>
                   {line2 && <div>{line2}</div>}
                 </div>
-                <div className="mt-1 font-bold text-xs sm:text-sm text-white/95 tracking-wider drop-shadow-md">
+                <div className="mt-1.5 sm:mt-2 font-bold text-xs sm:text-sm text-white/95 tracking-wider drop-shadow-md">
                   {displayCode}
                 </div>
               </div>
