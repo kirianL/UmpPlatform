@@ -84,7 +84,11 @@ export default async function RootLayout({
   const pathname = headersList.get("x-pathname") || "";
   const userRole = headersList.get("x-user-role") || "produccion";
   const userEmail = headersList.get("x-user-email") || "";
-  const isPublicPage = pathname === "/login" || pathname.includes("/public");
+  const isPublicPage =
+    pathname === "/login" ||
+    pathname.includes("/public") ||
+    pathname.startsWith("/aliados/verificar") ||
+    pathname.startsWith("/v/");
 
   return (
     <html
