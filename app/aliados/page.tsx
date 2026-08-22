@@ -831,7 +831,7 @@ export default function AliadosPage() {
                       header: "Contacto",
                       className: "hidden md:table-cell",
                       render: (a) => (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-0.5">
                           <a
                             href={getWhatsAppLink(
                               a.phone,
@@ -841,13 +841,15 @@ export default function AliadosPage() {
                             )}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-mono text-xs text-grayscale-11 hover:text-emerald-600 flex items-center gap-1"
+                            className="font-mono text-xs font-semibold text-grayscale-12 hover:text-emerald-600 flex items-center gap-1 transition-colors"
                           >
-                            <PhoneIcon size={12} />
+                            <PhoneIcon size={12} className="text-grayscale-10" />
                             <span>{a.phone}</span>
                           </a>
-                          <span className="text-grayscale-6 text-xs">•</span>
-                          <span className="text-xs text-grayscale-10 truncate max-w-[140px]">
+                          <span
+                            className="text-xs text-grayscale-10 truncate max-w-[180px]"
+                            title={a.email}
+                          >
                             {a.email}
                           </span>
                         </div>
