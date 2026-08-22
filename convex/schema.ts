@@ -46,13 +46,13 @@ export default defineSchema({
   }),
   clients: defineTable({
     name: v.string(),
-    company: v.string(),
+    company: v.optional(v.string()),
     address: v.optional(v.string()),
-    phone: v.string(),
-    email: v.string(),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
     type: v.optional(v.union(v.literal("activo"), v.literal("potencial"))),
-    lastInteraction: v.string(), // ISO format
-    projectCount: v.number(),
+    lastInteraction: v.optional(v.string()), // ISO format
+    projectCount: v.optional(v.number()),
     notes: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
   }),

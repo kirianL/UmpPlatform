@@ -102,8 +102,9 @@ const EMPTY_PAYMENT = {
 };
 
 export default function ClientesPage() {
-  const { userRole } = useAuth();
-  const hidePrices = userRole === "directorio";
+  const { userRole, userEmail } = useAuth();
+  const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const hidePrices = userRole === "directorio" || isMichelle;
 
   const clients = useQuery(api.clients.get) ?? [];
   const allServices = useQuery(api.clientServices.listAll) ?? [];
@@ -235,10 +236,19 @@ export default function ClientesPage() {
   }
 
   async function handleSaveClient() {
-    if (!form.name.trim()) return;
+    const clientName = form.name.trim() || "Cliente sin nombre";
+    const clientCompany = form.company.trim() || "Sin empresa";
 
     const payload = {
       ...form,
+      name: clientName,
+      company: clientCompany,
+      address: form.address.trim() ? form.address.trim() : undefined,
+      phone: form.phone.trim() ? form.phone.trim() : "",
+      email: form.email.trim() ? form.email.trim() : "",
+      lastInteraction:
+        form.lastInteraction || new Date().toISOString().slice(0, 10),
+      notes: form.notes.trim() ? form.notes.trim() : undefined,
       logoUrl: form.logoUrl.trim() ? form.logoUrl.trim() : undefined,
     };
 
@@ -288,13 +298,15 @@ export default function ClientesPage() {
   }
 
   function handleAddService() {
-    if (!selectedClient || !serviceForm.serviceName.trim()) return;
+    if (!selectedClient) return;
+    const serviceName = serviceForm.serviceName.trim() || "Servicio general";
     createService({
       clientId: selectedClient._id,
-      serviceName: serviceForm.serviceName.trim(),
+      serviceName,
       amount: Number(serviceForm.amount) || 0,
-      paymentStatus: serviceForm.paymentStatus,
-      contractDate: serviceForm.contractDate,
+      paymentStatus: serviceForm.paymentStatus || "pendiente",
+      contractDate:
+        serviceForm.contractDate || new Date().toISOString().slice(0, 10),
     });
     setServiceForm(EMPTY_SERVICE);
   }
@@ -832,8 +844,7 @@ export default function ClientesPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
-                placeholder="Ej: Laura Sánchez"
-                required
+                placeholder="Ej: Laura Sánchez (opcional)"
               />
               <Input
                 label="Empresa / compañía"
@@ -842,8 +853,7 @@ export default function ClientesPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, company: e.target.value }))
                 }
-                placeholder="Ej: Streaming MX"
-                required
+                placeholder="Ej: Streaming MX (opcional)"
               />
             </div>
 
@@ -854,7 +864,7 @@ export default function ClientesPage() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, address: e.target.value }))
               }
-              placeholder="Ej: Av. Reforma #120, Piso 4, San José"
+              placeholder="Ej: Av. Reforma #120, Piso 4, San José (opcional)"
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -866,8 +876,7 @@ export default function ClientesPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, email: e.target.value }))
                 }
-                placeholder="correo@ejemplo.com"
-                required
+                placeholder="correo@ejemplo.com (opcional)"
               />
               <Input
                 label="Teléfono de contacto"
@@ -876,8 +885,7 @@ export default function ClientesPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, phone: e.target.value }))
                 }
-                placeholder="555-0100"
-                required
+                placeholder="555-0100 (opcional)"
               />
             </div>
 
@@ -906,7 +914,6 @@ export default function ClientesPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, lastInteraction: e.target.value }))
                 }
-                required
               />
             </div>
 
@@ -1108,8 +1115,7 @@ export default function ClientesPage() {
                             serviceName: e.target.value,
                           }))
                         }
-                        placeholder="Ej: Desarrollo web / Manejo de redes"
-                        required
+                        placeholder="Ej: Desarrollo web / Manejo de redes (opcional)"
                       />
                       <Input
                         label="Fecha de contrato"
@@ -1122,7 +1128,6 @@ export default function ClientesPage() {
                             contractDate: e.target.value,
                           }))
                         }
-                        required
                       />
                     </div>
                     <div className="flex justify-end pt-1">
@@ -1228,8 +1233,7 @@ export default function ClientesPage() {
                                 serviceName: e.target.value,
                               }))
                             }
-                            placeholder="Ej: Desarrollo web / Manejo de redes"
-                            required
+                            placeholder="Ej: Desarrollo web / Manejo de redes (opcional)"
                           />
                           <Input
                             label="Monto pactado (CRC)"
@@ -1244,8 +1248,7 @@ export default function ClientesPage() {
                               );
                               setServiceForm((f) => ({ ...f, amount: val }));
                             }}
-                            placeholder="0"
-                            required
+                            placeholder="0 (opcional)"
                           />
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1283,7 +1286,6 @@ export default function ClientesPage() {
                                 contractDate: e.target.value,
                               }))
                             }
-                            required
                           />
                         </div>
                         <div className="flex justify-end pt-1">
