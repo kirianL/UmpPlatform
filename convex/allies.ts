@@ -35,6 +35,59 @@ export const getByCode = query({
   },
 });
 
+export const generateToken = mutation({
+  args: {
+    package: v.optional(v.union(v.literal("elite"), v.literal("vip"))),
+  },
+  handler: async (ctx, args) => {
+    const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    let token = "UMP-";
+    for (let i = 0; i < 8; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const tokenId = await ctx.db.insert("allyTokens", {
+      token,
+      used: false,
+      createdAt: new Date().toISOString(),
+      package: args.package,
+    });
+
+    return { tokenId, token };
+  },
+});
+
+export const validateToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const trimmed = args.token.trim().toUpperCase();
+    if (!trimmed) {
+      return { valid: false, reason: "missing" as const };
+    }
+    const record = await ctx.db
+      .query("allyTokens")
+      .withIndex("by_token", (q) => q.eq("token", trimmed))
+      .first();
+
+    if (!record) {
+      return { valid: false, reason: "not_found" as const };
+    }
+    if (record.used) {
+      return {
+        valid: false,
+        reason: "already_used" as const,
+        usedAt: record.usedAt,
+      };
+    }
+
+    return {
+      valid: true,
+      token: record.token,
+      defaultPackage: record.package,
+    };
+  },
+});
+
 export const createPublic = mutation({
   args: {
     fullName: v.string(),
@@ -44,8 +97,27 @@ export const createPublic = mutation({
     whatsappOptIn: v.boolean(),
     package: v.union(v.literal("elite"), v.literal("vip")),
     notes: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    let tokenRecord = null;
+    if (args.token) {
+      const trimmedToken = args.token.trim().toUpperCase();
+      tokenRecord = await ctx.db
+        .query("allyTokens")
+        .withIndex("by_token", (q) => q.eq("token", trimmedToken))
+        .first();
+
+      if (!tokenRecord) {
+        throw new Error("El enlace de registro no es válido.");
+      }
+      if (tokenRecord.used) {
+        throw new Error(
+          "Este enlace de registro ya fue utilizado previamente.",
+        );
+      }
+    }
+
     const trimmedName = args.fullName.trim();
     const trimmedIdCard = args.idCard.trim();
     const trimmedPhone = args.phone.trim();
@@ -64,6 +136,18 @@ export const createPublic = mutation({
       throw new Error("El correo electrónico es requerido.");
     }
 
+    // Check if cédula is already registered as an ally
+    const existingByIdCard = await ctx.db
+      .query("allies")
+      .filter((q) => q.eq(q.field("idCard"), trimmedIdCard))
+      .first();
+
+    if (existingByIdCard) {
+      throw new Error(
+        `Ya existe un aliado registrado con la cédula ${trimmedIdCard}.`,
+      );
+    }
+
     const packageAmount = args.package === "vip" ? 12000 : 10000;
     const createdAt = new Date().toISOString();
     const code = generateAllyCode();
@@ -76,12 +160,20 @@ export const createPublic = mutation({
       whatsappOptIn: args.whatsappOptIn,
       package: args.package,
       packageAmount,
-      status: "no_pagado",
-      paymentStatus: "no_pagado",
+      status: "pagado",
+      paymentStatus: "pagado",
       code,
       notes: args.notes?.trim() || undefined,
       createdAt,
     });
+
+    if (tokenRecord) {
+      await ctx.db.patch(tokenRecord._id, {
+        used: true,
+        usedAt: new Date().toISOString(),
+        usedByAllyId: allyId,
+      });
+    }
 
     return { allyId, code };
   },
@@ -122,7 +214,8 @@ export const create = mutation({
       args.packageAmount ?? (args.package === "vip" ? 12000 : 10000);
     const createdAt = args.createdAt || new Date().toISOString();
     const status = args.status || "no_pagado";
-    const paymentStatus = args.paymentStatus || (status === "pagado" ? "pagado" : "no_pagado");
+    const paymentStatus =
+      args.paymentStatus || (status === "pagado" ? "pagado" : "no_pagado");
     const code = args.code?.trim().toUpperCase() || generateAllyCode();
 
     return await ctx.db.insert("allies", {

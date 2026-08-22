@@ -2070,7 +2070,10 @@ export default function PersonalPage() {
                         className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-accent-11 hover:text-green-11 hover:underline transition-colors"
                         title="Abrir chat de WhatsApp"
                       >
-                        <PhoneIcon size={13} className="text-accent-9 shrink-0" />
+                        <PhoneIcon
+                          size={13}
+                          className="text-accent-9 shrink-0"
+                        />
                         <span>{previewLeadPhoto.phone}</span>
                       </a>
                     </div>

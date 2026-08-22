@@ -4,7 +4,10 @@ import { v } from "convex/values";
 export const listBoards = query({
   args: {},
   handler: async (ctx) => {
-    const boards = await ctx.db.query("brainstormBoards").order("desc").collect();
+    const boards = await ctx.db
+      .query("brainstormBoards")
+      .order("desc")
+      .collect();
     const items = await ctx.db.query("brainstormItems").collect();
 
     // Map item counts and client details to each board

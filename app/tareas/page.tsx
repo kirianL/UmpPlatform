@@ -81,7 +81,9 @@ export default function TareasPage() {
   const [editingId, setEditingId] = useState<Id<"tasks"> | null>(null);
   const [form, setForm] = useState(EMPTY_TASK);
 
-  const [taskToDeleteId, setTaskToDeleteId] = useState<Id<"tasks"> | null>(null);
+  const [taskToDeleteId, setTaskToDeleteId] = useState<Id<"tasks"> | null>(
+    null,
+  );
 
   // Modal to preview full image
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -133,26 +135,20 @@ export default function TareasPage() {
     });
   }
 
-  const filteredPending = useMemo(() => filterList(pendingTasks), [
-    pendingTasks,
-    search,
-    categoryFilter,
-    priorityFilter,
-  ]);
+  const filteredPending = useMemo(
+    () => filterList(pendingTasks),
+    [pendingTasks, search, categoryFilter, priorityFilter],
+  );
 
-  const filteredCompleted = useMemo(() => filterList(completedTasks), [
-    completedTasks,
-    search,
-    categoryFilter,
-    priorityFilter,
-  ]);
+  const filteredCompleted = useMemo(
+    () => filterList(completedTasks),
+    [completedTasks, search, categoryFilter, priorityFilter],
+  );
 
-  const filteredAll = useMemo(() => filterList(tasks), [
-    tasks,
-    search,
-    categoryFilter,
-    priorityFilter,
-  ]);
+  const filteredAll = useMemo(
+    () => filterList(tasks),
+    [tasks, search, categoryFilter, priorityFilter],
+  );
 
   // Handlers
   function openCreate() {
@@ -231,9 +227,7 @@ export default function TareasPage() {
         <EmptyState
           icon={<CheckSquareOffsetIcon size={40} weight="duotone" />}
           title={
-            isCompletedTab
-              ? "Sin tareas realizadas"
-              : "Sin pendientes ni ideas"
+            isCompletedTab ? "Sin tareas realizadas" : "Sin pendientes ni ideas"
           }
           description={
             search || categoryFilter !== "all" || priorityFilter !== "all"
@@ -244,7 +238,11 @@ export default function TareasPage() {
           }
           action={
             !isCompletedTab && (
-              <Button variant="primary" className="text-xs" onClick={openCreate}>
+              <Button
+                variant="primary"
+                className="text-xs"
+                onClick={openCreate}
+              >
                 <PlusIcon size={16} weight="bold" />
                 Agregar tarea / idea
               </Button>
@@ -407,11 +405,15 @@ export default function TareasPage() {
               Tareas e Ideas
             </h1>
             <p className="text-sm text-grayscale-10">
-              Registra pendientes, ideas y recordatorios sin fecha específica para
-              que no se olviden.
+              Registra pendientes, ideas y recordatorios sin fecha específica
+              para que no se olviden.
             </p>
           </div>
-          <Button variant="primary" className="text-xs shrink-0" onClick={openCreate}>
+          <Button
+            variant="primary"
+            className="text-xs shrink-0"
+            onClick={openCreate}
+          >
             <PlusIcon size={16} weight="bold" />
             Agregar tarea / idea
           </Button>
@@ -450,7 +452,10 @@ export default function TareasPage() {
         </div>
 
         {/* Filters & Tabs */}
-        <Tabs.Root defaultValue="pendientes" className="w-full flex flex-col gap-6">
+        <Tabs.Root
+          defaultValue="pendientes"
+          className="w-full flex flex-col gap-6"
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
               <Tabs.Tab
@@ -745,7 +750,11 @@ export default function TareasPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="primary" className="text-xs py-1 px-3">
+              <Button
+                type="submit"
+                variant="primary"
+                className="text-xs py-1 px-3"
+              >
                 {editingId ? "Guardar" : "Crear tarea / idea"}
               </Button>
             </div>

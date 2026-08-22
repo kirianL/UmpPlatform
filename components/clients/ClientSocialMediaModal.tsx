@@ -45,7 +45,12 @@ import SpanishDatePicker from "./SpanishDatePicker";
 import VaultSecurityGate from "./VaultSecurityGate";
 
 type PlatformType =
-  "instagram" | "facebook" | "tiktok" | "youtube" | "linkedin" | "otro";
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "youtube"
+  | "linkedin"
+  | "otro";
 type ContentType = "reel" | "carousel" | "image" | "story" | "video" | "post";
 type StatusType = "planificado" | "en_proceso" | "publicado" | "cancelado";
 
@@ -176,13 +181,26 @@ export default function ClientSocialMediaModal({
   const [postForm, setPostForm] = useState({
     title: "",
     platform: "instagram" as
-      "instagram" | "facebook" | "tiktok" | "youtube" | "linkedin" | "otro",
+      | "instagram"
+      | "facebook"
+      | "tiktok"
+      | "youtube"
+      | "linkedin"
+      | "otro",
     contentType: "reel" as
-      "reel" | "carousel" | "image" | "story" | "video" | "post",
+      | "reel"
+      | "carousel"
+      | "image"
+      | "story"
+      | "video"
+      | "post",
     scheduledDate: new Date().toISOString().slice(0, 10),
     scheduledTime: "12:00",
     status: "planificado" as
-      "planificado" | "en_proceso" | "publicado" | "cancelado",
+      | "planificado"
+      | "en_proceso"
+      | "publicado"
+      | "cancelado",
     postUrl: "",
     caption: "",
     notes: "",
@@ -329,7 +347,9 @@ export default function ClientSocialMediaModal({
       url: credForm.url ? String(credForm.url).trim() : undefined,
       notes: credForm.notes ? String(credForm.notes).trim() : undefined,
       status: (credForm.status || "active") as
-        "active" | "needs_relogin" | "inactive",
+        | "active"
+        | "needs_relogin"
+        | "inactive",
     };
 
     if (editingCredId) {

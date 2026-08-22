@@ -8,6 +8,7 @@ import {
   CurrencyDollarIcon,
   EnvelopeSimpleIcon,
   HandshakeIcon,
+  IdentificationCardIcon,
   MagnifyingGlassIcon,
   PencilSimpleIcon,
   PhoneIcon,
@@ -18,6 +19,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
+import { CarnetModal } from "@/components/CarnetModal";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 import ConfirmModal from "@/components/public/ConfirmModal";
@@ -74,6 +76,7 @@ export default function AliadosPage() {
   const createAlly = useMutation(api.allies.create);
   const updateAlly = useMutation(api.allies.update);
   const removeAlly = useMutation(api.allies.remove);
+  const generateToken = useMutation(api.allies.generateToken);
 
   const allies: AllyRecord[] = useMemo(() => {
     if (!rawAllies) return [];
@@ -88,13 +91,21 @@ export default function AliadosPage() {
 
   // Feedback states
   const [copiedLink, setCopiedLink] = useState(false);
+  const [generatingLink, setGeneratingLink] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Modals state
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [carnetModalOpen, setCarnetModalOpen] = useState(false);
+  const [carnetAlly, setCarnetAlly] = useState<AllyRecord | null>(null);
   const [selectedAlly, setSelectedAlly] = useState<AllyRecord | null>(null);
+
+  const openCarnetModal = (ally: AllyRecord) => {
+    setCarnetAlly(ally);
+    setCarnetModalOpen(true);
+  };
 
   // Form State for Create/Edit
   const [formData, setFormData] = useState<{
@@ -126,13 +137,21 @@ export default function AliadosPage() {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Copy registration link
-  const handleCopyLink = () => {
+  // Copy one-time registration link
+  const handleCopyLink = async () => {
     if (typeof window === "undefined") return;
-    const link = `${window.location.origin}/aliados/public`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
+    setGeneratingLink(true);
+    try {
+      const res = await generateToken({});
+      const link = `${window.location.origin}/aliados/public?token=${res.token}`;
+      await navigator.clipboard.writeText(link);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (err) {
+      console.error("Error al generar token:", err);
+    } finally {
+      setGeneratingLink(false);
+    }
   };
 
   // Copy individual Ally ID
@@ -385,7 +404,8 @@ export default function AliadosPage() {
             <Button
               variant="secondary"
               onClick={handleCopyLink}
-              className="gap-1.5 text-xs"
+              disabled={generatingLink}
+              className="gap-1.5 text-xs font-semibold"
             >
               {copiedLink ? (
                 <>
@@ -395,13 +415,17 @@ export default function AliadosPage() {
                     className="text-green-600 dark:text-green-400"
                   />
                   <span className="text-green-600 dark:text-green-400">
-                    Link Copiado
+                    Enlace de un solo uso copiado
                   </span>
                 </>
               ) : (
                 <>
                   <CopyIcon size={16} weight="bold" />
-                  <span>Copiar Link Registro</span>
+                  <span>
+                    {generatingLink
+                      ? "Generando..."
+                      : "Generar enlace de registro"}
+                  </span>
                 </>
               )}
             </Button>
@@ -414,7 +438,7 @@ export default function AliadosPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-grayscale-4 bg-transparent px-3 py-1.5 text-xs font-semibold text-grayscale-11 hover:bg-grayscale-2 dark:hover:bg-grayscale-3 transition-colors"
             >
               <ArrowSquareOutIcon size={15} weight="bold" />
-              <span>Ver Formulario</span>
+              <span>Ver formulario</span>
             </a>
 
             {/* ADD ALLY BUTTON */}
@@ -424,7 +448,7 @@ export default function AliadosPage() {
               className="gap-1.5 text-xs"
             >
               <PlusIcon size={16} weight="bold" />
-              <span>Nuevo Aliado</span>
+              <span>Nuevo aliado</span>
             </Button>
           </div>
         </div>
@@ -432,12 +456,12 @@ export default function AliadosPage() {
         {/* STAT CARDS */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
-            label="Total Aliados"
+            label="Total aliados"
             value={stats.total}
             icon={<UsersIcon size={20} />}
           />
           <StatCard
-            label="Paquete Élite"
+            label="Paquete élite"
             value={stats.eliteCount}
             detail="₡10.000 / mes"
             icon={<ShieldCheckIcon size={20} />}
@@ -449,13 +473,13 @@ export default function AliadosPage() {
             icon={<CrownIcon size={20} />}
           />
           <StatCard
-            label="Aliados Pagados"
+            label="Aliados pagados"
             value={stats.paidCount}
             detail={`${stats.total > 0 ? Math.round((stats.paidCount / stats.total) * 100) : 0}% del total`}
             icon={<CheckIcon size={20} />}
           />
           <StatCard
-            label="Recaudación Real"
+            label="Recaudación real"
             value={formatCurrency(stats.totalPaidAmount)}
             detail={`Proy: ${formatCurrency(stats.totalProjected)}`}
             icon={<CurrencyDollarIcon size={20} />}
@@ -486,7 +510,7 @@ export default function AliadosPage() {
               onChange={(e) => setPackageFilter(e.target.value)}
               className="rounded-lg border border-grayscale-4 bg-grayscale-1 px-2.5 py-1.5 text-xs text-grayscale-12 focus:border-accent focus:outline-none dark:border-grayscale-4 dark:bg-grayscale-3"
             >
-              <option value="all">Todos los Paquetes</option>
+              <option value="all">Todos los paquetes</option>
               <option value="elite">Élite (₡10.000)</option>
               <option value="vip">VIP (₡12.000)</option>
             </select>
@@ -510,9 +534,9 @@ export default function AliadosPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-lg border border-grayscale-4 bg-grayscale-1 px-2.5 py-1.5 text-xs text-grayscale-12 focus:border-accent focus:outline-none dark:border-grayscale-4 dark:bg-grayscale-3"
             >
-              <option value="all">Todos los Estados</option>
+              <option value="all">Todos los estados</option>
               <option value="pagado">Pagado</option>
-              <option value="no_pagado">No Pagado</option>
+              <option value="no_pagado">No pagado</option>
             </select>
           </div>
         </div>
@@ -550,11 +574,11 @@ export default function AliadosPage() {
                       setStatusFilter("all");
                     }}
                   >
-                    Restablecer Filtros
+                    Restablecer filtros
                   </Button>
                 ) : (
                   <Button variant="primary" onClick={handleCopyLink}>
-                    Copiar Enlace de Registro
+                    Copiar enlace de registro
                   </Button>
                 )
               }
@@ -570,7 +594,7 @@ export default function AliadosPage() {
                       ID Aliado
                     </th>
                     <th className="px-4 py-3 font-semibold whitespace-nowrap">
-                      Nombre Completo
+                      Nombre completo
                     </th>
                     <th className="px-4 py-3 font-semibold whitespace-nowrap">
                       Cédula
@@ -582,7 +606,7 @@ export default function AliadosPage() {
                       Paquete
                     </th>
                     <th className="px-4 py-3 font-semibold text-center whitespace-nowrap">
-                      WhatsApp Exclusivo
+                      WhatsApp exclusivo
                     </th>
                     <th className="px-4 py-3 font-semibold whitespace-nowrap">
                       Estado
@@ -783,6 +807,17 @@ export default function AliadosPage() {
                         {/* ACCIONES */}
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                            {/* CARNET BUTTON */}
+                            <button
+                              type="button"
+                              onClick={() => openCarnetModal(item)}
+                              aria-label={`Generar carnet de ${item.fullName}`}
+                              title="Generar Carnet Digital"
+                              className="flex size-7 items-center justify-center rounded-lg border border-grayscale-4 bg-transparent text-grayscale-11 hover:bg-grayscale-2 dark:hover:bg-grayscale-3 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/40 transition-colors"
+                            >
+                              <IdentificationCardIcon size={15} weight="bold" />
+                            </button>
+
                             {/* EDIT BUTTON */}
                             <button
                               type="button"
@@ -820,7 +855,7 @@ export default function AliadosPage() {
       <Modal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        title="Nuevo Aliado"
+        title="Nuevo aliado"
       >
         <form onSubmit={handleSaveCreate} className="p-4 sm:p-6 space-y-4">
           {formError && (
@@ -833,7 +868,7 @@ export default function AliadosPage() {
             <div className="sm:col-span-2">
               <Input
                 id="create-fullName"
-                label="Nombre Completo *"
+                label="Nombre completo *"
                 value={formData.fullName}
                 onChange={(e) =>
                   setFormData({ ...formData, fullName: e.target.value })
@@ -845,7 +880,7 @@ export default function AliadosPage() {
             <div>
               <Input
                 id="create-code"
-                label="ID / Código (Opcional)"
+                label="ID / Código (opcional)"
                 value={formData.code}
                 onChange={(e) =>
                   setFormData({
@@ -884,7 +919,7 @@ export default function AliadosPage() {
 
           <Input
             id="create-email"
-            label="Correo Electrónico *"
+            label="Correo electrónico *"
             type="email"
             value={formData.email}
             onChange={(e) =>
@@ -914,7 +949,7 @@ export default function AliadosPage() {
 
             <Select
               id="create-status"
-              label="Estado de Pago *"
+              label="Estado de pago *"
               value={formData.status === "pagado" ? "pagado" : "no_pagado"}
               onChange={(e) =>
                 setFormData({
@@ -924,7 +959,7 @@ export default function AliadosPage() {
                 })
               }
               options={[
-                { value: "no_pagado", label: "No Pagado" },
+                { value: "no_pagado", label: "No pagado" },
                 { value: "pagado", label: "Pagado" },
               ]}
             />
@@ -976,7 +1011,7 @@ export default function AliadosPage() {
               Cancelar
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? "Guardando..." : "Guardar Aliado"}
+              {saving ? "Guardando..." : "Guardar aliado"}
             </Button>
           </div>
         </form>
@@ -986,7 +1021,7 @@ export default function AliadosPage() {
       <Modal
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
-        title="Editar Aliado"
+        title="Editar aliado"
       >
         <form onSubmit={handleSaveEdit} className="p-4 sm:p-6 space-y-4">
           {formError && (
@@ -999,7 +1034,7 @@ export default function AliadosPage() {
             <div className="sm:col-span-2">
               <Input
                 id="edit-fullName"
-                label="Nombre Completo *"
+                label="Nombre completo *"
                 value={formData.fullName}
                 onChange={(e) =>
                   setFormData({ ...formData, fullName: e.target.value })
@@ -1047,7 +1082,7 @@ export default function AliadosPage() {
 
           <Input
             id="edit-email"
-            label="Correo Electrónico *"
+            label="Correo electrónico *"
             type="email"
             value={formData.email}
             onChange={(e) =>
@@ -1076,7 +1111,7 @@ export default function AliadosPage() {
 
             <Select
               id="edit-status"
-              label="Estado de Pago *"
+              label="Estado de pago *"
               value={formData.status === "pagado" ? "pagado" : "no_pagado"}
               onChange={(e) =>
                 setFormData({
@@ -1086,7 +1121,7 @@ export default function AliadosPage() {
                 })
               }
               options={[
-                { value: "no_pagado", label: "No Pagado" },
+                { value: "no_pagado", label: "No pagado" },
                 { value: "pagado", label: "Pagado" },
               ]}
             />
@@ -1137,7 +1172,7 @@ export default function AliadosPage() {
               Cancelar
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? "Guardando..." : "Actualizar Aliado"}
+              {saving ? "Guardando..." : "Actualizar aliado"}
             </Button>
           </div>
         </form>
@@ -1147,12 +1182,19 @@ export default function AliadosPage() {
       <ConfirmModal
         open={deleteModalOpen}
         onOpenChange={setDeleteModalOpen}
-        title="Eliminar Aliado"
+        title="Eliminar aliado"
         description={`¿Estás seguro de que deseas eliminar a "${selectedAlly?.fullName}"? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         variant="danger"
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* CARNET DIGITAL MODAL */}
+      <CarnetModal
+        open={carnetModalOpen}
+        onOpenChange={setCarnetModalOpen}
+        ally={carnetAlly}
       />
     </PageContainer>
   );

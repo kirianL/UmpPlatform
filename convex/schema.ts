@@ -409,4 +409,14 @@ export default defineSchema({
   })
     .index("by_createdAt", ["createdAt"])
     .index("by_code", ["code"]),
+  allyTokens: defineTable({
+    token: v.string(),
+    used: v.boolean(),
+    createdAt: v.string(),
+    usedAt: v.optional(v.string()),
+    usedByAllyId: v.optional(v.id("allies")),
+    package: v.optional(v.union(v.literal("elite"), v.literal("vip"))),
+  })
+    .index("by_token", ["token"])
+    .index("by_used", ["used"]),
 });

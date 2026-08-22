@@ -1159,7 +1159,8 @@ export default function ClientesPage() {
                                   {s.serviceName}
                                 </span>
                                 <span className="text-xs text-grayscale-9 font-mono">
-                                  Fecha de contrato: {formatDate(s.contractDate)}
+                                  Fecha de contrato:{" "}
+                                  {formatDate(s.contractDate)}
                                 </span>
                               </div>
                               <button
@@ -1259,8 +1260,14 @@ export default function ClientesPage() {
                               }))
                             }
                             options={[
-                              { value: "pendiente", label: "Pendiente de pago" },
-                              { value: "pagado", label: "Pagado completamente" },
+                              {
+                                value: "pendiente",
+                                label: "Pendiente de pago",
+                              },
+                              {
+                                value: "pagado",
+                                label: "Pagado completamente",
+                              },
                               { value: "parcial", label: "Pago parcial" },
                               { value: "sin_pago", label: "Sin pago" },
                             ]}
@@ -1580,7 +1587,9 @@ export default function ClientesPage() {
                                       </span>
                                       <Badge
                                         variant={
-                                          p.status === "paid" ? "green" : "orange"
+                                          p.status === "paid"
+                                            ? "green"
+                                            : "orange"
                                         }
                                       >
                                         {p.status === "paid"

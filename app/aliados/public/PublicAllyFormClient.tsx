@@ -6,19 +6,26 @@ import {
   CheckCircleIcon,
   CheckIcon,
   CrownIcon,
+  DownloadSimpleIcon,
   EnvelopeSimpleIcon,
   HandshakeIcon,
   IdentificationCardIcon,
+  LockKeyIcon,
   PencilSimpleIcon,
   PhoneIcon,
   ShieldCheckIcon,
   UserIcon,
+  WarningCircleIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useMutation } from "convex/react";
+import confetti from "canvas-confetti";
+import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { CarnetCard, downloadCarnetAsImage } from "@/components/CarnetModal";
 import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Button from "@/components/public/Button";
 import { api } from "@/convex/_generated/api";
 
 type PackageType = "elite" | "vip";
@@ -49,6 +56,14 @@ const slideVariants: Variants = {
 };
 
 export default function PublicAllyFormClient() {
+  const searchParams = useSearchParams();
+  const tokenParam = searchParams.get("token") || "";
+
+  const tokenValidation = useQuery(
+    api.allies.validateToken,
+    tokenParam ? { token: tokenParam } : "skip",
+  );
+
   const createAlly = useMutation(api.allies.createPublic);
 
   // Form states
@@ -63,9 +78,11 @@ export default function PublicAllyFormClient() {
   const [whatsappOptIn, setWhatsappOptIn] = useState<boolean>(true);
 
   const [stepError, setStepError] = useState("");
+  const [shakeKey, setShakeKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [downloadingCarnet, setDownloadingCarnet] = useState(false);
   const [submittedData, setSubmittedData] = useState<{
     fullName: string;
     idCard: string;
@@ -77,17 +94,77 @@ export default function PublicAllyFormClient() {
     code: string;
   } | null>(null);
 
+  const handleDownloadCarnet = async () => {
+    if (!submittedData) return;
+    setDownloadingCarnet(true);
+    try {
+      await downloadCarnetAsImage({
+        fullName: submittedData.fullName,
+        code: submittedData.code,
+        package: submittedData.package,
+        idCard: submittedData.idCard,
+      });
+    } catch (err) {
+      console.error("Error al descargar carnet:", err);
+    } finally {
+      setDownloadingCarnet(false);
+    }
+  };
+
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Confetti celebration on completion
+  useEffect(() => {
+    if (submitted) {
+      try {
+        const count = 180;
+        const defaults = { origin: { y: 0.65 }, zIndex: 9999 };
+
+        const fire = (particleRatio: number, opts: confetti.Options) => {
+          confetti({
+            ...defaults,
+            ...opts,
+            particleCount: Math.floor(count * particleRatio),
+          });
+        };
+
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
+      } catch (e) {
+        console.error("Error firing confetti:", e);
+      }
+    }
+  }, [submitted]);
 
   // Auto focus input when step changes
   useEffect(() => {
-    if (step > 1 && step < 6) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 150);
-      return () => clearTimeout(timer);
+    if (step >= 2 && step <= 5) {
+      const focusActiveInput = () => {
+        const input = document.querySelector<HTMLInputElement>(
+          "main input[type='text'], main input[type='tel'], main input[type='email']",
+        );
+        input?.focus();
+      };
+
+      focusActiveInput();
+      const t1 = setTimeout(focusActiveInput, 50);
+      const t2 = setTimeout(focusActiveInput, 180);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
     }
   }, [step]);
+
+  // Auto select default package from token if configured
+  useEffect(() => {
+    if (tokenValidation?.valid && tokenValidation.defaultPackage) {
+      setSelectedPackage(tokenValidation.defaultPackage);
+    }
+  }, [tokenValidation]);
 
   // Next step validator
   const handleNext = () => {
@@ -96,30 +173,36 @@ export default function PublicAllyFormClient() {
     if (step === 1) {
       if (!selectedPackage) {
         setStepError("Por favor selecciona un paquete para continuar.");
+        setShakeKey((prev) => prev + 1);
         return;
       }
     } else if (step === 2) {
       if (!fullName.trim()) {
-        setStepError("Por favor ingresa tu nombre completo.");
+        setStepError("Ingresa tu nombre completo para continuar.");
+        setShakeKey((prev) => prev + 1);
         return;
       }
       if (fullName.trim().length < 3) {
-        setStepError("Por favor ingresa un nombre válido.");
+        setStepError("El nombre ingresado es muy corto.");
+        setShakeKey((prev) => prev + 1);
         return;
       }
     } else if (step === 3) {
       if (!idCard.trim()) {
-        setStepError("Por favor ingresa tu número de cédula o documento.");
+        setStepError("Ingresa tu número de cédula o documento.");
+        setShakeKey((prev) => prev + 1);
         return;
       }
     } else if (step === 4) {
       if (!phone.trim()) {
-        setStepError("Por favor ingresa tu número de celular.");
+        setStepError("Ingresa tu número de celular o WhatsApp.");
+        setShakeKey((prev) => prev + 1);
         return;
       }
     } else if (step === 5) {
       if (!email.trim() || !email.includes("@") || !email.includes(".")) {
-        setStepError("Por favor ingresa un correo electrónico válido.");
+        setStepError("Ingresa un correo electrónico válido.");
+        setShakeKey((prev) => prev + 1);
         return;
       }
     }
@@ -155,6 +238,7 @@ export default function PublicAllyFormClient() {
         email: email.trim().toLowerCase(),
         whatsappOptIn,
         package: selectedPackage,
+        token: tokenParam || undefined,
       });
 
       setSubmittedData({
@@ -192,6 +276,8 @@ export default function PublicAllyFormClient() {
     setStepError("");
   };
 
+  const isFormActive =
+    !submitted && Boolean(tokenParam) && Boolean(tokenValidation?.valid);
   const progressPercent = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
 
   return (
@@ -204,18 +290,13 @@ export default function PublicAllyFormClient() {
             <span className="text-grayscale-6 dark:text-grayscale-5 text-sm select-none">
               |
             </span>
-            <div className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
-              <HandshakeIcon
-                size={16}
-                weight="bold"
-                className="text-grayscale-12"
-              />
-              <span>Aliados UMP</span>
-            </div>
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
+              Aliados UMP
+            </span>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            {!submitted && (
+            {isFormActive && (
               <span className="font-mono text-xs font-bold text-grayscale-10">
                 {step} / {TOTAL_STEPS}
               </span>
@@ -225,7 +306,7 @@ export default function PublicAllyFormClient() {
         </div>
 
         {/* PROGRESS BAR */}
-        {!submitted && (
+        {isFormActive && (
           <div className="h-0.5 w-full bg-grayscale-3 dark:bg-grayscale-3 overflow-hidden">
             <motion.div
               className="h-full bg-grayscale-12 dark:bg-grayscale-12"
@@ -269,7 +350,7 @@ export default function PublicAllyFormClient() {
                 transition={{ duration: 0.35, delay: 0.15 }}
                 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-grayscale-12 font-mono uppercase"
               >
-                Registro Completado
+                Registro completado
               </motion.h1>
 
               <motion.p
@@ -278,7 +359,8 @@ export default function PublicAllyFormClient() {
                 transition={{ duration: 0.35, delay: 0.2 }}
                 className="mt-1 text-xs sm:text-sm text-grayscale-10 max-w-sm mx-auto"
               >
-                Tu afiliación ha sido registrada con éxito en Producciones UMP.
+                Tu afiliación fue registrada con éxito como aliado de Ultimate
+                Media Productions, ¡muchas gracias!
               </motion.p>
             </div>
 
@@ -292,20 +374,20 @@ export default function PublicAllyFormClient() {
               >
                 <div>
                   <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-grayscale-9 block">
-                    Tu ID Oficial de Aliado
+                    Tu ID oficial de aliado
                   </span>
                   <span className="font-mono text-xl sm:text-2xl font-black text-grayscale-12 tracking-wider">
                     {submittedData.code}
                   </span>
                 </div>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     navigator.clipboard.writeText(submittedData.code);
                     setCopiedCode(true);
                     setTimeout(() => setCopiedCode(false), 2500);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-xl border border-grayscale-4 bg-grayscale-2/60 text-grayscale-12 hover:bg-grayscale-3 active:scale-95 transition-all cursor-pointer dark:bg-grayscale-3 dark:border-grayscale-5"
+                  className="px-3 py-1.5 text-xs font-mono font-bold"
                 >
                   {copiedCode ? (
                     <>
@@ -326,7 +408,7 @@ export default function PublicAllyFormClient() {
                       <span>Copiar ID</span>
                     </>
                   )}
-                </button>
+                </Button>
               </motion.div>
             )}
 
@@ -385,7 +467,7 @@ export default function PublicAllyFormClient() {
 
               <div className="flex justify-between items-center py-1">
                 <span className="text-grayscale-9 font-mono uppercase text-[11px]">
-                  WhatsApp Exclusivo
+                  WhatsApp exclusivo
                 </span>
                 <span className="font-semibold text-grayscale-12 text-right">
                   {submittedData.whatsappOptIn ? "Sí" : "No"}
@@ -393,56 +475,125 @@ export default function PublicAllyFormClient() {
               </div>
             </motion.div>
 
+            {/* 3D LEVITATING CARNET PREVIEW */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.25 }}
+              className="mt-6 mb-4 w-full flex flex-col items-center"
+            >
+              <CarnetCard
+                data={{
+                  fullName: submittedData.fullName,
+                  code: submittedData.code,
+                  package: submittedData.package,
+                  idCard: submittedData.idCard,
+                }}
+              />
+            </motion.div>
+
             {/* ACTION BUTTONS */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.38 }}
-              className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3"
+              transition={{ duration: 0.4, delay: 0.35 }}
+              className="mt-5 flex items-center justify-center"
             >
-              <a
+              {/* DOWNLOAD CARNET BUTTON */}
+              <Button
+                variant="primary"
+                onClick={handleDownloadCarnet}
+                disabled={downloadingCarnet}
+                className="w-full sm:w-auto px-8 py-3 text-sm font-bold shadow-xl"
+              >
+                <DownloadSimpleIcon size={18} weight="bold" />
+                <span>
+                  {downloadingCarnet
+                    ? "Generando carnet..."
+                    : "Descargar mi carnet"}
+                </span>
+              </Button>
+            </motion.div>
+          </motion.div>
+        ) : !tokenParam ? (
+          /* NO TOKEN PROVIDED */
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-md mx-auto py-8 text-center"
+          >
+            <div className="flex size-16 items-center justify-center rounded-full bg-grayscale-3 text-grayscale-11 mx-auto mb-4 border border-grayscale-4 shadow-sm">
+              <LockKeyIcon size={32} weight="bold" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-grayscale-12 font-mono uppercase">
+              Enlace protegido
+            </h1>
+            <p className="mt-2 text-xs sm:text-sm text-grayscale-10 max-w-sm mx-auto leading-relaxed">
+              Para registrarte como aliado de Ultimate Media Productions,
+              solicita tu enlace personalizado de registro una vez confirmado tu
+              pago.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <Button
                 href={`https://wa.me/50670609325?text=${encodeURIComponent(
-                  `Hola, acabo de registrarme como Aliado en UMP (${submittedData.fullName} - ID: ${submittedData.code} - Paquete ${submittedData.package.toUpperCase()}).`,
+                  "Hola, me gustaría solicitar un enlace de registro para el programa de Aliados de Ultimate Media Productions.",
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-3.5 text-sm font-bold text-white shadow-md hover:bg-[#20ba5a] active:scale-[0.99] transition-all"
+                variant="primary"
+                className="px-6 py-2.5 text-xs font-bold"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="size-5 fill-current"
-                  role="img"
-                  aria-label="WhatsApp"
-                >
-                  <title>WhatsApp</title>
-                  <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M8.53 7.33C8.37 7.33 8.1 7.39 7.87 7.64C7.65 7.89 7 8.5 7 9.71C7 10.93 7.89 12.1 8.01 12.27C8.14 12.44 9.76 14.94 12.24 16C12.83 16.26 13.28 16.41 13.64 16.53C14.23 16.72 14.77 16.69 15.2 16.63C15.68 16.56 16.68 16.03 16.89 15.45C17.1 14.87 17.1 14.38 17.04 14.27C16.97 14.17 16.81 14.11 16.56 13.99C16.32 13.86 15.09 13.26 14.87 13.18C14.64 13.1 14.5 13.06 14.31 13.3C14.15 13.55 13.67 14.11 13.53 14.27C13.38 14.44 13.24 14.46 13 14.34C12.74 14.21 11.93 13.95 10.96 13.09C10.2 12.42 9.7 11.59 9.55 11.34C9.4 11.09 9.53 10.96 9.65 10.84C9.77 10.72 9.91 10.54 10.03 10.4C10.15 10.26 10.2 10.16 10.28 10C10.36 9.83 10.32 9.69 10.26 9.56C10.2 9.44 9.72 8.24 9.51 7.75C9.31 7.27 9.11 7.34 8.95 7.33C8.81 7.33 8.67 7.33 8.53 7.33Z" />
-                </svg>
                 <span>Contactar por WhatsApp</span>
-              </a>
-
-              <button
-                type="button"
-                onClick={handleReset}
-                className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-grayscale-4 bg-transparent px-5 py-3.5 text-xs font-medium text-grayscale-11 hover:bg-grayscale-2 dark:hover:bg-grayscale-3 transition-colors cursor-pointer"
+              </Button>
+            </div>
+          </motion.div>
+        ) : tokenValidation === undefined ? (
+          /* LOADING TOKEN VALIDATION */
+          <div className="w-full max-w-md mx-auto py-12 flex flex-col items-center justify-center gap-3">
+            <div className="size-6 animate-spin rounded-full border-2 border-grayscale-4 border-t-grayscale-12" />
+            <p className="text-xs font-mono text-grayscale-10">
+              Validando enlace de registro...
+            </p>
+          </div>
+        ) : !tokenValidation.valid ? (
+          /* INVALID OR ALREADY USED TOKEN */
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-md mx-auto py-8 text-center"
+          >
+            <div className="flex size-16 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto mb-4 ring-8 ring-amber-500/5">
+              <WarningCircleIcon size={32} weight="bold" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-grayscale-12 font-mono uppercase">
+              {tokenValidation.reason === "already_used"
+                ? "Enlace ya utilizado"
+                : "Enlace no válido"}
+            </h1>
+            <p className="mt-2 text-xs sm:text-sm text-grayscale-10 max-w-sm mx-auto leading-relaxed">
+              {tokenValidation.reason === "already_used"
+                ? "Este enlace de registro de un solo uso ya fue completado previamente. Si necesitas registrar a otro miembro o renovar tu membresía, solicita un nuevo enlace."
+                : "El token de este enlace no es válido o ha expirado. Por favor solicita un nuevo enlace de registro a Ultimate Media Productions."}
+            </p>
+            <div className="mt-6 flex justify-center">
+              <Button
+                href={`https://wa.me/50670609325?text=${encodeURIComponent(
+                  "Hola, mi enlace de registro de aliado ya fue utilizado o no es válido. ¿Me pueden generar uno nuevo?",
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="primary"
+                className="px-6 py-2.5 text-xs font-bold"
               >
-                Nuevo registro
-              </button>
-            </motion.div>
+                <span>Solicitar nuevo enlace por WhatsApp</span>
+              </Button>
+            </div>
           </motion.div>
         ) : (
           /* QUESTION CANVAS WITHOUT CONTAINER */
           <div className="w-full">
-            {/* ERROR NOTICE */}
-            {stepError && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400 max-w-xl"
-              >
-                {stepError}
-              </motion.div>
-            )}
-
             <AnimatePresence mode="wait" custom={direction}>
               {/* STEP 1: SELECT PACKAGE */}
               {step === 1 && (
@@ -460,7 +611,7 @@ export default function PublicAllyFormClient() {
                       Paso 1 — Membresía
                     </span>
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-grayscale-12">
-                      Elige tu Paquete de Aliado
+                      Elige tu paquete de aliado
                     </h1>
                     <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
                       Selecciona el nivel de beneficios para afiliarte a la
@@ -497,7 +648,7 @@ export default function PublicAllyFormClient() {
                         <input
                           type="radio"
                           name="pkgChoice"
-                          aria-label="Seleccionar Paquete VIP"
+                          aria-label="Seleccionar paquete VIP"
                           checked={selectedPackage === "vip"}
                           onChange={() => setSelectedPackage("vip")}
                           className="size-4 text-grayscale-12 border-grayscale-4 focus:ring-grayscale-12"
@@ -533,7 +684,7 @@ export default function PublicAllyFormClient() {
                             weight="bold"
                             className="text-emerald-600 dark:text-emerald-400"
                           />
-                          <span>Prioridad Total</span>
+                          <span>Prioridad total</span>
                         </span>
                       </div>
                     </button>
@@ -568,7 +719,7 @@ export default function PublicAllyFormClient() {
                         <input
                           type="radio"
                           name="pkgChoice"
-                          aria-label="Seleccionar Paquete Élite"
+                          aria-label="Seleccionar paquete Élite"
                           checked={selectedPackage === "elite"}
                           onChange={() => setSelectedPackage("elite")}
                           className="size-4 text-grayscale-12 border-grayscale-4 focus:ring-grayscale-12"
@@ -618,20 +769,51 @@ export default function PublicAllyFormClient() {
                   </div>
 
                   <div className="pt-2">
-                    <div className="relative flex items-center">
-                      <div className="pointer-events-none absolute left-0 text-grayscale-9">
+                    <motion.div
+                      key={shakeKey}
+                      animate={
+                        shakeKey > 0 && !fullName.trim()
+                          ? { x: [-6, 6, -4, 4, -2, 2, 0] }
+                          : {}
+                      }
+                      transition={{ duration: 0.3 }}
+                      className="relative flex items-center"
+                    >
+                      <div
+                        className={`pointer-events-none absolute left-0 transition-colors ${
+                          stepError ? "text-rose-500" : "text-grayscale-9"
+                        }`}
+                      >
                         <UserIcon size={24} />
                       </div>
                       <input
                         ref={inputRef}
                         type="text"
+                        autoFocus
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        onChange={(e) => {
+                          if (stepError) setStepError("");
+                          setFullName(e.target.value);
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="Ej. Kirian Luna Quiros"
-                        className="w-full bg-transparent border-b-2 border-grayscale-4 pl-9 pr-2 py-3 text-lg sm:text-2xl font-medium text-grayscale-12 placeholder:text-grayscale-7 focus:border-grayscale-12 focus:outline-none transition-colors"
+                        className={`w-full bg-transparent border-b-2 pl-9 pr-2 py-3 text-lg sm:text-2xl font-medium placeholder:text-grayscale-7 focus:outline-none transition-colors ${
+                          stepError
+                            ? "border-rose-500 text-rose-600 dark:text-rose-400"
+                            : "border-grayscale-4 text-grayscale-12 focus:border-grayscale-12"
+                        }`}
                       />
-                    </div>
+                    </motion.div>
+                    {stepError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2.5 flex items-center gap-1.5 text-xs font-mono font-medium text-rose-600 dark:text-rose-400"
+                      >
+                        <span className="size-1.5 rounded-full bg-rose-500 dark:bg-rose-400 animate-pulse" />
+                        <span>{stepError}</span>
+                      </motion.div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -652,7 +834,7 @@ export default function PublicAllyFormClient() {
                       Paso 3 — Documento
                     </span>
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-grayscale-12">
-                      Número de Cédula o Identificación
+                      Número de cédula o identificación
                     </h1>
                     <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
                       Utilizaremos este número para validar tu membresía
@@ -661,20 +843,51 @@ export default function PublicAllyFormClient() {
                   </div>
 
                   <div className="pt-2">
-                    <div className="relative flex items-center">
-                      <div className="pointer-events-none absolute left-0 text-grayscale-9">
+                    <motion.div
+                      key={shakeKey}
+                      animate={
+                        shakeKey > 0 && !idCard.trim()
+                          ? { x: [-6, 6, -4, 4, -2, 2, 0] }
+                          : {}
+                      }
+                      transition={{ duration: 0.3 }}
+                      className="relative flex items-center"
+                    >
+                      <div
+                        className={`pointer-events-none absolute left-0 transition-colors ${
+                          stepError ? "text-rose-500" : "text-grayscale-9"
+                        }`}
+                      >
                         <IdentificationCardIcon size={24} />
                       </div>
                       <input
                         ref={inputRef}
                         type="text"
+                        autoFocus
                         value={idCard}
-                        onChange={(e) => setIdCard(e.target.value)}
+                        onChange={(e) => {
+                          if (stepError) setStepError("");
+                          setIdCard(e.target.value);
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="Ej. 1-1234-0567"
-                        className="w-full bg-transparent border-b-2 border-grayscale-4 pl-9 pr-2 py-3 text-lg sm:text-2xl font-mono font-medium text-grayscale-12 placeholder:text-grayscale-7 focus:border-grayscale-12 focus:outline-none transition-colors"
+                        className={`w-full bg-transparent border-b-2 pl-9 pr-2 py-3 text-lg sm:text-2xl font-mono font-medium placeholder:text-grayscale-7 focus:outline-none transition-colors ${
+                          stepError
+                            ? "border-rose-500 text-rose-600 dark:text-rose-400"
+                            : "border-grayscale-4 text-grayscale-12 focus:border-grayscale-12"
+                        }`}
                       />
-                    </div>
+                    </motion.div>
+                    {stepError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2.5 flex items-center gap-1.5 text-xs font-mono font-medium text-rose-600 dark:text-rose-400"
+                      >
+                        <span className="size-1.5 rounded-full bg-rose-500 dark:bg-rose-400 animate-pulse" />
+                        <span>{stepError}</span>
+                      </motion.div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -692,10 +905,10 @@ export default function PublicAllyFormClient() {
                 >
                   <div>
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-grayscale-9 block mb-1">
-                      Paso 4 — Contacto Directo
+                      Paso 4 — Contacto directo
                     </span>
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-grayscale-12">
-                      Tu Número de Celular / WhatsApp
+                      Tu número de celular o WhatsApp
                     </h1>
                     <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
                       Para coordinaciones directas y acceso prioritario.
@@ -703,20 +916,51 @@ export default function PublicAllyFormClient() {
                   </div>
 
                   <div className="pt-2">
-                    <div className="relative flex items-center">
-                      <div className="pointer-events-none absolute left-0 text-grayscale-9">
+                    <motion.div
+                      key={shakeKey}
+                      animate={
+                        shakeKey > 0 && !phone.trim()
+                          ? { x: [-6, 6, -4, 4, -2, 2, 0] }
+                          : {}
+                      }
+                      transition={{ duration: 0.3 }}
+                      className="relative flex items-center"
+                    >
+                      <div
+                        className={`pointer-events-none absolute left-0 transition-colors ${
+                          stepError ? "text-rose-500" : "text-grayscale-9"
+                        }`}
+                      >
                         <PhoneIcon size={24} />
                       </div>
                       <input
                         ref={inputRef}
                         type="tel"
+                        autoFocus
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          if (stepError) setStepError("");
+                          setPhone(e.target.value);
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="Ej. 8888-8888"
-                        className="w-full bg-transparent border-b-2 border-grayscale-4 pl-9 pr-2 py-3 text-lg sm:text-2xl font-mono font-medium text-grayscale-12 placeholder:text-grayscale-7 focus:border-grayscale-12 focus:outline-none transition-colors"
+                        className={`w-full bg-transparent border-b-2 pl-9 pr-2 py-3 text-lg sm:text-2xl font-mono font-medium placeholder:text-grayscale-7 focus:outline-none transition-colors ${
+                          stepError
+                            ? "border-rose-500 text-rose-600 dark:text-rose-400"
+                            : "border-grayscale-4 text-grayscale-12 focus:border-grayscale-12"
+                        }`}
                       />
-                    </div>
+                    </motion.div>
+                    {stepError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2.5 flex items-center gap-1.5 text-xs font-mono font-medium text-rose-600 dark:text-rose-400"
+                      >
+                        <span className="size-1.5 rounded-full bg-rose-500 dark:bg-rose-400 animate-pulse" />
+                        <span>{stepError}</span>
+                      </motion.div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -734,10 +978,10 @@ export default function PublicAllyFormClient() {
                 >
                   <div>
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-grayscale-9 block mb-1">
-                      Paso 5 — Correo Electrónico
+                      Paso 5 — Correo electrónico
                     </span>
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-grayscale-12">
-                      Tu Correo Electrónico
+                      Tu correo electrónico
                     </h1>
                     <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
                       Para el envío de avisos y notificaciones de tu cuenta.
@@ -745,20 +989,51 @@ export default function PublicAllyFormClient() {
                   </div>
 
                   <div className="pt-2">
-                    <div className="relative flex items-center">
-                      <div className="pointer-events-none absolute left-0 text-grayscale-9">
+                    <motion.div
+                      key={shakeKey}
+                      animate={
+                        shakeKey > 0 && !email.trim()
+                          ? { x: [-6, 6, -4, 4, -2, 2, 0] }
+                          : {}
+                      }
+                      transition={{ duration: 0.3 }}
+                      className="relative flex items-center"
+                    >
+                      <div
+                        className={`pointer-events-none absolute left-0 transition-colors ${
+                          stepError ? "text-rose-500" : "text-grayscale-9"
+                        }`}
+                      >
                         <EnvelopeSimpleIcon size={24} />
                       </div>
                       <input
                         ref={inputRef}
                         type="email"
+                        autoFocus
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          if (stepError) setStepError("");
+                          setEmail(e.target.value);
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="nombre@ejemplo.com"
-                        className="w-full bg-transparent border-b-2 border-grayscale-4 pl-9 pr-2 py-3 text-lg sm:text-2xl font-medium text-grayscale-12 placeholder:text-grayscale-7 focus:border-grayscale-12 focus:outline-none transition-colors"
+                        className={`w-full bg-transparent border-b-2 pl-9 pr-2 py-3 text-lg sm:text-2xl font-medium placeholder:text-grayscale-7 focus:outline-none transition-colors ${
+                          stepError
+                            ? "border-rose-500 text-rose-600 dark:text-rose-400"
+                            : "border-grayscale-4 text-grayscale-12 focus:border-grayscale-12"
+                        }`}
                       />
-                    </div>
+                    </motion.div>
+                    {stepError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2.5 flex items-center gap-1.5 text-xs font-mono font-medium text-rose-600 dark:text-rose-400"
+                      >
+                        <span className="size-1.5 rounded-full bg-rose-500 dark:bg-rose-400 animate-pulse" />
+                        <span>{stepError}</span>
+                      </motion.div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -779,7 +1054,7 @@ export default function PublicAllyFormClient() {
                       Paso 6 — Comunidad WhatsApp
                     </span>
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-grayscale-12">
-                      Contenido Exclusivo por WhatsApp
+                      Contenido exclusivo por WhatsApp
                     </h1>
                     <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
                       ¿Deseas recibir primicias, material detrás de cámaras y
@@ -876,7 +1151,7 @@ export default function PublicAllyFormClient() {
                 >
                   <div>
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-grayscale-9 block mb-1">
-                      Paso 7 — Confirmación Final
+                      Paso 7 — Confirmación final
                     </span>
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-grayscale-12">
                       Revisa tus datos
@@ -964,7 +1239,7 @@ export default function PublicAllyFormClient() {
 
                     <div className="flex justify-between items-center py-1">
                       <span className="font-mono text-grayscale-9 uppercase text-[11px]">
-                        WhatsApp Exclusivo
+                        WhatsApp exclusivo
                       </span>
                       <span className="font-semibold text-grayscale-12">
                         {whatsappOptIn ? "Sí" : "No"}
@@ -979,18 +1254,18 @@ export default function PublicAllyFormClient() {
       </main>
 
       {/* DOCKED BOTTOM BAR */}
-      {!submitted && (
+      {isFormActive && (
         <footer className="h-16 sm:h-20 shrink-0 border-t border-grayscale-3/70 bg-grayscale-1/90 backdrop-blur-md dark:border-grayscale-2/70 z-20">
           <div className="mx-auto max-w-4xl px-4 sm:px-8 h-full flex items-center justify-between">
             {step > 1 ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={handleBack}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-grayscale-4 bg-transparent px-4 py-2.5 text-xs font-semibold text-grayscale-11 hover:bg-grayscale-2 dark:hover:bg-grayscale-3 transition-colors cursor-pointer"
+                className="gap-1.5 text-xs font-semibold"
               >
                 <ArrowLeftIcon size={14} weight="bold" />
                 <span>Atrás</span>
-              </button>
+              </Button>
             ) : (
               <span className="text-xs text-grayscale-9 font-mono select-none">
                 Producciones UMP
@@ -999,20 +1274,20 @@ export default function PublicAllyFormClient() {
 
             <div className="flex items-center gap-3">
               {step < TOTAL_STEPS ? (
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
                   onClick={handleNext}
-                  className="inline-flex items-center gap-2 rounded-xl bg-grayscale-12 px-6 py-2.5 text-xs font-bold uppercase font-mono tracking-wider text-grayscale-1 hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm dark:bg-grayscale-12 dark:text-grayscale-1"
+                  className="gap-2 px-6 py-2 text-xs font-bold uppercase font-mono tracking-wider"
                 >
                   <span>Continuar</span>
                   <ArrowRightIcon size={14} weight="bold" />
-                </button>
+                </Button>
               ) : (
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
                   disabled={loading}
                   onClick={() => handleSubmitFinal()}
-                  className="inline-flex items-center gap-2 rounded-xl bg-grayscale-12 px-7 py-3 text-xs font-bold uppercase font-mono tracking-wider text-grayscale-1 hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-md dark:bg-grayscale-12 dark:text-grayscale-1"
+                  className="gap-2 px-7 py-2 text-xs font-bold uppercase font-mono tracking-wider shadow-md"
                 >
                   {loading ? (
                     <span className="inline-flex items-center gap-2">
@@ -1044,10 +1319,10 @@ export default function PublicAllyFormClient() {
                   ) : (
                     <>
                       <CheckIcon size={15} weight="bold" />
-                      <span>Completar Registro</span>
+                      <span>Completar registro</span>
                     </>
                   )}
-                </button>
+                </Button>
               )}
             </div>
           </div>

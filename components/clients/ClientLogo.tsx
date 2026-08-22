@@ -79,7 +79,10 @@ export default function ClientLogo({
       {initials ? (
         <span>{initials}</span>
       ) : (
-        <BuildingsIcon size={iconSizes[size] || 18} className="text-grayscale-9" />
+        <BuildingsIcon
+          size={iconSizes[size] || 18}
+          className="text-grayscale-9"
+        />
       )}
     </div>
   );
