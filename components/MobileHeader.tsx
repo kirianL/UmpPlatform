@@ -29,7 +29,6 @@ import { cn } from "@/helpers/classname-helper";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
-  { href: "/brainstorm", label: "Brainstorm", Icon: LightbulbIcon },
   { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
   { href: "/personal", label: "Personal", Icon: UsersIcon },
   { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
@@ -37,9 +36,7 @@ const NAV_ITEMS = [
   { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
   { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
   { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
-  { href: "/crm", label: "CRM", Icon: FunnelIcon },
   { href: "/aliados", label: "Aliados", Icon: HandshakeIcon },
-  { href: "/analytics", label: "Analytics", Icon: ChartBarIcon },
   { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
 ];
 
