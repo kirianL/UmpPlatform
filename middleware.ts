@@ -146,7 +146,9 @@ export async function middleware(request: NextRequest) {
           ? "/inventario"
           : userRole === "directorio"
             ? "/clientes"
-            : "/";
+            : userRole === "actores"
+              ? "/calendario-actores"
+              : "/";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
@@ -165,6 +167,20 @@ export async function middleware(request: NextRequest) {
   }
 
   // Role-based route protection
+  if (userRole === "actores") {
+    const isAllowedPath =
+      pathname.startsWith("/calendario-actores") ||
+      pathname.startsWith("/personal") ||
+      pathname.startsWith("/api/auth/logout");
+
+    if (!isAllowedPath) {
+      console.warn(
+        `[Proxy Auth Check] Rol "actores" intentó acceder a "${pathname}". Redirigiendo a /calendario-actores.`,
+      );
+      return NextResponse.redirect(new URL("/calendario-actores", request.url));
+    }
+  }
+
   if (userRole === "produccion") {
     const isAllowedPath =
       pathname.startsWith("/inventario") ||

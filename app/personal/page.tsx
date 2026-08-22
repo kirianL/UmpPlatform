@@ -33,6 +33,7 @@ import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
 import PageContainer from "@/components/public/PageContainer";
 import { Tabs } from "@/components/public/Tabs";
+import { useAuth } from "@/components/AuthProvider";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/helpers/classname-helper";
@@ -272,6 +273,8 @@ const EMPTY_LEAD = {
 };
 
 export default function PersonalPage() {
+  const { userRole } = useAuth();
+
   // Employees (Staff)
   const employees = useQuery(api.employees.get) ?? [];
   const createEmployee = useMutation(api.employees.create);
@@ -613,34 +616,30 @@ export default function PersonalPage() {
       className: "hidden md:table-cell",
       render: (e) => (
         <span className="font-mono text-xs font-bold text-grayscale-12">
-          {formatCurrency(e.salary)}
+          {e.salary ? formatCurrency(e.salary) : "—"}
         </span>
-      ),
-    },
-    {
-      key: "episodeCount",
-      header: "Capítulos",
-      className: "hidden md:table-cell",
-      render: (e) => (
-        <div className="flex items-center gap-1 font-mono text-xs text-grayscale-11 font-bold">
-          <FilmStripIcon size={14} className="text-sky-500" />
-          <span>{e.episodeCount} cap.</span>
-        </div>
       ),
     },
     {
       key: "status",
       header: "Estado",
       render: (e) => (
-        <Badge variant={e.status === "active" ? "green" : "gray"}>
-          {e.status === "active" ? "Activo" : "Inactivo"}
+        <Badge
+          variant={
+            e.status === "activo"
+              ? "green"
+              : e.status === "vacaciones"
+                ? "orange"
+                : "gray"
+          }
+        >
+          {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
         </Badge>
       ),
     },
     {
       key: "actions",
       header: "",
-      className: "w-20",
       render: (e) => (
         <div className="flex items-center justify-end gap-1">
           <button
@@ -666,15 +665,17 @@ export default function PersonalPage() {
 
   // Birthdays aggregation across all groups
   const allPeopleBirthdays = [
-    ...employees.map((e) => ({
-      id: e._id,
-      name: e.name,
-      role: e.role || "Equipo de producción",
-      category: "Producción",
-      phone: e.phone,
-      birthDate: e.birthDate,
-      info: getBirthdayInfo(e.birthDate),
-    })),
+    ...(userRole !== "actores"
+      ? employees.map((e) => ({
+          id: e._id,
+          name: e.name,
+          role: e.role || "Equipo de producción",
+          category: "Producción",
+          phone: e.phone,
+          birthDate: e.birthDate,
+          info: getBirthdayInfo(e.birthDate),
+        }))
+      : []),
     ...actors.map((a) => ({
       id: a._id,
       name: a.name,
@@ -708,36 +709,45 @@ export default function PersonalPage() {
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-            Gestión de personal
+            {userRole === "actores"
+              ? "Gestión de elenco y casting"
+              : "Gestión de personal"}
           </h1>
           <p className="text-sm text-grayscale-10">
-            Administra el equipo técnico de producción, actores del elenco,
-            interesados en grabar y convocatorias.
+            {userRole === "actores"
+              ? "Administra el elenco de actores, personajes e interesados en grabar."
+              : "Administra el equipo técnico de producción, actores del elenco, interesados en grabar y convocatorias."}
           </p>
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard
-            label="Equipo de producción"
-            value={activeEmpCount}
-            detail={`${employees.length} miembros registrados`}
-            icon={<UsersIcon size={18} weight="fill" />}
-            index={0}
-          />
+        <div
+          className={`grid grid-cols-1 gap-3 ${
+            userRole === "actores" ? "sm:grid-cols-2" : "sm:grid-cols-3"
+          }`}
+        >
+          {userRole !== "actores" && (
+            <StatCard
+              label="Equipo de producción"
+              value={activeEmpCount}
+              detail={`${employees.length} miembros registrados`}
+              icon={<UsersIcon size={18} weight="fill" />}
+              index={0}
+            />
+          )}
           <StatCard
             label="Elenco y personajes"
             value={activeActorCount}
             detail={`${actors.length} actores registrados`}
             icon={<UserCheckIcon size={18} weight="fill" />}
-            index={1}
+            index={userRole === "actores" ? 0 : 1}
           />
           <StatCard
             label="Interesados en grabar"
             value={castingLeads.length}
             detail="Candidatos en prospección"
             icon={<UserPlusIcon size={18} weight="fill" />}
-            index={2}
+            index={userRole === "actores" ? 1 : 2}
           />
         </div>
 
@@ -754,7 +764,7 @@ export default function PersonalPage() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-white px-2.5 py-0.5 rounded-full">
-                    ¡Cumpleaños hoy! 🎉
+                    ¡Cumpleaños hoy!
                   </span>
                   <span className="text-xs text-amber-11 dark:text-amber-9 font-mono font-bold">
                     {person.category}
@@ -790,57 +800,21 @@ export default function PersonalPage() {
           </div>
         ))}
 
-        {/* Sección de Próximos Cumpleaños (Siguientes 30 días) */}
-        {upcomingBirthdays.length > 0 && (
-          <div className="flex flex-col gap-2 rounded-2xl border border-grayscale-3 bg-grayscale-1 p-3.5 dark:border-grayscale-4/80 dark:bg-grayscale-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CakeIcon size={18} className="text-amber-500" />
-                <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
-                  Próximos cumpleaños (próximos 30 días)
-                </h2>
-              </div>
-              <span className="font-mono text-[10px] font-bold text-grayscale-9 bg-grayscale-2 dark:bg-grayscale-3 px-2 py-0.5 rounded-full">
-                {upcomingBirthdays.length} personas
-              </span>
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
-              {upcomingBirthdays.map((person) => (
-                <div
-                  key={person.id}
-                  className="flex items-center gap-2.5 rounded-xl border border-grayscale-3/80 bg-grayscale-2/60 px-3 py-2 shrink-0 dark:border-grayscale-4/80 dark:bg-grayscale-3/60 min-w-[210px]"
-                >
-                  <div className="flex size-7 items-center justify-center font-mono text-xs font-bold text-amber-11 bg-amber-3 dark:bg-amber-4/40 rounded-full shrink-0">
-                    <CakeIcon size={14} className="text-amber-500" />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-extrabold text-xs text-grayscale-12 truncate">
-                      {person.name}
-                    </span>
-                    <span className="text-[10px] text-grayscale-9 truncate">
-                      {person.role}
-                    </span>
-                    <span className="font-mono text-[10px] font-bold text-accent-11 dark:text-accent-9 mt-0.5">
-                      {person.info?.dayMonthFormatted} ({person.info?.badgeText}
-                      )
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Tabs System */}
-        <Tabs.Root defaultValue="staff" className="w-full flex flex-col gap-6">
+        <Tabs.Root
+          defaultValue={userRole === "actores" ? "actors" : "staff"}
+          className="w-full flex flex-col gap-6"
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
-              <Tabs.Tab
-                value="staff"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Equipo de producción ({employees.length})
-              </Tabs.Tab>
+              {userRole !== "actores" && (
+                <Tabs.Tab
+                  value="staff"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Equipo de producción ({employees.length})
+                </Tabs.Tab>
+              )}
               <Tabs.Tab
                 value="actors"
                 className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
@@ -858,62 +832,68 @@ export default function PersonalPage() {
           </div>
 
           {/* Tab Panel 1: Equipo de producción */}
-          <Tabs.Panel value="staff">
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative">
-                  <MagnifyingGlassIcon
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar personal o puesto..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-80"
-                  />
+          {userRole !== "actores" && (
+            <Tabs.Panel value="staff">
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative">
+                    <MagnifyingGlassIcon
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Buscar personal o puesto..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-80"
+                    />
+                  </div>
+                  <Button
+                    variant="primary"
+                    className="text-xs"
+                    onClick={openCreateEmp}
+                  >
+                    <PlusIcon size={16} weight="bold" />
+                    Agregar empleado de producción
+                  </Button>
                 </div>
-                <Button
-                  variant="primary"
-                  className="text-xs"
-                  onClick={openCreateEmp}
-                >
-                  <PlusIcon size={16} weight="bold" />
-                  Agregar empleado de producción
-                </Button>
-              </div>
 
-              <DataTable
-                columns={empColumns}
-                data={filteredEmployees}
-                keyExtractor={(e) => e._id}
-                emptyState={
-                  <EmptyState
-                    icon={<UsersIcon size={40} weight="duotone" />}
-                    title="Sin personal de producción"
-                    description={
-                      search
-                        ? "Sin resultados para la búsqueda."
-                        : "Aún no has agregado miembros al equipo."
-                    }
-                    action={
-                      !search && (
-                        <Button
-                          variant="primary"
-                          className="text-xs"
-                          onClick={openCreateEmp}
-                        >
-                          <PlusIcon size={16} weight="bold" />
-                          Agregar primer empleado
-                        </Button>
-                      )
-                    }
-                  />
-                }
-              />
-            </div>
-          </Tabs.Panel>
+                <DataTable
+                  columns={empColumns}
+                  data={filteredEmployees}
+                  keyExtractor={(e) => e._id}
+                  emptyState={
+                    <EmptyState
+                      icon={<UsersIcon size={36} />}
+                      title={
+                        search
+                          ? "No se encontraron empleados"
+                          : "No hay empleados registrados"
+                      }
+                      description={
+                        search
+                          ? "Intenta con otro término de búsqueda."
+                          : "Comienza agregando miembros al equipo técnico y de producción."
+                      }
+                      action={
+                        !search && (
+                          <Button
+                            variant="primary"
+                            className="text-xs"
+                            onClick={openCreateEmp}
+                          >
+                            <PlusIcon size={16} weight="bold" />
+                            Agregar primer empleado
+                          </Button>
+                        )
+                      }
+                    />
+                  }
+                />
+              </div>
+            </Tabs.Panel>
+          )}
 
           {/* Tab Panel 2: Elenco y personajes */}
           <Tabs.Panel value="actors">

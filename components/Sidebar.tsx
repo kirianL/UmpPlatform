@@ -50,6 +50,9 @@ function SidebarNavContent({
   const pathname = usePathname();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
+    if (userRole === "actores") {
+      return item.href === "/calendario-actores" || item.href === "/personal";
+    }
     if (userRole === "produccion") {
       return (
         item.href === "/inventario" ||

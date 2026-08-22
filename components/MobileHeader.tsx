@@ -48,6 +48,9 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
   const pathname = usePathname();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
+    if (userRole === "actores") {
+      return item.href === "/calendario-actores" || item.href === "/personal";
+    }
     if (userRole === "produccion") {
       return (
         item.href === "/inventario" ||
@@ -86,7 +89,9 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
               ? "/inventario"
               : userRole === "directorio"
                 ? "/clientes"
-                : "/"
+                : userRole === "actores"
+                  ? "/calendario-actores"
+                  : "/"
           }
           className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
         >

@@ -4,9 +4,10 @@ import { v } from "convex/values";
 export const getByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
     return await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
   },
 });
@@ -19,16 +20,20 @@ export const create = mutation({
     role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
 
     if (existing) {
       throw new Error("El usuario ya existe");
     }
 
-    return await ctx.db.insert("users", args);
+    return await ctx.db.insert("users", {
+      ...args,
+      email,
+    });
   },
 });
 
@@ -40,9 +45,10 @@ export const upsert = mutation({
     role: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
 
     if (existing) {
@@ -54,6 +60,9 @@ export const upsert = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("users", args);
+    return await ctx.db.insert("users", {
+      ...args,
+      email,
+    });
   },
 });

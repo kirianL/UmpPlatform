@@ -88,6 +88,27 @@ export const run = mutation({
       });
     }
 
+    const tatianaUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "tatiana@ultimate.cr"))
+      .first();
+    if (tatianaUser) {
+      await ctx.db.patch(tatianaUser._id, {
+        name: "Tatiana",
+        passwordHash:
+          "6c7defe0363fddc241d568e30fef1468ac05e5bcb74edc0d3e6e4593f0c8265b",
+        role: "actores",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "tatiana@ultimate.cr",
+        name: "Tatiana",
+        passwordHash:
+          "6c7defe0363fddc241d568e30fef1468ac05e5bcb74edc0d3e6e4593f0c8265b",
+        role: "actores",
+      });
+    }
+
     return "Users synced successfully";
   },
 });

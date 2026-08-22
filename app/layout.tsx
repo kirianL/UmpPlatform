@@ -83,6 +83,7 @@ export default async function RootLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
   const userRole = headersList.get("x-user-role") || "produccion";
+  const userEmail = headersList.get("x-user-email") || "";
   const isPublicPage = pathname === "/login" || pathname.includes("/public");
 
   return (
@@ -103,7 +104,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <PwaRegister />
           <ConvexClientProvider>
-            <AuthProvider userRole={userRole}>
+            <AuthProvider userRole={userRole} userEmail={userEmail}>
               {isPublicPage ? (
                 children
               ) : (

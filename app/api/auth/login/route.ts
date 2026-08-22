@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const normalizedUsername = username.trim().toLowerCase();
     let isValid = false;
     let role = "produccion"; // Default role if not specified
 
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
       if (convexUrl) {
         const convex = new ConvexHttpClient(convexUrl);
         const user = await convex.query(api.users.getByEmail, {
-          email: username,
+          email: normalizedUsername,
         });
         if (user) {
           const expectedHash = hashPassword(password);
@@ -82,7 +83,10 @@ export async function POST(request: Request) {
 
     // 2. Fallback to Env variables if database check was not successful
     if (!isValid) {
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      if (
+        normalizedUsername === ADMIN_USERNAME.toLowerCase() &&
+        password === ADMIN_PASSWORD
+      ) {
         isValid = true;
         role = "admin";
       }
