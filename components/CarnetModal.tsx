@@ -84,6 +84,22 @@ export function getAutomaticExpiration(dateInput?: string | Date): {
   };
 }
 
+// Generate the public verification URL for smartphone camera scanning
+export function getVerificationUrl(code?: string): string {
+  const cleanCode = (code || "").replace(/^#/, "").trim().toUpperCase();
+  if (!cleanCode) {
+    if (typeof window !== "undefined" && window.location.origin) {
+      return `${window.location.origin}/aliados/verificar`;
+    }
+    return "https://platform.ultimatemediaproductions.com/aliados/verificar";
+  }
+
+  if (typeof window !== "undefined" && window.location.origin) {
+    return `${window.location.origin}/aliados/verificar?code=${encodeURIComponent(cleanCode)}`;
+  }
+  return `https://platform.ultimatemediaproductions.com/aliados/verificar?code=${encodeURIComponent(cleanCode)}`;
+}
+
 // Draw high-resolution canvas with custom font
 export async function generateCarnetCanvas(
   data: CarnetData,
@@ -137,11 +153,11 @@ export async function generateCarnetCanvas(
 
   ctx.drawImage(img, 0, 0, width, height);
 
-  // 2. Generate QR code as data URL
-  const qrText = data.code || data.idCard || data.fullName;
-  const qrDataUrl = await QRCode.toDataURL(qrText, {
+  // 2. Generate QR code encoding full verification URL
+  const qrTarget = getVerificationUrl(data.code);
+  const qrDataUrl = await QRCode.toDataURL(qrTarget, {
     margin: 1,
-    width: 140,
+    width: 180,
     color: {
       dark: "#000000",
       light: "#ffffff",
@@ -373,20 +389,21 @@ export function CarnetCard({
       : `#${data.code}`
     : "#AL-000000";
 
-  // Generate QR Code data URL for in-card display
+  // Generate QR Code data URL for in-card display (encodes verification URL)
   useEffect(() => {
-    const text = data.code || data.idCard || data.fullName;
+    const text = getVerificationUrl(data.code);
     QRCode.toDataURL(text, {
       margin: 1,
-      width: 140,
+      width: 180,
       color: {
         dark: "#000000",
         light: "#ffffff",
       },
+      errorCorrectionLevel: "M",
     })
       .then(setQrUrl)
       .catch((err) => console.error("Error generating QR code:", err));
-  }, [data.code, data.idCard, data.fullName]);
+  }, [data.code]);
 
   // Name splitting
   const rawName = data.fullName.trim().toUpperCase();

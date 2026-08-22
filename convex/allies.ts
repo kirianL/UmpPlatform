@@ -27,11 +27,65 @@ export const getById = query({
 export const getByCode = query({
   args: { code: v.string() },
   handler: async (ctx, args) => {
-    const code = args.code.trim().toUpperCase();
+    const cleanCode = args.code.trim().toUpperCase().replace(/^#/, "");
     return await ctx.db
       .query("allies")
-      .withIndex("by_code", (q) => q.eq("code", code))
+      .withIndex("by_code", (q) => q.eq("code", cleanCode))
       .first();
+  },
+});
+
+export const verifyByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const raw = args.code.trim().toUpperCase();
+    const cleanCode = raw.replace(/^#/, "").trim();
+    if (!cleanCode) {
+      return { found: false, ally: null, status: "not_found" as const, validUntil: null };
+    }
+
+    const ally = await ctx.db
+      .query("allies")
+      .withIndex("by_code", (q) => q.eq("code", cleanCode))
+      .first();
+
+    if (!ally) {
+      return { found: false, ally: null, status: "not_found" as const, validUntil: null };
+    }
+
+    const isPaid =
+      ally.status === "pagado" ||
+      ally.paymentStatus === "pagado" ||
+      ally.status === "activo";
+
+    const createdAtDate = new Date(ally.createdAt || ally._creationTime);
+    const expirationDate = new Date(createdAtDate);
+    expirationDate.setMonth(expirationDate.getMonth() + 1);
+
+    const isExpired = new Date() > expirationDate;
+
+    let status: "valid" | "expired" | "pending_payment" = "valid";
+    if (!isPaid) {
+      status = "pending_payment";
+    } else if (isExpired) {
+      status = "expired";
+    }
+
+    return {
+      found: true,
+      status,
+      ally: {
+        _id: ally._id,
+        fullName: ally.fullName,
+        code: ally.code || cleanCode,
+        package: ally.package,
+        createdAt: ally.createdAt,
+        idCard: ally.idCard,
+        status: ally.status,
+        paymentStatus: ally.paymentStatus,
+      },
+      validUntil: expirationDate.toISOString(),
+    };
   },
 });
 
