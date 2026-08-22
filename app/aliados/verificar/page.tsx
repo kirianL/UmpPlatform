@@ -5,7 +5,6 @@ import {
   CheckCircleIcon,
   CrownIcon,
   DownloadSimpleIcon,
-  IdentificationCardIcon,
   MagnifyingGlassIcon,
   QrCodeIcon,
   ShieldCheckIcon,
@@ -26,17 +25,7 @@ import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
-import Input from "@/components/public/Input";
 import { api } from "@/convex/_generated/api";
-
-function maskIdCard(idCard?: string): string {
-  if (!idCard) return "No registrada";
-  const trimmed = idCard.trim();
-  if (trimmed.length <= 4) return trimmed;
-  const start = trimmed.slice(0, 2);
-  const end = trimmed.slice(-3);
-  return `${start}****${end}`;
-}
 
 function VerificationContent() {
   const searchParams = useSearchParams();
@@ -45,12 +34,14 @@ function VerificationContent() {
   const [searchCode, setSearchCode] = useState(initialCode);
   const [activeCode, setActiveCode] = useState(initialCode);
   const [downloading, setDownloading] = useState(false);
+  const [showSearch, setShowSearch] = useState(!initialCode);
 
   useEffect(() => {
     const codeParam = searchParams.get("code") || "";
     if (codeParam) {
       setSearchCode(codeParam);
       setActiveCode(codeParam);
+      setShowSearch(false);
     }
   }, [searchParams]);
 
@@ -63,6 +54,7 @@ function VerificationContent() {
     e.preventDefault();
     if (searchCode.trim()) {
       setActiveCode(searchCode.trim());
+      setShowSearch(false);
     }
   };
 
@@ -106,9 +98,9 @@ function VerificationContent() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-grayscale-1 text-grayscale-12 flex flex-col justify-between selection:bg-grayscale-12 selection:text-grayscale-1">
-      {/* HEADER */}
-      <header className="h-16 shrink-0 border-b border-grayscale-3/70 bg-grayscale-1/90 backdrop-blur-md dark:border-grayscale-2/70 z-20 sticky top-0">
+    <div className="h-[100dvh] w-full bg-grayscale-1 text-grayscale-12 flex flex-col justify-between overflow-hidden selection:bg-grayscale-12 selection:text-grayscale-1">
+      {/* COMPACT TOP HEADER */}
+      <header className="h-14 sm:h-16 shrink-0 border-b border-grayscale-3/70 bg-grayscale-1/90 backdrop-blur-md dark:border-grayscale-2/70 z-20">
         <div className="mx-auto max-w-4xl px-4 sm:px-8 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Logo className="h-5 sm:h-6 w-auto" />
@@ -116,169 +108,113 @@ function VerificationContent() {
               |
             </span>
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
-              Verificación Oficial
+              Aliados UMP
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShowSearch((prev) => !prev)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-semibold border border-grayscale-4 bg-grayscale-2 hover:bg-grayscale-3 dark:border-grayscale-4 dark:bg-grayscale-3 text-grayscale-11 hover:text-grayscale-12 transition-colors cursor-pointer"
+            >
+              <MagnifyingGlassIcon size={13} weight="bold" />
+              <span>Buscar</span>
+            </button>
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      {/* MAIN CONTAINER */}
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col items-center">
-        {/* TOP SEARCH BAR */}
-        <div className="w-full mb-6">
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex items-center gap-2"
+      {/* SINGLE SCREEN HERO BODY */}
+      <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 flex flex-col justify-center items-center py-2 overflow-y-auto sm:overflow-hidden">
+        {/* OPTIONAL SEARCH BAR TOGGLE */}
+        {showSearch && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full mb-3 shrink-0"
           >
-            <div className="relative flex-1">
-              <Input
-                id="search-code"
-                placeholder="Ingresar código (ej: AL-ABC123)..."
-                value={searchCode}
-                onChange={(e) => setSearchCode(e.target.value)}
-                className="font-mono uppercase pl-9"
-              />
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-9 pointer-events-none">
-                <QrCodeIcon size={18} />
-              </div>
-            </div>
-            <Button
-              type="submit"
-              variant="primary"
-              className="px-4 py-2 text-xs font-bold font-mono uppercase"
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex items-center gap-2"
             >
-              <MagnifyingGlassIcon size={14} weight="bold" />
-              <span>Verificar</span>
-            </Button>
-          </form>
-        </div>
+              <div className="relative flex-1">
+                <input
+                  id="search-code"
+                  autoFocus
+                  placeholder="Código de aliado (ej: AL-88K29P)..."
+                  value={searchCode}
+                  onChange={(e) => setSearchCode(e.target.value)}
+                  className="w-full bg-grayscale-2 border border-grayscale-4 rounded-xl px-3.5 py-2 text-xs font-mono uppercase text-grayscale-12 placeholder:text-grayscale-8 focus:outline-none focus:border-grayscale-12 transition-colors dark:bg-grayscale-3"
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="primary"
+                className="px-3.5 py-2 text-xs font-bold font-mono uppercase"
+              >
+                <span>Consultar</span>
+              </Button>
+            </form>
+          </motion.div>
+        )}
 
         {/* VERIFICATION STATE DISPLAY */}
         {!activeCode.trim() ? (
           /* EMPTY PROMPT */
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-12 max-w-md"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-6 max-w-sm"
           >
-            <div className="flex size-16 items-center justify-center rounded-full bg-grayscale-3 text-grayscale-11 mx-auto mb-4 border border-grayscale-4 shadow-sm">
-              <QrCodeIcon size={32} />
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-grayscale-3 text-grayscale-11 mx-auto mb-3 border border-grayscale-4 shadow-sm">
+              <QrCodeIcon size={28} />
             </div>
-            <h1 className="text-xl font-bold font-mono uppercase text-grayscale-12">
-              Escanear código QR
+            <h1 className="text-lg font-bold font-mono uppercase text-grayscale-12">
+              Verificación de Afiliado
             </h1>
-            <p className="mt-2 text-xs sm:text-sm text-grayscale-10 leading-relaxed">
-              Enfoca con la cámara de tu teléfono el código QR del carnet o
-              escribe el código en la barra superior para verificar el estado de
-              afiliación.
+            <p className="mt-1 text-xs text-grayscale-10 leading-relaxed">
+              Enfoca el código QR de un carnet con la cámara de tu celular o
+              escribe el código en el buscador para consultar su autenticidad.
             </p>
+            <div className="mt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowSearch(true)}
+                className="text-xs font-mono font-semibold px-4 py-2"
+              >
+                <MagnifyingGlassIcon size={14} />
+                <span>Ingresar código manual</span>
+              </Button>
+            </div>
           </motion.div>
         ) : verification === undefined ? (
           /* LOADING SPINNER */
-          <div className="py-16 flex flex-col items-center gap-3">
-            <div className="size-8 animate-spin rounded-full border-2 border-grayscale-4 border-t-grayscale-12" />
+          <div className="py-12 flex flex-col items-center gap-2.5">
+            <div className="size-7 animate-spin rounded-full border-2 border-grayscale-4 border-t-grayscale-12" />
             <p className="text-xs font-mono text-grayscale-10">
-              Consultando registro en tiempo real...
+              Verificando membresía...
             </p>
           </div>
         ) : isValid && ally ? (
-          /* VERIFIED ACTIVE AFFILIATE */
+          /* VERIFIED ACTIVE AFFILIATE: CARNET FIRST AS HERO */
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="w-full space-y-6"
+            transition={{ duration: 0.25 }}
+            className="w-full flex flex-col items-center justify-center"
           >
-            {/* STATUS BANNER */}
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center dark:border-emerald-500/20 dark:bg-emerald-950/20">
-              <div className="flex size-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mx-auto mb-2 ring-4 ring-emerald-500/10">
-                <CheckCircleIcon size={28} weight="fill" />
-              </div>
-              <span className="font-mono text-[11px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 block">
-                Membresía Oficial Verificada
+            {/* STATUS BADGE PILL */}
+            <div className="mb-3.5 flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 dark:border-emerald-500/20 dark:bg-emerald-950/40 shadow-xs">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Afiliado Verificado</span>
               </span>
-              <h1 className="text-xl sm:text-2xl font-black text-grayscale-12 uppercase mt-0.5 tracking-tight">
-                {ally.fullName}
-              </h1>
-              <p className="text-xs text-grayscale-10 mt-1">
-                Afiliado activo y autorizado de Ultimate Media Productions.
-              </p>
             </div>
 
-            {/* DATA DETAILS GRID */}
-            <div className="rounded-2xl border border-grayscale-3 bg-grayscale-2/60 p-4 text-xs space-y-3 dark:border-grayscale-4 dark:bg-grayscale-3/40">
-              <div className="flex justify-between items-center pb-2 border-b border-grayscale-3 dark:border-grayscale-4/60">
-                <span className="font-mono text-grayscale-9 uppercase text-[11px]">
-                  Código Oficial
-                </span>
-                <span className="font-mono text-sm font-black text-grayscale-12">
-                  #{ally.code}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center pb-2 border-b border-grayscale-3 dark:border-grayscale-4/60">
-                <span className="font-mono text-grayscale-9 uppercase text-[11px]">
-                  Paquete de Afiliación
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {ally.package === "vip" ? (
-                    <>
-                      <CrownIcon
-                        size={16}
-                        weight="fill"
-                        className="text-amber-500"
-                      />
-                      <Badge variant="accent">PAQUETE VIP</Badge>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheckIcon size={16} className="text-grayscale-11" />
-                      <Badge variant="gray">PAQUETE ÉLITE</Badge>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pb-2 border-b border-grayscale-3 dark:border-grayscale-4/60">
-                <span className="font-mono text-grayscale-9 uppercase text-[11px]">
-                  Identificación
-                </span>
-                <span className="font-mono font-bold text-grayscale-12">
-                  {maskIdCard(ally.idCard)}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center pb-2 border-b border-grayscale-3 dark:border-grayscale-4/60">
-                <span className="font-mono text-grayscale-9 uppercase text-[11px]">
-                  Fecha de Emisión
-                </span>
-                <span className="font-mono font-bold text-grayscale-12">
-                  {formattedDate}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="font-mono text-grayscale-9 uppercase text-[11px]">
-                  Vigencia
-                </span>
-                <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                  <CalendarCheckIcon size={14} weight="bold" />
-                  <span>Válido hasta {validityText}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* OFFICIAL DIGITAL CARNET PREVIEW */}
-            <div className="w-full pt-2">
-              <div className="text-center mb-3">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-grayscale-9">
-                  Carnet Oficial Digital
-                </span>
-              </div>
+            {/* 3D CARNET HERO */}
+            <div className="w-full max-w-[420px] px-1">
               <CarnetCard
                 data={{
                   fullName: ally.fullName,
@@ -291,19 +227,34 @@ function VerificationContent() {
               />
             </div>
 
-            {/* ACTIONS */}
-            <div className="flex justify-center pt-2">
+            {/* MINIMALIST DATA SUMMARY */}
+            <div className="w-full max-w-[420px] mt-3 pt-2.5 pb-1 border-t border-grayscale-3/70 dark:border-grayscale-4/60 flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="text-grayscale-9 text-[11px] uppercase">
+                  Membresía
+                </span>
+                <span className="font-bold text-grayscale-12 uppercase">
+                  {ally.package === "vip" ? "VIP" : "Élite"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-grayscale-11 text-[11px]">
+                <CalendarCheckIcon size={13} className="text-emerald-500" />
+                <span>Hasta {validityText}</span>
+              </div>
+            </div>
+
+            {/* ACTION BUTTON */}
+            <div className="mt-3 flex items-center justify-center">
               <Button
                 variant="secondary"
                 onClick={handleDownload}
                 disabled={downloading}
-                className="gap-2 px-6 py-2.5 text-xs font-bold font-mono uppercase"
+                className="gap-2 px-5 py-2 text-xs font-bold font-mono uppercase rounded-xl border border-grayscale-4"
               >
-                <DownloadSimpleIcon size={16} weight="bold" />
+                <DownloadSimpleIcon size={14} weight="bold" />
                 <span>
-                  {downloading
-                    ? "Generando..."
-                    : "Descargar carnet en alta resolución"}
+                  {downloading ? "Generando..." : "Descargar carnet"}
                 </span>
               </Button>
             </div>
@@ -311,74 +262,60 @@ function VerificationContent() {
         ) : isExpired && ally ? (
           /* EXPIRED MEMBERSHIP */
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md text-center py-6 space-y-4"
+            className="w-full max-w-sm text-center py-4 space-y-3"
           >
-            <div className="flex size-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto ring-6 ring-amber-500/5">
-              <WarningCircleIcon size={32} weight="bold" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold font-mono uppercase text-grayscale-12">
-                Membresía Expirada
-              </h1>
-              <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
-                La afiliación de <strong className="text-grayscale-12">{ally.fullName}</strong> (#{ally.code}) ha superado su fecha de vigencia.
-              </p>
-            </div>
-            <div className="rounded-xl border border-grayscale-3 bg-grayscale-2 p-3 text-xs font-mono text-grayscale-11 dark:border-grayscale-4 dark:bg-grayscale-3">
-              Fecha de emisión: {formattedDate} — Expiró: {validityText}
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              <span className="size-1.5 rounded-full bg-amber-500" />
+              <span>Membresía Vencida</span>
+            </span>
+            <h1 className="text-base font-bold text-grayscale-12">
+              {ally.fullName} (#{ally.code})
+            </h1>
+            <p className="text-xs text-grayscale-10 leading-relaxed">
+              Esta membresía de afiliado ha superado su período de vigencia (Venció el {validityText}).
+            </p>
           </motion.div>
         ) : isPending && ally ? (
           /* PENDING PAYMENT */
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md text-center py-6 space-y-4"
+            className="w-full max-w-sm text-center py-4 space-y-3"
           >
-            <div className="flex size-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto ring-6 ring-amber-500/5">
-              <WarningCircleIcon size={32} weight="bold" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold font-mono uppercase text-grayscale-12">
-                Pago Pendiente
-              </h1>
-              <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
-                La membresía de <strong className="text-grayscale-12">{ally.fullName}</strong> (#{ally.code}) se encuentra registrada pero su pago está pendiente de confirmación.
-              </p>
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              <span>Pago Pendiente</span>
+            </span>
+            <h1 className="text-base font-bold text-grayscale-12">
+              {ally.fullName} (#{ally.code})
+            </h1>
+            <p className="text-xs text-grayscale-10">
+              La afiliación está registrada pero pendiente de confirmación de pago.
+            </p>
           </motion.div>
         ) : isNotFound ? (
           /* NOT FOUND */
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md text-center py-6 space-y-4"
+            className="w-full max-w-sm text-center py-4 space-y-3"
           >
-            <div className="flex size-14 items-center justify-center rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 mx-auto ring-6 ring-rose-500/5">
-              <XCircleIcon size={32} weight="bold" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold font-mono uppercase text-grayscale-12">
-                Código No Registrado
-              </h1>
-              <p className="text-xs sm:text-sm text-grayscale-10 mt-1">
-                No se encontró ningún afiliado activo con el código <span className="font-mono font-bold text-grayscale-12">{activeCode}</span>.
-              </p>
-            </div>
-            <p className="text-[11px] text-grayscale-9">
-              Verifica que el código escaneado o escrito sea el correcto.
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              <span>No Registrado</span>
+            </span>
+            <p className="text-xs text-grayscale-10">
+              No se encontró ningún afiliado activo con el código <strong className="font-mono text-grayscale-12">{activeCode}</strong>.
             </p>
           </motion.div>
         ) : null}
       </main>
 
-      {/* FOOTER */}
-      <footer className="h-14 shrink-0 border-t border-grayscale-3/70 bg-grayscale-1/90 backdrop-blur-md dark:border-grayscale-2/70 flex items-center justify-center">
-        <span className="text-[11px] font-mono text-grayscale-9">
-          Ultimate Media Productions — Sistema Oficial de Verificación
-        </span>
+      {/* CENTERED MINIMAL FOOTER */}
+      <footer className="h-12 shrink-0 border-t border-grayscale-3/70 bg-grayscale-1/90 backdrop-blur-md dark:border-grayscale-2/70 flex items-center justify-center text-center px-4 z-20">
+        <p className="text-[11px] font-mono text-grayscale-9 text-center">
+          Ultimate Media Productions · Verificación Oficial
+        </p>
       </footer>
     </div>
   );
@@ -388,7 +325,7 @@ export default function AllyVerificationPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen w-full bg-grayscale-1 flex items-center justify-center">
+        <div className="h-[100dvh] w-full bg-grayscale-1 flex items-center justify-center">
           <div className="size-6 animate-spin rounded-full border-2 border-grayscale-4 border-t-grayscale-12" />
         </div>
       }
