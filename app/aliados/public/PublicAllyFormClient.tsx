@@ -1276,50 +1276,6 @@ export default function PublicAllyFormClient() {
                       <span>{stepError}</span>
                     </motion.div>
                   )}
-
-                  {/* IN-CARD SUBMIT BUTTON FOR MOBILE COMFORT */}
-                  <div className="pt-2 sm:hidden">
-                    <Button
-                      variant="primary"
-                      disabled={loading}
-                      onClick={() => handleSubmitFinal()}
-                      className="w-full py-3 text-xs font-bold uppercase font-mono tracking-wider shadow-md justify-center"
-                    >
-                      {loading ? (
-                        <span className="inline-flex items-center gap-2">
-                          <svg
-                            className="animate-spin size-4 text-grayscale-1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            role="img"
-                            aria-label="Cargando"
-                          >
-                            <title>Cargando</title>
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8H4z"
-                            />
-                          </svg>
-                          Completando...
-                        </span>
-                      ) : (
-                        <>
-                          <CheckIcon size={16} weight="bold" />
-                          <span>Completar mi registro</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
