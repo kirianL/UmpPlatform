@@ -67,20 +67,10 @@ function VerificationContent() {
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [selectedBenefit, setSelectedBenefit] = useState<any | null>(null);
   const [enteredPin, setEnteredPin] = useState("");
-  const [rememberPin, setRememberPin] = useState(true);
-  const [savedPin, setSavedPin] = useState<string>("");
   const [pinError, setPinError] = useState("");
   const [shakeKey, setShakeKey] = useState(0);
   const [redeeming, setRedeeming] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState<string | null>(null);
-
-  // Load saved PIN on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ump_partner_pin") || "";
-      if (stored) setSavedPin(stored);
-    }
-  }, []);
 
   useEffect(() => {
     const codeParam = searchParams.get("code") || "";
@@ -136,14 +126,8 @@ function VerificationContent() {
   const handleOpenRedeem = (benefit: any) => {
     setSelectedBenefit(benefit);
     setPinError("");
-
-    // If local PIN is already saved, attempt direct redemption or prefill
-    if (savedPin) {
-      handleExecuteRedeem(benefit, savedPin);
-    } else {
-      setEnteredPin("");
-      setPinModalOpen(true);
-    }
+    setEnteredPin("");
+    setPinModalOpen(true);
   };
 
   const handleExecuteRedeem = async (benefit: any, pin: string) => {
@@ -157,12 +141,8 @@ function VerificationContent() {
         businessId: benefit.businessId,
       });
 
-      if (rememberPin && typeof window !== "undefined") {
-        localStorage.setItem("ump_partner_pin", pin.trim());
-        setSavedPin(pin.trim());
-      }
-
       setPinModalOpen(false);
+      setEnteredPin("");
       setRedeemSuccess(`Beneficio "${benefit.title}" canjeado con éxito.`);
       setTimeout(() => setRedeemSuccess(null), 4000);
     } catch (err: any) {
@@ -174,11 +154,6 @@ function VerificationContent() {
         try {
           navigator.vibrate([35, 45, 35]);
         } catch (_) {}
-      }
-
-      if (savedPin) {
-        handleClearSavedPin();
-        setEnteredPin("");
       }
 
       setPinModalOpen(true);
@@ -196,13 +171,6 @@ function VerificationContent() {
     }
     if (selectedBenefit) {
       handleExecuteRedeem(selectedBenefit, enteredPin.trim());
-    }
-  };
-
-  const handleClearSavedPin = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("ump_partner_pin");
-      setSavedPin("");
     }
   };
 
@@ -389,7 +357,7 @@ function VerificationContent() {
                         {b.isRedeemed ? (
                           <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-grayscale-9 bg-grayscale-3 px-2 py-1 rounded">
                             <CheckIcon size={11} weight="bold" />
-                            <span>Tachado</span>
+                            <span>Canjeado</span>
                           </span>
                         ) : (
                           <button
@@ -550,16 +518,6 @@ function VerificationContent() {
               )}
             </AnimatePresence>
           </motion.div>
-
-          <label className="flex items-center gap-2 cursor-pointer text-xs text-grayscale-11">
-            <input
-              type="checkbox"
-              checked={rememberPin}
-              onChange={(e) => setRememberPin(e.target.checked)}
-              className="rounded border-grayscale-4 text-grayscale-12 focus:ring-grayscale-12"
-            />
-            <span>Recordar PIN en este dispositivo de caja</span>
-          </label>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-grayscale-3 dark:border-grayscale-4">
             <Button
