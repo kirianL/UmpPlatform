@@ -591,8 +591,8 @@ export default function BrainstormPage() {
     return boards.filter(
       (b) =>
         b.title.toLowerCase().includes(s) ||
-        (b.client && b.client.company.toLowerCase().includes(s)) ||
-        (b.client && b.client.name.toLowerCase().includes(s)),
+        (b.client && (b.client.company || "").toLowerCase().includes(s)) ||
+        (b.client && (b.client.name || "").toLowerCase().includes(s)),
     );
   }, [boards, searchFolder]);
 
@@ -704,7 +704,9 @@ export default function BrainstormPage() {
       const selectedClient = clients.find((c) => c._id === boardForm.clientId);
       const title =
         boardForm.title.trim() ||
-        (selectedClient ? selectedClient.company : "Nuevo Tablero");
+        (selectedClient
+          ? selectedClient.company || selectedClient.name
+          : "Nuevo Tablero");
 
       await createBoard({
         title,
@@ -2080,7 +2082,7 @@ export default function BrainstormPage() {
                   setBoardForm((f) => ({
                     ...f,
                     clientId: val,
-                    title: found ? found.company : f.title,
+                    title: found ? found.company || found.name : f.title,
                   }));
                 }}
                 options={[
