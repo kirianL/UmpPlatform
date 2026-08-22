@@ -24,6 +24,7 @@ export const create = mutation({
     clientId: v.id("clients"),
     title: v.string(),
     platform: v.union(
+      v.literal("todas"),
       v.literal("instagram"),
       v.literal("facebook"),
       v.literal("tiktok"),
@@ -65,6 +66,7 @@ export const update = mutation({
     id: v.id("socialMediaPosts"),
     title: v.string(),
     platform: v.union(
+      v.literal("todas"),
       v.literal("instagram"),
       v.literal("facebook"),
       v.literal("tiktok"),

@@ -45,6 +45,7 @@ import SpanishDatePicker from "./SpanishDatePicker";
 import VaultSecurityGate from "./VaultSecurityGate";
 
 type PlatformType =
+  | "todas"
   | "instagram"
   | "facebook"
   | "tiktok"
@@ -68,6 +69,7 @@ interface ClientSocialMediaModalProps {
 }
 
 const PLATFORMS = [
+  { value: "todas", label: "Todas las plataformas", icon: GlobeIcon },
   { value: "instagram", label: "Instagram", icon: InstagramLogoIcon },
   { value: "facebook", label: "Facebook", icon: FacebookLogoIcon },
   { value: "tiktok", label: "TikTok", icon: TiktokLogoIcon },
@@ -180,13 +182,7 @@ export default function ClientSocialMediaModal({
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [postForm, setPostForm] = useState({
     title: "",
-    platform: "instagram" as
-      | "instagram"
-      | "facebook"
-      | "tiktok"
-      | "youtube"
-      | "linkedin"
-      | "otro",
+    platform: "todas" as PlatformType,
     contentType: "reel" as
       | "reel"
       | "carousel"

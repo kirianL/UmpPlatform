@@ -291,6 +291,7 @@ export default defineSchema({
     clientId: v.id("clients"),
     title: v.string(),
     platform: v.union(
+      v.literal("todas"),
       v.literal("instagram"),
       v.literal("facebook"),
       v.literal("tiktok"),
