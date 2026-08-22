@@ -419,4 +419,23 @@ export default defineSchema({
   })
     .index("by_token", ["token"])
     .index("by_used", ["used"]),
+  potentialCollaborators: defineTable({
+    name: v.string(),
+    area: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    socialLink: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("por_contactar"),
+        v.literal("en_conversacion"),
+        v.literal("confirmado"),
+        v.literal("descartado"),
+      ),
+    ),
+    photoUrl: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
+    createdAt: v.optional(v.string()),
+  }),
 });
