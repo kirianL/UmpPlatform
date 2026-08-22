@@ -241,7 +241,7 @@ export default function PublicAllyFormClient() {
         token: tokenParam || undefined,
       });
 
-      const newSubmittedData = {
+      setSubmittedData({
         fullName: fullName.trim(),
         idCard: idCard.trim(),
         phone: phone.trim(),
@@ -250,24 +250,8 @@ export default function PublicAllyFormClient() {
         package: selectedPackage,
         packageAmount: selectedPackage === "vip" ? 12000 : 10000,
         code: res?.code || "",
-      };
-
-      setSubmittedData(newSubmittedData);
+      });
       setSubmitted(true);
-
-      // Auto trigger carnet download/share after short delay for animation
-      setTimeout(async () => {
-        try {
-          await downloadCarnetAsImage({
-            fullName: newSubmittedData.fullName,
-            code: newSubmittedData.code,
-            package: newSubmittedData.package,
-            idCard: newSubmittedData.idCard,
-          });
-        } catch (downloadErr) {
-          console.warn("Auto download carnet note:", downloadErr);
-        }
-      }, 500);
     } catch (err: unknown) {
       const msg =
         err instanceof Error
