@@ -157,16 +157,16 @@ export async function generateCarnetCanvas(
 
   ctx.drawImage(img, 0, 0, width, height);
 
-  // 2. Generate QR code encoding short verification URL with high contrast
+  // 2. Generate QR code encoding short verification URL with high contrast and optimal scanning parameters
   const qrTarget = getVerificationUrl(data.code);
   const qrDataUrl = await QRCode.toDataURL(qrTarget, {
-    margin: 2,
-    width: 320,
+    margin: 3,
+    width: 360,
     color: {
       dark: "#000000",
       light: "#ffffff",
     },
-    errorCorrectionLevel: "M",
+    errorCorrectionLevel: "L",
   });
 
   const qrImg = new Image();
@@ -177,19 +177,19 @@ export async function generateCarnetCanvas(
   });
 
   // 3. Right Column: QR Code + Date perfectly aligned and centered with each other
-  const qrSize = 118;
-  const qrX = 791;
-  const qrY = 320;
+  const qrSize = 124;
+  const qrX = 788;
+  const qrY = 316;
   const qrCenterX = qrX + qrSize / 2; // 850
 
-  // Rounded background badge for QR (generous white border for camera recognition)
+  // Rounded background badge for QR (generous white border for instant camera recognition)
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
   ctx.shadowBlur = 12;
   ctx.shadowOffsetY = 4;
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.roundRect(qrX - 7, qrY - 7, qrSize + 14, qrSize + 14, 10);
+  ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12);
   ctx.fill();
   ctx.restore();
 
@@ -397,13 +397,13 @@ export function CarnetCard({
   useEffect(() => {
     const text = getVerificationUrl(data.code);
     QRCode.toDataURL(text, {
-      margin: 2,
-      width: 260,
+      margin: 3,
+      width: 320,
       color: {
         dark: "#000000",
         light: "#ffffff",
       },
-      errorCorrectionLevel: "M",
+      errorCorrectionLevel: "L",
     })
       .then(setQrUrl)
       .catch((err) => console.error("Error generating QR code:", err));
@@ -476,11 +476,11 @@ export function CarnetCard({
               {/* Right Side: QR Code + Date centered below QR */}
               <div className="flex flex-col items-center shrink-0">
                 {qrUrl && (
-                  <div className="bg-white p-1.5 sm:p-2 rounded-xl shadow-lg border border-black/10">
+                  <div className="bg-white p-1 sm:p-2 rounded-xl shadow-md border border-black/5">
                     <img
                       src={qrUrl}
                       alt={`QR ${data.code}`}
-                      className="w-14 h-14 sm:w-20 sm:h-20 object-contain block rounded-sm"
+                      className="w-16 h-16 sm:w-22 sm:h-22 object-contain block rounded-xs"
                     />
                   </div>
                 )}
