@@ -217,19 +217,7 @@ function VerificationContent() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {savedPin && (
-              <button
-                type="button"
-                onClick={handleClearSavedPin}
-                className="text-[10px] font-mono text-grayscale-9 hover:text-rose-600 transition-colors cursor-pointer"
-                title="Borrar PIN recordado en este dispositivo"
-              >
-                Cambiar PIN
-              </button>
-            )}
-            <ThemeToggle />
-          </div>
+          <ThemeToggle />
         </div>
       </header>
 
