@@ -248,8 +248,6 @@ export default function TareasPage() {
     }
     setModalOpen(false);
   }
-    setModalOpen(false);
-  }
 
   async function handleToggleStatus(id: Id<"tasks">) {
     await toggleStatus({ id });
