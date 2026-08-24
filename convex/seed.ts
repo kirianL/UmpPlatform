@@ -109,6 +109,27 @@ export const run = mutation({
       });
     }
 
+    const kirianUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "kirian@ultimate.cr"))
+      .first();
+    if (kirianUser) {
+      await ctx.db.patch(kirianUser._id, {
+        name: "Kirian",
+        passwordHash:
+          "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
+        role: "programador",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "kirian@ultimate.cr",
+        name: "Kirian",
+        passwordHash:
+          "5284374ea2c89a14d071994d8e84bc4ec7a4c9e5abcbea27d86cb130550510cf",
+        role: "programador",
+      });
+    }
+
     return "Users synced successfully";
   },
 });

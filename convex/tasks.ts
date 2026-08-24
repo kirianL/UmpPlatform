@@ -2,38 +2,11 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const get = query({
-  args: {
-    userEmail: v.optional(v.string()),
-    userRole: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
     const tasks = await ctx.db.query("tasks").order("desc").collect();
-
-    const normalizedEmail = args.userEmail?.trim().toLowerCase();
-    const isAdmin =
-      args.userRole === "admin" ||
-      normalizedEmail === "admin@ultimate.cr";
-
-    let visibleTasks = tasks;
-
-    if (!isAdmin) {
-      if (!normalizedEmail) {
-        return [];
-      }
-      visibleTasks = tasks.filter((t) => {
-        const assigned = t.assignedTo?.trim().toLowerCase();
-        const created = t.createdBy?.trim().toLowerCase();
-
-        return (
-          assigned === normalizedEmail ||
-          (!assigned && created === normalizedEmail) ||
-          created === normalizedEmail
-        );
-      });
-    }
-
     // Sort pinned tasks to top
-    return visibleTasks.sort((a, b) => {
+    return tasks.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return 0;

@@ -68,18 +68,21 @@ function formatDate(isoStr?: string): string {
   return `${day}/${month}/${year}`;
 }
 
+const SYSTEM_ACCOUNTS = [
+  { email: "admin@ultimate.cr", name: "Administrador UMP", role: "admin" },
+  { email: "michelle@ultimate.cr", name: "Michelle", role: "directorio" },
+  { email: "tatiana@ultimate.cr", name: "Tatiana", role: "actores" },
+  { email: "eymar@ultimate.cr", name: "Eymar", role: "produccion" },
+  { email: "kirian@ultimate.cr", name: "Kirian", role: "programador" },
+];
+
 export default function TareasPage() {
   const { userRole, userEmail } = useAuth();
   const isAdmin =
     userRole === "admin" || userEmail?.toLowerCase() === "admin@ultimate.cr";
 
-  const tasks =
-    useQuery(api.tasks.get, {
-      userEmail: userEmail || undefined,
-      userRole: userRole || undefined,
-    }) ?? [];
-
-  const systemUsers = useQuery(api.users.list) ?? [];
+  const allTasks = useQuery(api.tasks.get) ?? [];
+  const systemUsers = SYSTEM_ACCOUNTS;
 
   const currentUser = useMemo(() => {
     return systemUsers.find(
@@ -88,6 +91,27 @@ export default function TareasPage() {
   }, [systemUsers, userEmail]);
 
   const currentUserName = currentUser?.name || userEmail || "Usuario";
+
+  // Filtrar tareas según permisos del usuario
+  const tasks = useMemo(() => {
+    if (isAdmin) {
+      return allTasks;
+    }
+    if (!userEmail) {
+      return [];
+    }
+    const normalized = userEmail.trim().toLowerCase();
+    return allTasks.filter((t) => {
+      const assigned = t.assignedTo?.trim().toLowerCase();
+      const created = t.createdBy?.trim().toLowerCase();
+
+      return (
+        assigned === normalized ||
+        (!assigned && created === normalized) ||
+        created === normalized
+      );
+    });
+  }, [allTasks, isAdmin, userEmail]);
 
   const createTask = useMutation(api.tasks.create);
   const updateTask = useMutation(api.tasks.update);
@@ -475,20 +499,12 @@ export default function TareasPage() {
         {/* Header */}
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-                Tareas e Ideas
-              </h1>
-              {isAdmin && (
-                <Badge variant="accent" className="text-[10px] uppercase font-mono">
-                  Vista Admin (Todas las tareas)
-                </Badge>
-              )}
-            </div>
+            <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+              Tareas e Ideas
+            </h1>
             <p className="text-sm text-grayscale-10">
-              {isAdmin
-                ? "Supervisa y asigna tareas e ideas de todo el equipo."
-                : `Espacio personal de notas y tareas pendientes de ${currentUserName}.`}
+              Registra pendientes, ideas y recordatorios sin fecha específica
+              para que no se olviden.
             </p>
           </div>
           <Button
@@ -506,7 +522,7 @@ export default function TareasPage() {
           <StatCard
             label="Pendientes e Ideas"
             value={pendingTasks.length}
-            detail={isAdmin ? "Notas activas equipo" : "Tus notas activas"}
+            detail="Notas activas"
             icon={<HourglassIcon size={18} weight="fill" />}
             index={0}
           />
@@ -586,7 +602,7 @@ export default function TareasPage() {
                 >
                   <option value="all">Todos los usuarios</option>
                   {systemUsers.map((u) => (
-                    <option key={u._id} value={u.email}>
+                    <option key={u.email} value={u.email}>
                       {u.name} ({u.role})
                     </option>
                   ))}
@@ -687,7 +703,7 @@ export default function TareasPage() {
                   className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 p-2 text-xs text-grayscale-12 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 font-mono cursor-pointer"
                 >
                   {systemUsers.map((u) => (
-                    <option key={u._id} value={u.email}>
+                    <option key={u.email} value={u.email}>
                       {u.name} ({u.email}) — {u.role}
                     </option>
                   ))}
