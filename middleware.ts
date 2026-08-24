@@ -173,6 +173,7 @@ export async function middleware(request: NextRequest) {
     const isAllowedPath =
       pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/personal") ||
+      pathname.startsWith("/tareas") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
@@ -207,6 +208,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/personal") ||
       pathname.startsWith("/inventario") ||
       pathname.startsWith("/calendario") ||
+      pathname.startsWith("/tareas") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {

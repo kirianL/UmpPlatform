@@ -17,11 +17,14 @@ import {
   TagIcon,
   TrashIcon,
   UploadSimpleIcon,
+  UserIcon,
+  UsersIcon,
   XIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 
+import { useAuth } from "@/components/AuthProvider";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 import ConfirmModal from "@/components/public/ConfirmModal";
@@ -51,6 +54,8 @@ const EMPTY_TASK = {
   priority: "media" as "baja" | "media" | "alta",
   pinned: false,
   imageUrl: "",
+  assignedTo: "",
+  assignedToName: "",
 };
 
 function formatDate(isoStr?: string): string {
@@ -64,7 +69,25 @@ function formatDate(isoStr?: string): string {
 }
 
 export default function TareasPage() {
-  const tasks = useQuery(api.tasks.get) ?? [];
+  const { userRole, userEmail } = useAuth();
+  const isAdmin =
+    userRole === "admin" || userEmail?.toLowerCase() === "admin@ultimate.cr";
+
+  const tasks =
+    useQuery(api.tasks.get, {
+      userEmail: userEmail || undefined,
+      userRole: userRole || undefined,
+    }) ?? [];
+
+  const systemUsers = useQuery(api.users.list) ?? [];
+
+  const currentUser = useMemo(() => {
+    return systemUsers.find(
+      (u) => u.email.toLowerCase() === userEmail?.toLowerCase(),
+    );
+  }, [systemUsers, userEmail]);
+
+  const currentUserName = currentUser?.name || userEmail || "Usuario";
 
   const createTask = useMutation(api.tasks.create);
   const updateTask = useMutation(api.tasks.update);
@@ -76,6 +99,7 @@ export default function TareasPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [userFilter, setUserFilter] = useState("all");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<Id<"tasks"> | null>(null);
@@ -123,7 +147,9 @@ export default function TareasPage() {
         !queryStr ||
         t.title.toLowerCase().includes(queryStr) ||
         (t.description && t.description.toLowerCase().includes(queryStr)) ||
-        (t.category && t.category.toLowerCase().includes(queryStr));
+        (t.category && t.category.toLowerCase().includes(queryStr)) ||
+        (t.assignedToName && t.assignedToName.toLowerCase().includes(queryStr)) ||
+        (t.createdByName && t.createdByName.toLowerCase().includes(queryStr));
 
       const matchesCategory =
         categoryFilter === "all" || t.category === categoryFilter;
@@ -131,29 +157,39 @@ export default function TareasPage() {
       const matchesPriority =
         priorityFilter === "all" || t.priority === priorityFilter;
 
-      return matchesSearch && matchesCategory && matchesPriority;
+      const matchesUser =
+        !isAdmin ||
+        userFilter === "all" ||
+        t.assignedTo?.toLowerCase() === userFilter.toLowerCase() ||
+        t.createdBy?.toLowerCase() === userFilter.toLowerCase();
+
+      return matchesSearch && matchesCategory && matchesPriority && matchesUser;
     });
   }
 
   const filteredPending = useMemo(
     () => filterList(pendingTasks),
-    [pendingTasks, search, categoryFilter, priorityFilter],
+    [pendingTasks, search, categoryFilter, priorityFilter, userFilter, isAdmin],
   );
 
   const filteredCompleted = useMemo(
     () => filterList(completedTasks),
-    [completedTasks, search, categoryFilter, priorityFilter],
+    [completedTasks, search, categoryFilter, priorityFilter, userFilter, isAdmin],
   );
 
   const filteredAll = useMemo(
     () => filterList(tasks),
-    [tasks, search, categoryFilter, priorityFilter],
+    [tasks, search, categoryFilter, priorityFilter, userFilter, isAdmin],
   );
 
   // Handlers
   function openCreate() {
     setEditingId(null);
-    setForm(EMPTY_TASK);
+    setForm({
+      ...EMPTY_TASK,
+      assignedTo: userEmail || "",
+      assignedToName: currentUserName,
+    });
     setModalOpen(true);
   }
 
@@ -166,12 +202,26 @@ export default function TareasPage() {
       priority: t.priority || "media",
       pinned: t.pinned || false,
       imageUrl: t.imageUrl || "",
+      assignedTo: t.assignedTo || t.createdBy || userEmail || "",
+      assignedToName: t.assignedToName || t.createdByName || currentUserName,
     });
     setModalOpen(true);
   }
 
   async function handleSaveTask() {
     if (!form.title.trim()) return;
+
+    let assignedTo = form.assignedTo || userEmail;
+    let assignedToName = form.assignedToName || currentUserName;
+
+    if (form.assignedTo) {
+      const selected = systemUsers.find(
+        (u) => u.email.toLowerCase() === form.assignedTo.toLowerCase(),
+      );
+      if (selected) {
+        assignedToName = selected.name;
+      }
+    }
 
     const payload = {
       title: form.title.trim(),
@@ -180,6 +230,8 @@ export default function TareasPage() {
       priority: form.priority,
       pinned: form.pinned,
       imageUrl: form.imageUrl.trim() || undefined,
+      assignedTo: assignedTo || undefined,
+      assignedToName: assignedToName || undefined,
     };
 
     if (editingId) {
@@ -188,8 +240,14 @@ export default function TareasPage() {
         ...payload,
       });
     } else {
-      await createTask(payload);
+      await createTask({
+        ...payload,
+        createdBy: userEmail || undefined,
+        createdByName: currentUserName || undefined,
+      });
     }
+    setModalOpen(false);
+  }
     setModalOpen(false);
   }
 
@@ -230,11 +288,14 @@ export default function TareasPage() {
             isCompletedTab ? "Sin tareas realizadas" : "Sin pendientes ni ideas"
           }
           description={
-            search || categoryFilter !== "all" || priorityFilter !== "all"
+            search ||
+            categoryFilter !== "all" ||
+            priorityFilter !== "all" ||
+            (isAdmin && userFilter !== "all")
               ? "No se encontraron tareas con los filtros seleccionados."
               : isCompletedTab
                 ? "Aún no has marcado ninguna tarea como realizada."
-                : "¡No tienes tareas ni ideas pendientes! Agrega una nueva para comenzar."
+                : "No tienes tareas ni ideas pendientes. Agrega una nueva para comenzar."
           }
           action={
             !isCompletedTab && (
@@ -256,6 +317,9 @@ export default function TareasPage() {
       <div className="flex flex-col gap-2.5">
         {items.map((t) => {
           const isDone = t.status === "realizada";
+          const assignedLabel = t.assignedToName || t.assignedTo;
+          const createdLabel = t.createdByName || t.createdBy;
+
           return (
             <div
               key={t._id}
@@ -309,6 +373,18 @@ export default function TareasPage() {
                           <PushPinIcon size={10} weight="fill" />
                           Fijada
                         </Badge>
+                      )}
+                      {/* Badge de usuario asignado */}
+                      {isAdmin && assignedLabel && (
+                        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-accent-11 bg-accent-3/60 dark:bg-accent-4/40 px-2 py-0.5 rounded-md border border-accent-6/40">
+                          <UserIcon size={11} />
+                          {assignedLabel}
+                        </span>
+                      )}
+                      {!isAdmin && t.createdBy && t.createdBy !== userEmail && (
+                        <span className="inline-flex items-center gap-1 font-mono text-[10px] text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
+                          Asignada por: {createdLabel || "Admin"}
+                        </span>
                       )}
                     </div>
 
@@ -401,12 +477,20 @@ export default function TareasPage() {
         {/* Header */}
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-              Tareas e Ideas
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+                Tareas e Ideas
+              </h1>
+              {isAdmin && (
+                <Badge variant="accent" className="text-[10px] uppercase font-mono">
+                  Vista Admin (Todas las tareas)
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-grayscale-10">
-              Registra pendientes, ideas y recordatorios sin fecha específica
-              para que no se olviden.
+              {isAdmin
+                ? "Supervisa y asigna tareas e ideas de todo el equipo."
+                : `Espacio personal de notas y tareas pendientes de ${currentUserName}.`}
             </p>
           </div>
           <Button
@@ -424,7 +508,7 @@ export default function TareasPage() {
           <StatCard
             label="Pendientes e Ideas"
             value={pendingTasks.length}
-            detail="Notas activas"
+            detail={isAdmin ? "Notas activas equipo" : "Tus notas activas"}
             icon={<HourglassIcon size={18} weight="fill" />}
             index={0}
           />
@@ -479,9 +563,9 @@ export default function TareasPage() {
               <Tabs.Indicator />
             </Tabs.List>
 
-            {/* Controls: Search and Category/Priority filters */}
+            {/* Controls: Search, Category, Priority, and User filter (for admin) */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 sm:w-64">
+              <div className="relative flex-1 sm:w-56">
                 <MagnifyingGlassIcon
                   size={16}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
@@ -494,6 +578,22 @@ export default function TareasPage() {
                   className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-1.5 pl-9 pr-3 text-xs text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3"
                 />
               </div>
+
+              {/* Filtro por usuario para Admin */}
+              {isAdmin && systemUsers.length > 0 && (
+                <select
+                  value={userFilter}
+                  onChange={(e) => setUserFilter(e.target.value)}
+                  className="rounded-lg border border-accent-6/50 bg-accent-2/40 dark:bg-accent-3/20 px-2.5 py-1.5 text-xs text-accent-12 outline-none font-mono cursor-pointer font-semibold"
+                >
+                  <option value="all">Todos los usuarios</option>
+                  {systemUsers.map((u) => (
+                    <option key={u._id} value={u.email}>
+                      {u.name} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              )}
 
               <select
                 value={categoryFilter}
@@ -561,6 +661,41 @@ export default function TareasPage() {
               placeholder="Ej: Idea para video o revisar equipo"
               required
             />
+
+            {/* Asignación de tarea (Visible para Admin o informativa) */}
+            {isAdmin && systemUsers.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="task-assignee"
+                  className="font-mono text-[11px] font-semibold uppercase text-grayscale-11"
+                >
+                  Asignar tarea a
+                </label>
+                <select
+                  id="task-assignee"
+                  value={form.assignedTo}
+                  onChange={(e) => {
+                    const selectedEmail = e.target.value;
+                    const selectedUser = systemUsers.find(
+                      (u) =>
+                        u.email.toLowerCase() === selectedEmail.toLowerCase(),
+                    );
+                    setForm((f) => ({
+                      ...f,
+                      assignedTo: selectedEmail,
+                      assignedToName: selectedUser?.name || selectedEmail,
+                    }));
+                  }}
+                  className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 p-2 text-xs text-grayscale-12 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 font-mono cursor-pointer"
+                >
+                  {systemUsers.map((u) => (
+                    <option key={u._id} value={u.email}>
+                      {u.name} ({u.email}) — {u.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1">
               <label

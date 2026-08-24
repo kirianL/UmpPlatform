@@ -46,7 +46,11 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (userRole === "actores") {
-      return item.href === "/calendario-actores" || item.href === "/personal";
+      return (
+        item.href === "/calendario-actores" ||
+        item.href === "/personal" ||
+        item.href === "/tareas"
+      );
     }
     if (userRole === "produccion") {
       return (
@@ -63,7 +67,8 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
         item.href === "/clientes" ||
         item.href === "/personal" ||
         item.href === "/inventario" ||
-        item.href === "/calendario"
+        item.href === "/calendario" ||
+        item.href === "/tareas"
       );
     }
     return true;

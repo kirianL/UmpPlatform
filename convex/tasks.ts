@@ -2,11 +2,38 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const get = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userEmail: v.optional(v.string()),
+    userRole: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
     const tasks = await ctx.db.query("tasks").order("desc").collect();
+
+    const normalizedEmail = args.userEmail?.trim().toLowerCase();
+    const isAdmin =
+      args.userRole === "admin" ||
+      normalizedEmail === "admin@ultimate.cr";
+
+    let visibleTasks = tasks;
+
+    if (!isAdmin) {
+      if (!normalizedEmail) {
+        return [];
+      }
+      visibleTasks = tasks.filter((t) => {
+        const assigned = t.assignedTo?.trim().toLowerCase();
+        const created = t.createdBy?.trim().toLowerCase();
+
+        return (
+          assigned === normalizedEmail ||
+          (!assigned && created === normalizedEmail) ||
+          created === normalizedEmail
+        );
+      });
+    }
+
     // Sort pinned tasks to top
-    return tasks.sort((a, b) => {
+    return visibleTasks.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return 0;
@@ -24,8 +51,15 @@ export const create = mutation({
     ),
     pinned: v.optional(v.boolean()),
     imageUrl: v.optional(v.string()),
+    assignedTo: v.optional(v.string()),
+    assignedToName: v.optional(v.string()),
+    createdBy: v.optional(v.string()),
+    createdByName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const assignedTo = args.assignedTo || args.createdBy;
+    const assignedToName = args.assignedToName || args.createdByName;
+
     return await ctx.db.insert("tasks", {
       title: args.title,
       description: args.description,
@@ -35,6 +69,10 @@ export const create = mutation({
       createdAt: new Date().toISOString(),
       pinned: args.pinned ?? false,
       imageUrl: args.imageUrl,
+      assignedTo,
+      assignedToName,
+      createdBy: args.createdBy,
+      createdByName: args.createdByName,
     });
   },
 });
@@ -50,6 +88,8 @@ export const update = mutation({
     ),
     pinned: v.optional(v.boolean()),
     imageUrl: v.optional(v.string()),
+    assignedTo: v.optional(v.string()),
+    assignedToName: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);

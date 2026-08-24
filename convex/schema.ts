@@ -344,7 +344,13 @@ export default defineSchema({
     completedAt: v.optional(v.string()),
     pinned: v.optional(v.boolean()),
     imageUrl: v.optional(v.string()),
-  }),
+    assignedTo: v.optional(v.string()),
+    assignedToName: v.optional(v.string()),
+    createdBy: v.optional(v.string()),
+    createdByName: v.optional(v.string()),
+  })
+    .index("by_assignedTo", ["assignedTo"])
+    .index("by_createdBy", ["createdBy"]),
   brainstormBoards: defineTable({
     title: v.string(),
     clientId: v.optional(v.id("clients")),
