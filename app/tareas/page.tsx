@@ -128,14 +128,7 @@ export default function TareasPage() {
     userRole === "admin" || userEmail?.toLowerCase() === "admin@ultimate.cr";
 
   const allTasks = useQuery(api.tasks.get) ?? [];
-  const dbUsers = useQuery(api.users.list);
-
-  const systemUsers = useMemo(() => {
-    if (dbUsers && dbUsers.length > 0) {
-      return dbUsers;
-    }
-    return SYSTEM_ACCOUNTS;
-  }, [dbUsers]);
+  const systemUsers = SYSTEM_ACCOUNTS;
 
   const currentUser = useMemo(() => {
     return systemUsers.find(
