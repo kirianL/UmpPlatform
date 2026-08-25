@@ -125,7 +125,10 @@ function compressImage(
 export default function TareasPage() {
   const { userRole, userEmail } = useAuth();
   const isAdmin =
-    userRole === "admin" || userEmail?.toLowerCase() === "admin@ultimate.cr";
+    userRole === "admin" ||
+    userRole === "programador" ||
+    userEmail?.toLowerCase() === "admin@ultimate.cr" ||
+    userEmail?.toLowerCase() === "kirian@ultimate.cr";
 
   const allTasks = useQuery(api.tasks.get) ?? [];
   const systemUsers = SYSTEM_ACCOUNTS;
@@ -375,53 +378,16 @@ export default function TareasPage() {
       };
 
       if (editingId) {
-        try {
-          await updateTask({
-            id: editingId,
-            ...payload,
-          });
-        } catch (err: any) {
-          if (
-            err?.message?.includes("ArgumentValidationError") ||
-            err?.message?.includes("extra field")
-          ) {
-            await updateTask({
-              id: editingId,
-              title: payload.title,
-              description: payload.description,
-              category: payload.category,
-              priority: payload.priority,
-              pinned: payload.pinned,
-              imageUrl: payload.imageUrl,
-            } as any);
-          } else {
-            throw err;
-          }
-        }
+        await updateTask({
+          id: editingId,
+          ...payload,
+        });
       } else {
-        try {
-          await createTask({
-            ...payload,
-            createdBy: userEmail || undefined,
-            createdByName: currentUserName || undefined,
-          });
-        } catch (err: any) {
-          if (
-            err?.message?.includes("ArgumentValidationError") ||
-            err?.message?.includes("extra field")
-          ) {
-            await createTask({
-              title: payload.title,
-              description: payload.description,
-              category: payload.category,
-              priority: payload.priority,
-              pinned: payload.pinned,
-              imageUrl: payload.imageUrl,
-            } as any);
-          } else {
-            throw err;
-          }
-        }
+        await createTask({
+          ...payload,
+          createdBy: userEmail || undefined,
+          createdByName: currentUserName || undefined,
+        });
       }
       setModalOpen(false);
     } catch (err: any) {
