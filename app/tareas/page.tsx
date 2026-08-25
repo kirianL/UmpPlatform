@@ -375,22 +375,60 @@ export default function TareasPage() {
       };
 
       if (editingId) {
-        await updateTask({
-          id: editingId,
-          ...payload,
-        });
+        try {
+          await updateTask({
+            id: editingId,
+            ...payload,
+          });
+        } catch (err: any) {
+          if (
+            err?.message?.includes("ArgumentValidationError") ||
+            err?.message?.includes("extra field")
+          ) {
+            await updateTask({
+              id: editingId,
+              title: payload.title,
+              description: payload.description,
+              category: payload.category,
+              priority: payload.priority,
+              pinned: payload.pinned,
+              imageUrl: payload.imageUrl,
+            } as any);
+          } else {
+            throw err;
+          }
+        }
       } else {
-        await createTask({
-          ...payload,
-          createdBy: userEmail || undefined,
-          createdByName: currentUserName || undefined,
-        });
+        try {
+          await createTask({
+            ...payload,
+            createdBy: userEmail || undefined,
+            createdByName: currentUserName || undefined,
+          });
+        } catch (err: any) {
+          if (
+            err?.message?.includes("ArgumentValidationError") ||
+            err?.message?.includes("extra field")
+          ) {
+            await createTask({
+              title: payload.title,
+              description: payload.description,
+              category: payload.category,
+              priority: payload.priority,
+              pinned: payload.pinned,
+              imageUrl: payload.imageUrl,
+            } as any);
+          } else {
+            throw err;
+          }
+        }
       }
       setModalOpen(false);
     } catch (err: any) {
       console.error("Error al guardar la tarea:", err);
       setSaveError(
-        err?.message || "Ocurrió un error al guardar la tarea. Intenta nuevamente.",
+        err?.message ||
+          "Ocurrió un error al guardar la tarea. Intenta nuevamente.",
       );
     } finally {
       setIsSaving(false);
