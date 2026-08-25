@@ -47,6 +47,11 @@ const CATEGORIES = [
   "Guiones",
 ];
 
+interface AssignedUser {
+  email: string;
+  name: string;
+}
+
 const EMPTY_TASK = {
   title: "",
   description: "",
@@ -54,8 +59,7 @@ const EMPTY_TASK = {
   priority: "media" as "baja" | "media" | "alta",
   pinned: false,
   imageUrl: "",
-  assignedTo: "",
-  assignedToName: "",
+  assignedToUsers: [] as AssignedUser[],
 };
 
 function formatDate(isoStr?: string): string {
@@ -76,6 +80,48 @@ const SYSTEM_ACCOUNTS = [
   { email: "kirian@ultimate.cr", name: "Kirian", role: "programador" },
 ];
 
+function compressImage(
+  file: File,
+  maxWidth = 1000,
+  quality = 0.75,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("Error al procesar la imagen"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Error al leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function TareasPage() {
   const { userRole, userEmail } = useAuth();
   const isAdmin =
@@ -94,21 +140,33 @@ export default function TareasPage() {
 
   // Filtrar tareas según permisos del usuario
   const tasks = useMemo(() => {
-    if (isAdmin) {
+    if (isAdmin || !userEmail) {
       return allTasks;
-    }
-    if (!userEmail) {
-      return [];
     }
     const normalized = userEmail.trim().toLowerCase();
     return allTasks.filter((t) => {
-      const assigned = t.assignedTo?.trim().toLowerCase();
       const created = t.createdBy?.trim().toLowerCase();
 
+      // Check if user is in assignedToUsers or legacy assignedTo string
+      const isAssigned =
+        (t.assignedToUsers &&
+          t.assignedToUsers.some(
+            (u: any) => u.email?.toLowerCase() === normalized,
+          )) ||
+        (t.assignedTo &&
+          t.assignedTo
+            .toLowerCase()
+            .split(",")
+            .map((e: string) => e.trim())
+            .includes(normalized));
+
+      const hasNoAssignee =
+        (!t.assignedToUsers || t.assignedToUsers.length === 0) && !t.assignedTo;
+
       return (
-        assigned === normalized ||
-        (!assigned && created === normalized) ||
-        created === normalized
+        isAssigned ||
+        created === normalized ||
+        (hasNoAssignee && !created)
       );
     });
   }, [allTasks, isAdmin, userEmail]);
@@ -128,6 +186,9 @@ export default function TareasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<Id<"tasks"> | null>(null);
   const [form, setForm] = useState(EMPTY_TASK);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [taskToDeleteId, setTaskToDeleteId] = useState<Id<"tasks"> | null>(
     null,
@@ -167,12 +228,17 @@ export default function TareasPage() {
   function filterList(list: typeof tasks) {
     const queryStr = search.toLowerCase().trim();
     return list.filter((t) => {
+      const assignedNames =
+        t.assignedToUsers && t.assignedToUsers.length > 0
+          ? t.assignedToUsers.map((u: any) => u.name).join(" ")
+          : t.assignedToName || "";
+
       const matchesSearch =
         !queryStr ||
         t.title.toLowerCase().includes(queryStr) ||
         (t.description && t.description.toLowerCase().includes(queryStr)) ||
         (t.category && t.category.toLowerCase().includes(queryStr)) ||
-        (t.assignedToName && t.assignedToName.toLowerCase().includes(queryStr)) ||
+        assignedNames.toLowerCase().includes(queryStr) ||
         (t.createdByName && t.createdByName.toLowerCase().includes(queryStr));
 
       const matchesCategory =
@@ -184,7 +250,16 @@ export default function TareasPage() {
       const matchesUser =
         !isAdmin ||
         userFilter === "all" ||
-        t.assignedTo?.toLowerCase() === userFilter.toLowerCase() ||
+        (t.assignedToUsers &&
+          t.assignedToUsers.some(
+            (u: any) => u.email.toLowerCase() === userFilter.toLowerCase(),
+          )) ||
+        (t.assignedTo &&
+          t.assignedTo
+            .toLowerCase()
+            .split(",")
+            .map((e: string) => e.trim())
+            .includes(userFilter.toLowerCase())) ||
         t.createdBy?.toLowerCase() === userFilter.toLowerCase();
 
       return matchesSearch && matchesCategory && matchesPriority && matchesUser;
@@ -209,16 +284,48 @@ export default function TareasPage() {
   // Handlers
   function openCreate() {
     setEditingId(null);
+    setSaveError(null);
+    setIsSaving(false);
+
+    const defaultUsers: AssignedUser[] = [];
+    if (userEmail) {
+      defaultUsers.push({
+        email: userEmail,
+        name: currentUserName,
+      });
+    }
+
     setForm({
       ...EMPTY_TASK,
-      assignedTo: userEmail || "",
-      assignedToName: currentUserName,
+      assignedToUsers: defaultUsers,
     });
     setModalOpen(true);
   }
 
   function openEdit(t: any) {
     setEditingId(t._id);
+    setSaveError(null);
+    setIsSaving(false);
+
+    let users: AssignedUser[] = [];
+    if (Array.isArray(t.assignedToUsers) && t.assignedToUsers.length > 0) {
+      users = t.assignedToUsers;
+    } else if (t.assignedTo) {
+      const emails = t.assignedTo
+        .split(",")
+        .map((e: string) => e.trim())
+        .filter(Boolean);
+      users = emails.map((email: string) => {
+        const found = systemUsers.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase(),
+        );
+        return {
+          email,
+          name: found?.name || email,
+        };
+      });
+    }
+
     setForm({
       title: t.title,
       description: t.description || "",
@@ -226,51 +333,68 @@ export default function TareasPage() {
       priority: t.priority || "media",
       pinned: t.pinned || false,
       imageUrl: t.imageUrl || "",
-      assignedTo: t.assignedTo || t.createdBy || userEmail || "",
-      assignedToName: t.assignedToName || t.createdByName || currentUserName,
+      assignedToUsers: users,
     });
     setModalOpen(true);
   }
 
-  async function handleSaveTask() {
-    if (!form.title.trim()) return;
+  async function handleSaveTask(e?: React.FormEvent) {
+    if (e) {
+      e.preventDefault();
+    }
+    const cleanTitle = form.title.trim();
+    if (!cleanTitle) {
+      setSaveError("Por favor ingresa un título para la tarea o idea.");
+      return;
+    }
 
-    let assignedTo = form.assignedTo || userEmail;
-    let assignedToName = form.assignedToName || currentUserName;
+    setIsSaving(true);
+    setSaveError(null);
 
-    if (form.assignedTo) {
-      const selected = systemUsers.find(
-        (u) => u.email.toLowerCase() === form.assignedTo.toLowerCase(),
-      );
-      if (selected) {
-        assignedToName = selected.name;
+    try {
+      const assignedEmails =
+        form.assignedToUsers.length > 0
+          ? form.assignedToUsers.map((u) => u.email).join(",")
+          : undefined;
+      const assignedNames =
+        form.assignedToUsers.length > 0
+          ? form.assignedToUsers.map((u) => u.name).join(", ")
+          : undefined;
+
+      const payload = {
+        title: cleanTitle,
+        description: form.description.trim() || undefined,
+        category: form.category || "General",
+        priority: form.priority,
+        pinned: form.pinned,
+        imageUrl: form.imageUrl.trim() || undefined,
+        assignedTo: assignedEmails,
+        assignedToName: assignedNames,
+        assignedToUsers:
+          form.assignedToUsers.length > 0 ? form.assignedToUsers : undefined,
+      };
+
+      if (editingId) {
+        await updateTask({
+          id: editingId,
+          ...payload,
+        });
+      } else {
+        await createTask({
+          ...payload,
+          createdBy: userEmail || undefined,
+          createdByName: currentUserName || undefined,
+        });
       }
+      setModalOpen(false);
+    } catch (err: any) {
+      console.error("Error al guardar la tarea:", err);
+      setSaveError(
+        err?.message || "Ocurrió un error al guardar la tarea. Intenta nuevamente.",
+      );
+    } finally {
+      setIsSaving(false);
     }
-
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
-      category: form.category || "General",
-      priority: form.priority,
-      pinned: form.pinned,
-      imageUrl: form.imageUrl.trim() || undefined,
-      assignedTo: assignedTo || undefined,
-      assignedToName: assignedToName || undefined,
-    };
-
-    if (editingId) {
-      await updateTask({
-        id: editingId,
-        ...payload,
-      });
-    } else {
-      await createTask({
-        ...payload,
-        createdBy: userEmail || undefined,
-        createdByName: currentUserName || undefined,
-      });
-    }
-    setModalOpen(false);
   }
 
   async function handleToggleStatus(id: Id<"tasks">) {
@@ -396,13 +520,25 @@ export default function TareasPage() {
                           Fijada
                         </Badge>
                       )}
-                      {/* Badge de usuario asignado */}
-                      {isAdmin && assignedLabel && (
+                      {/* Badges de usuarios asignados */}
+                      {t.assignedToUsers && t.assignedToUsers.length > 0 ? (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {t.assignedToUsers.map((u: any) => (
+                            <span
+                              key={u.email}
+                              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-accent-11 bg-accent-3/60 dark:bg-accent-4/40 px-2 py-0.5 rounded-md border border-accent-6/40"
+                            >
+                              <UserIcon size={11} />
+                              {u.name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : assignedLabel ? (
                         <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-accent-11 bg-accent-3/60 dark:bg-accent-4/40 px-2 py-0.5 rounded-md border border-accent-6/40">
                           <UserIcon size={11} />
                           {assignedLabel}
                         </span>
-                      )}
+                      ) : null}
                       {!isAdmin && t.createdBy && t.createdBy !== userEmail && (
                         <span className="inline-flex items-center gap-1 font-mono text-[10px] text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
                           Asignada por: {createdLabel || "Admin"}
@@ -659,55 +795,117 @@ export default function TareasPage() {
           className="max-w-[95vw] sm:max-w-lg max-h-[96vh]"
         >
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSaveTask();
-            }}
+            onSubmit={handleSaveTask}
             className="flex flex-col gap-2.5 sm:gap-3"
           >
+            {saveError && (
+              <div className="rounded-lg border border-red-5 bg-red-2 p-2.5 text-xs text-red-11 dark:border-red-6 dark:bg-red-3/30">
+                {saveError}
+              </div>
+            )}
+
             <Input
               label="Título o idea principal"
               id="task-title"
               value={form.title}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, title: e.target.value }))
-              }
+              onChange={(e) => {
+                setSaveError(null);
+                setForm((f) => ({ ...f, title: e.target.value }));
+              }}
               placeholder="Ej: Idea para video o revisar equipo"
               required
             />
 
-            {/* Asignación de tarea (Visible para Admin o informativa) */}
-            {isAdmin && systemUsers.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="task-assignee"
-                  className="font-mono text-[11px] font-semibold uppercase text-grayscale-11"
-                >
-                  Asignar tarea a
-                </label>
-                <select
-                  id="task-assignee"
-                  value={form.assignedTo}
-                  onChange={(e) => {
-                    const selectedEmail = e.target.value;
-                    const selectedUser = systemUsers.find(
-                      (u) =>
-                        u.email.toLowerCase() === selectedEmail.toLowerCase(),
+            {/* Asignación de tarea a una o varias personas */}
+            {systemUsers.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] font-semibold uppercase text-grayscale-11">
+                    Asignar tarea a ({form.assignedToUsers.length}{" "}
+                    {form.assignedToUsers.length === 1 ? "persona" : "personas"})
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          assignedToUsers: systemUsers.map((u) => ({
+                            email: u.email,
+                            name: u.name,
+                          })),
+                        }))
+                      }
+                      className="text-accent-10 hover:underline cursor-pointer"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-grayscale-7">|</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          assignedToUsers: [],
+                        }))
+                      }
+                      className="text-grayscale-9 hover:underline cursor-pointer"
+                    >
+                      Ninguno
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border border-grayscale-4 bg-grayscale-2/40 dark:border-grayscale-5 dark:bg-grayscale-3/30">
+                  {systemUsers.map((u) => {
+                    const isSelected = form.assignedToUsers.some(
+                      (au) => au.email.toLowerCase() === u.email.toLowerCase(),
                     );
-                    setForm((f) => ({
-                      ...f,
-                      assignedTo: selectedEmail,
-                      assignedToName: selectedUser?.name || selectedEmail,
-                    }));
-                  }}
-                  className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 p-2 text-xs text-grayscale-12 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 font-mono cursor-pointer"
-                >
-                  {systemUsers.map((u) => (
-                    <option key={u.email} value={u.email}>
-                      {u.name} ({u.email}) — {u.role}
-                    </option>
-                  ))}
-                </select>
+                    return (
+                      <button
+                        key={u.email}
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => {
+                            const exists = f.assignedToUsers.some(
+                              (au) =>
+                                au.email.toLowerCase() === u.email.toLowerCase(),
+                            );
+                            const nextUsers = exists
+                              ? f.assignedToUsers.filter(
+                                  (au) =>
+                                    au.email.toLowerCase() !==
+                                    u.email.toLowerCase(),
+                                )
+                              : [
+                                  ...f.assignedToUsers,
+                                  { email: u.email, name: u.name },
+                                ];
+                            return {
+                              ...f,
+                              assignedToUsers: nextUsers,
+                            };
+                          });
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono transition-all cursor-pointer border ${
+                          isSelected
+                            ? "bg-accent-3 border-accent-7 text-accent-12 dark:bg-accent-4/60 dark:border-accent-6 font-semibold shadow-xs"
+                            : "bg-grayscale-1 border-grayscale-4 text-grayscale-10 hover:border-grayscale-6 hover:text-grayscale-12 dark:bg-grayscale-2 dark:border-grayscale-5"
+                        }`}
+                      >
+                        <UserIcon
+                          size={12}
+                          className={
+                            isSelected ? "text-accent-11" : "text-grayscale-8"
+                          }
+                        />
+                        <span>{u.name}</span>
+                        <span className="text-[10px] text-grayscale-8 font-normal">
+                          ({u.role})
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -820,7 +1018,7 @@ export default function TareasPage() {
                   <button
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
-                    className="inline-flex items-center gap-1 text-[11px] text-red-11 hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] text-red-11 hover:underline cursor-pointer"
                   >
                     <TrashIcon size={12} />
                     Quitar
@@ -840,26 +1038,35 @@ export default function TareasPage() {
                 ) : null}
 
                 <div className="flex flex-1 items-center gap-2 min-w-0">
-                  <label className="cursor-pointer inline-flex shrink-0 items-center gap-1 rounded-md border border-grayscale-4 bg-grayscale-1 px-2.5 py-1 text-[11px] font-medium text-grayscale-11 transition-colors hover:bg-grayscale-3 hover:text-grayscale-12 dark:border-grayscale-5 dark:bg-grayscale-3 dark:hover:bg-grayscale-4">
+                  <label
+                    className={`cursor-pointer inline-flex shrink-0 items-center gap-1 rounded-md border border-grayscale-4 bg-grayscale-1 px-2.5 py-1 text-[11px] font-medium text-grayscale-11 transition-colors hover:bg-grayscale-3 hover:text-grayscale-12 dark:border-grayscale-5 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 ${
+                      isUploadingImage ? "opacity-50 pointer-events-none" : ""
+                    }`}
+                  >
                     <UploadSimpleIcon size={13} />
-                    <span>Subir foto</span>
+                    <span>{isUploadingImage ? "Comprimiendo..." : "Subir foto"}</span>
                     <input
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      disabled={isUploadingImage}
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === "string") {
-                              setForm((f) => ({
-                                ...f,
-                                imageUrl: reader.result as string,
-                              }));
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            setIsUploadingImage(true);
+                            setSaveError(null);
+                            const compressedBase64 = await compressImage(file, 1000, 0.75);
+                            setForm((f) => ({
+                              ...f,
+                              imageUrl: compressedBase64,
+                            }));
+                          } catch (err: any) {
+                            console.error("Error al procesar imagen:", err);
+                            setSaveError("No se pudo procesar la imagen seleccionada.");
+                          } finally {
+                            setIsUploadingImage(false);
+                          }
                         }
                       }}
                     />
@@ -895,6 +1102,7 @@ export default function TareasPage() {
                 type="button"
                 variant="secondary"
                 className="text-xs py-1 px-3"
+                disabled={isSaving || isUploadingImage}
                 onClick={() => setModalOpen(false)}
               >
                 Cancelar
@@ -903,8 +1111,13 @@ export default function TareasPage() {
                 type="submit"
                 variant="primary"
                 className="text-xs py-1 px-3"
+                disabled={isSaving || isUploadingImage}
               >
-                {editingId ? "Guardar" : "Crear tarea / idea"}
+                {isSaving
+                  ? "Guardando..."
+                  : editingId
+                    ? "Guardar cambios"
+                    : "Crear tarea / idea"}
               </Button>
             </div>
           </form>

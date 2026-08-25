@@ -26,12 +26,28 @@ export const create = mutation({
     imageUrl: v.optional(v.string()),
     assignedTo: v.optional(v.string()),
     assignedToName: v.optional(v.string()),
+    assignedToUsers: v.optional(
+      v.array(
+        v.object({
+          email: v.string(),
+          name: v.string(),
+        }),
+      ),
+    ),
     createdBy: v.optional(v.string()),
     createdByName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const assignedTo = args.assignedTo || args.createdBy;
-    const assignedToName = args.assignedToName || args.createdByName;
+    let assignedTo = args.assignedTo;
+    let assignedToName = args.assignedToName;
+
+    if (args.assignedToUsers && args.assignedToUsers.length > 0) {
+      assignedTo = args.assignedToUsers.map((u) => u.email).join(",");
+      assignedToName = args.assignedToUsers.map((u) => u.name).join(", ");
+    } else {
+      assignedTo = assignedTo || args.createdBy;
+      assignedToName = assignedToName || args.createdByName;
+    }
 
     return await ctx.db.insert("tasks", {
       title: args.title,
@@ -44,6 +60,7 @@ export const create = mutation({
       imageUrl: args.imageUrl,
       assignedTo,
       assignedToName,
+      assignedToUsers: args.assignedToUsers,
       createdBy: args.createdBy,
       createdByName: args.createdByName,
     });
@@ -63,9 +80,29 @@ export const update = mutation({
     imageUrl: v.optional(v.string()),
     assignedTo: v.optional(v.string()),
     assignedToName: v.optional(v.string()),
+    assignedToUsers: v.optional(
+      v.array(
+        v.object({
+          email: v.string(),
+          name: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, { id, ...args }) => {
-    await ctx.db.patch(id, args);
+    let assignedTo = args.assignedTo;
+    let assignedToName = args.assignedToName;
+
+    if (args.assignedToUsers && args.assignedToUsers.length > 0) {
+      assignedTo = args.assignedToUsers.map((u) => u.email).join(",");
+      assignedToName = args.assignedToUsers.map((u) => u.name).join(", ");
+    }
+
+    await ctx.db.patch(id, {
+      ...args,
+      assignedTo,
+      assignedToName,
+    });
   },
 });
 

@@ -346,6 +346,14 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     assignedTo: v.optional(v.string()),
     assignedToName: v.optional(v.string()),
+    assignedToUsers: v.optional(
+      v.array(
+        v.object({
+          email: v.string(),
+          name: v.string(),
+        }),
+      ),
+    ),
     createdBy: v.optional(v.string()),
     createdByName: v.optional(v.string()),
   })
