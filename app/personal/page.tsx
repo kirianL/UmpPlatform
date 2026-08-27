@@ -23,8 +23,9 @@ import {
   EnvelopeSimpleIcon,
   GlobeIcon,
   FunnelIcon,
+  BroomIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 
@@ -328,6 +329,7 @@ export default function PersonalPage() {
   const createCastingLead = useMutation(api.castingLeads.create);
   const updateCastingLead = useMutation(api.castingLeads.update);
   const removeCastingLead = useMutation(api.castingLeads.remove);
+  const cleanCastingDuplicates = useMutation(api.castingLeads.cleanDuplicates);
 
   // Potential Collaborators
   const potentialCollaborators = useQuery(api.potentialCollaborators.get) ?? [];
@@ -336,6 +338,20 @@ export default function PersonalPage() {
   const removeCollaborator = useMutation(api.potentialCollaborators.remove);
 
   const [search, setSearch] = useState("");
+  const [isSubmittingEmp, setIsSubmittingEmp] = useState(false);
+  const [isSubmittingActor, setIsSubmittingActor] = useState(false);
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
+  const [isSubmittingCollab, setIsSubmittingCollab] = useState(false);
+
+  // Duplicate leads count
+  const duplicateLeadsCount = useMemo(() => {
+    const names = castingLeads
+      .map((l: any) => (l.name || "").trim().toLowerCase())
+      .filter(Boolean);
+    const uniqueNames = new Set(names);
+    return names.length - uniqueNames.size;
+  }, [castingLeads]);
 
   // Employee Modal State
   const [empModalOpen, setEmpModalOpen] = useState(false);
@@ -444,6 +460,8 @@ export default function PersonalPage() {
   }
 
   async function handleSaveEmp() {
+    if (isSubmittingEmp) return;
+    setIsSubmittingEmp(true);
     const name = empForm.name.trim() || "Empleado sin nombre";
     const initials = name
       .split(" ")
@@ -469,10 +487,12 @@ export default function PersonalPage() {
       } else {
         await createEmployee(payload);
       }
+      setEmpModalOpen(false);
     } catch (err) {
       console.error("Error al guardar empleado:", err);
+    } finally {
+      setIsSubmittingEmp(false);
     }
-    setEmpModalOpen(false);
   }
 
   // Actor Form Handlers
@@ -522,6 +542,8 @@ export default function PersonalPage() {
   }
 
   async function handleSaveActor() {
+    if (isSubmittingActor) return;
+    setIsSubmittingActor(true);
     const actorName = actorForm.name.trim() || "Actor sin nombre";
     const shareToken = actorName
       .toLowerCase()
@@ -547,10 +569,12 @@ export default function PersonalPage() {
       } else {
         await createActor(payload);
       }
+      setActorModalOpen(false);
     } catch (err) {
       console.error("Error al guardar actor:", err);
+    } finally {
+      setIsSubmittingActor(false);
     }
-    setActorModalOpen(false);
   }
 
   // Casting Lead Form Handlers
@@ -575,6 +599,8 @@ export default function PersonalPage() {
   }
 
   async function handleSaveLead() {
+    if (isSubmittingLead) return;
+    setIsSubmittingLead(true);
     try {
       const payload = {
         name: leadForm.name.trim() || "Persona interesada",
@@ -597,6 +623,20 @@ export default function PersonalPage() {
       setLeadModalOpen(false);
     } catch (err) {
       console.error("Error al guardar interesado:", err);
+    } finally {
+      setIsSubmittingLead(false);
+    }
+  }
+
+  async function handleCleanDuplicates() {
+    if (isCleaningDuplicates) return;
+    setIsCleaningDuplicates(true);
+    try {
+      await cleanCastingDuplicates();
+    } catch (err) {
+      console.error("Error al limpiar duplicados:", err);
+    } finally {
+      setIsCleaningDuplicates(false);
     }
   }
 
@@ -628,8 +668,10 @@ export default function PersonalPage() {
   }
 
   async function handleSaveCollab() {
+    if (isSubmittingCollab) return;
     const name = collabForm.name.trim();
     if (!name) return;
+    setIsSubmittingCollab(true);
 
     try {
       const payload = {
@@ -655,6 +697,8 @@ export default function PersonalPage() {
       setCollabModalOpen(false);
     } catch (err) {
       console.error("Error al guardar colaborador:", err);
+    } finally {
+      setIsSubmittingCollab(false);
     }
   }
 
@@ -1280,14 +1324,29 @@ export default function PersonalPage() {
                     className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 sm:w-80"
                   />
                 </div>
-                <Button
-                  variant="primary"
-                  className="text-xs"
-                  onClick={openCreateLead}
-                >
-                  <PlusIcon size={16} weight="bold" />
-                  Agregar persona interesada
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {duplicateLeadsCount > 0 && (
+                    <Button
+                      variant="secondary"
+                      className="text-xs text-amber-11 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 dark:text-amber-9 font-medium"
+                      onClick={handleCleanDuplicates}
+                      disabled={isCleaningDuplicates}
+                    >
+                      <BroomIcon size={16} />
+                      {isCleaningDuplicates
+                        ? "Limpiando duplicados..."
+                        : `Limpiar ${duplicateLeadsCount} duplicados`}
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    className="text-xs"
+                    onClick={openCreateLead}
+                  >
+                    <PlusIcon size={16} weight="bold" />
+                    Agregar persona interesada
+                  </Button>
+                </div>
               </div>
 
               {/* Grid de Tarjetas de Interesados a 2 Columnas en Móviles */}
@@ -1889,8 +1948,13 @@ export default function PersonalPage() {
                 variant="primary"
                 className="w-full sm:w-auto text-xs justify-center"
                 type="submit"
+                disabled={isSubmittingEmp}
               >
-                {editingEmpId ? "Guardar cambios" : "Agregar empleado"}
+                {isSubmittingEmp
+                  ? "Guardando..."
+                  : editingEmpId
+                    ? "Guardar cambios"
+                    : "Agregar empleado"}
               </Button>
             </div>
           </form>
@@ -2112,8 +2176,13 @@ export default function PersonalPage() {
                 variant="primary"
                 className="w-full sm:w-auto text-xs justify-center"
                 type="submit"
+                disabled={isSubmittingActor}
               >
-                {editingActorId ? "Guardar cambios" : "Agregar actor"}
+                {isSubmittingActor
+                  ? "Guardando..."
+                  : editingActorId
+                    ? "Guardar cambios"
+                    : "Agregar actor"}
               </Button>
             </div>
           </form>
@@ -2349,8 +2418,17 @@ export default function PersonalPage() {
               >
                 Cancelar
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
-                {editingLeadId ? "Guardar cambios" : "Registrar interesado"}
+              <Button
+                variant="primary"
+                className="text-xs"
+                type="submit"
+                disabled={isSubmittingLead}
+              >
+                {isSubmittingLead
+                  ? "Guardando..."
+                  : editingLeadId
+                    ? "Guardar cambios"
+                    : "Registrar interesado"}
               </Button>
             </div>
           </form>
@@ -2783,8 +2861,17 @@ export default function PersonalPage() {
               >
                 Cancelar
               </Button>
-              <Button variant="primary" className="text-xs" type="submit">
-                {editingCollabId ? "Guardar cambios" : "Registrar colaborador"}
+              <Button
+                variant="primary"
+                className="text-xs"
+                type="submit"
+                disabled={isSubmittingCollab}
+              >
+                {isSubmittingCollab
+                  ? "Guardando..."
+                  : editingCollabId
+                    ? "Guardar cambios"
+                    : "Registrar colaborador"}
               </Button>
             </div>
           </form>
