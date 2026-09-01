@@ -24,6 +24,9 @@ import {
   GlobeIcon,
   FunnelIcon,
   BroomIcon,
+  AddressBookIcon,
+  BuildingsIcon,
+  TagIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useState, useMemo } from "react";
 import Badge from "@/components/public/Badge";
@@ -306,6 +309,24 @@ const EMPTY_COLLABORATOR = {
   photoUrl: "",
 };
 
+const EMPTY_POTENTIAL_CONTACT = {
+  name: "",
+  category: "",
+  organization: "",
+  phone: "",
+  email: "",
+  socialLink: "",
+  description: "",
+  status: "nuevo" as
+    | "nuevo"
+    | "en_seguimiento"
+    | "contactado"
+    | "convertido"
+    | "descartado",
+  birthDate: "",
+  photoUrl: "",
+};
+
 export default function PersonalPage() {
   const { userRole, userEmail } = useAuth();
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
@@ -337,12 +358,19 @@ export default function PersonalPage() {
   const updateCollaborator = useMutation(api.potentialCollaborators.update);
   const removeCollaborator = useMutation(api.potentialCollaborators.remove);
 
+  // Potential Contacts
+  const potentialContacts = useQuery(api.potentialContacts.get) ?? [];
+  const createPotentialContact = useMutation(api.potentialContacts.create);
+  const updatePotentialContact = useMutation(api.potentialContacts.update);
+  const removePotentialContact = useMutation(api.potentialContacts.remove);
+
   const [search, setSearch] = useState("");
   const [isSubmittingEmp, setIsSubmittingEmp] = useState(false);
   const [isSubmittingActor, setIsSubmittingActor] = useState(false);
   const [isSubmittingLead, setIsSubmittingLead] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [isSubmittingCollab, setIsSubmittingCollab] = useState(false);
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
 
   // Duplicate leads count
   const duplicateLeadsCount = useMemo(() => {
@@ -381,6 +409,17 @@ export default function PersonalPage() {
   const [collabToDeleteId, setCollabToDeleteId] = useState<string | null>(null);
   const [collabForm, setCollabForm] = useState(EMPTY_COLLABORATOR);
   const [collabStatusFilter, setCollabStatusFilter] = useState<string>("all");
+
+  // Potential Contact Modal State
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [contactToDeleteId, setContactToDeleteId] = useState<string | null>(
+    null,
+  );
+  const [contactForm, setContactForm] = useState(EMPTY_POTENTIAL_CONTACT);
+  const [contactStatusFilter, setContactStatusFilter] = useState<string>("all");
+  const [contactCategoryFilter, setContactCategoryFilter] =
+    useState<string>("all");
 
   // Ficha Personaje Modal State
   const [selectedFichaActor, setSelectedFichaActor] = useState<any | null>(
@@ -431,10 +470,39 @@ export default function PersonalPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // Potential Contacts Filters
+  const filteredContacts = potentialContacts.filter((c: any) => {
+    const matchesSearch =
+      (c.name && c.name.toLowerCase().includes(search.toLowerCase())) ||
+      (c.category && c.category.toLowerCase().includes(search.toLowerCase())) ||
+      (c.organization &&
+        c.organization.toLowerCase().includes(search.toLowerCase())) ||
+      (c.phone && c.phone.toLowerCase().includes(search.toLowerCase())) ||
+      (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
+      (c.socialLink &&
+        c.socialLink.toLowerCase().includes(search.toLowerCase())) ||
+      (c.description &&
+        c.description.toLowerCase().includes(search.toLowerCase()));
+
+    const matchesStatus =
+      contactStatusFilter === "all" || c.status === contactStatusFilter;
+
+    const matchesCategory =
+      contactCategoryFilter === "all" || c.category === contactCategoryFilter;
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
   const activeEmpCount = employees.filter((e) => e.status === "active").length;
   const activeActorCount = actors.filter((a) => a.status === "active").length;
   const activeCollabCount = potentialCollaborators.filter(
     (c) => c.status === "confirmado",
+  ).length;
+  const activeContactCount = potentialContacts.filter(
+    (c: any) =>
+      c.status === "convertido" ||
+      c.status === "contactado" ||
+      c.status === "en_seguimiento",
   ).length;
 
   // Staff Form Handlers
@@ -706,6 +774,70 @@ export default function PersonalPage() {
     setCollabToDeleteId(id);
   }
 
+  // Potential Contacts Form Handlers
+  function openCreateContact() {
+    setEditingContactId(null);
+    setContactForm(EMPTY_POTENTIAL_CONTACT);
+    setContactModalOpen(true);
+  }
+
+  function openEditContact(contact: any) {
+    setEditingContactId(contact._id);
+    setContactForm({
+      name: contact.name || "",
+      category: contact.category || "",
+      organization: contact.organization || "",
+      phone: contact.phone || "",
+      email: contact.email || "",
+      socialLink: contact.socialLink || "",
+      description: contact.description || "",
+      status: contact.status || "nuevo",
+      birthDate: contact.birthDate || "",
+      photoUrl: contact.photoUrl || "",
+    });
+    setContactModalOpen(true);
+  }
+
+  async function handleSaveContact() {
+    if (isSubmittingContact) return;
+    const name = contactForm.name.trim();
+    if (!name) return;
+    setIsSubmittingContact(true);
+
+    try {
+      const payload = {
+        name,
+        category: contactForm.category.trim() || undefined,
+        organization: contactForm.organization.trim() || undefined,
+        phone: contactForm.phone.trim() || undefined,
+        email: contactForm.email.trim() || undefined,
+        socialLink: contactForm.socialLink.trim() || undefined,
+        description: contactForm.description.trim() || undefined,
+        status: contactForm.status,
+        birthDate: contactForm.birthDate.trim() || undefined,
+        photoUrl: contactForm.photoUrl.trim() || undefined,
+      };
+
+      if (editingContactId) {
+        await updatePotentialContact({
+          id: editingContactId as any,
+          ...payload,
+        });
+      } else {
+        await createPotentialContact(payload);
+      }
+      setContactModalOpen(false);
+    } catch (err) {
+      console.error("Error al guardar contacto potencial:", err);
+    } finally {
+      setIsSubmittingContact(false);
+    }
+  }
+
+  function handleDeleteContact(id: string) {
+    setContactToDeleteId(id);
+  }
+
   const empColumns: Column<any>[] = [
     {
       key: "name",
@@ -875,6 +1007,15 @@ export default function PersonalPage() {
       birthDate: c.birthDate,
       info: getBirthdayInfo(c.birthDate),
     })),
+    ...potentialContacts.map((c: any) => ({
+      id: c._id,
+      name: c.name,
+      role: c.category || c.organization || "Contacto potencial",
+      category: "Contacto",
+      phone: c.phone || "",
+      birthDate: c.birthDate,
+      info: getBirthdayInfo(c.birthDate),
+    })),
   ]
     .filter((p) => p.info !== null)
     .sort((a, b) => a.info!.daysRemaining - b.info!.daysRemaining);
@@ -891,13 +1032,13 @@ export default function PersonalPage() {
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
             {!canViewStaff
-              ? "Gestión de elenco y casting"
-              : "Gestión de personal"}
+              ? "Gestión de elenco, casting y contactos"
+              : "Gestión de personal y contactos"}
           </h1>
           <p className="text-sm text-grayscale-10">
             {!canViewStaff
-              ? "Administra el elenco de actores, personajes, interesados en grabar y colaboradores potenciales."
-              : "Administra el equipo técnico de producción, actores del elenco, interesados en grabar y colaboradores potenciales."}
+              ? "Administra el elenco de actores, personajes, interesados en grabar, colaboradores y contactos potenciales."
+              : "Administra el equipo técnico de producción, actores del elenco, interesados en grabar, colaboradores y contactos potenciales."}
           </p>
         </div>
 
@@ -905,8 +1046,8 @@ export default function PersonalPage() {
         <div
           className={`grid grid-cols-1 gap-3 ${
             !canViewStaff
-              ? "sm:grid-cols-3"
-              : "sm:grid-cols-2 lg:grid-cols-4"
+              ? "sm:grid-cols-2 lg:grid-cols-4"
+              : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
           }`}
         >
           {canViewStaff && (
@@ -938,6 +1079,13 @@ export default function PersonalPage() {
             detail={`${activeCollabCount} confirmados`}
             icon={<HandshakeIcon size={18} weight="fill" />}
             index={!canViewStaff ? 2 : 3}
+          />
+          <StatCard
+            label="Contactos potenciales"
+            value={potentialContacts.length}
+            detail={`${activeContactCount} en seguimiento`}
+            icon={<AddressBookIcon size={18} weight="fill" />}
+            index={!canViewStaff ? 3 : 4}
           />
         </div>
 
@@ -1022,6 +1170,12 @@ export default function PersonalPage() {
                 className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
               >
                 Colaboradores potenciales ({potentialCollaborators.length})
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="contacts"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
+                Contactos potenciales ({potentialContacts.length})
               </Tabs.Tab>
               <Tabs.Indicator />
             </Tabs.List>
@@ -1819,6 +1973,328 @@ export default function PersonalPage() {
                           >
                             <PlusIcon size={16} weight="bold" />
                             Agregar primer colaborador potencial
+                          </Button>
+                        )
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Tabs.Panel>
+
+          {/* Tab Panel 5: Contactos potenciales */}
+          <Tabs.Panel value="contacts">
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+                  <div className="relative flex-1 sm:max-w-xs">
+                    <MagnifyingGlassIcon
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-grayscale-8"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre, organización, categoría o notas..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 py-2 pl-9 pr-3 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    {[
+                      { value: "all", label: "Todos los estados" },
+                      { value: "nuevo", label: "Nuevo" },
+                      { value: "en_seguimiento", label: "En seguimiento" },
+                      { value: "contactado", label: "Contactado" },
+                      { value: "convertido", label: "Convertido" },
+                      { value: "descartado", label: "Descartado" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setContactStatusFilter(opt.value)}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold whitespace-nowrap transition-colors cursor-pointer border",
+                          contactStatusFilter === opt.value
+                            ? "bg-accent-9 text-white border-accent-9 dark:bg-accent-9 dark:text-grayscale-1"
+                            : "bg-grayscale-2 text-grayscale-10 border-grayscale-3 hover:bg-grayscale-3 dark:bg-grayscale-3 dark:text-grayscale-11 dark:border-grayscale-4",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  variant="primary"
+                  className="text-xs shrink-0"
+                  onClick={openCreateContact}
+                >
+                  <PlusIcon size={16} weight="bold" />
+                  Agregar contacto potencial
+                </Button>
+              </div>
+
+              {/* Grid de Tarjetas de Contactos Potenciales */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredContacts.map((contact: any) => (
+                  <div
+                    key={contact._id}
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-grayscale-3 bg-grayscale-1 p-3.5 sm:p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent-6 hover:shadow-lg dark:border-grayscale-4/80 dark:bg-grayscale-2"
+                  >
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {contact.photoUrl ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreviewLeadPhoto({
+                                  url: contact.photoUrl,
+                                  name: contact.name || "Contacto potencial",
+                                  phone: contact.phone,
+                                  description: contact.description,
+                                })
+                              }
+                              className="group/contactthumb relative size-11 overflow-hidden rounded-xl bg-grayscale-2 dark:bg-grayscale-3/40 border border-grayscale-3/60 dark:border-grayscale-4/60 shadow-inner shrink-0 cursor-pointer transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-accent-8"
+                              title="Ver foto en grande"
+                              aria-label={`Ver foto en grande de ${contact.name || "contacto"}`}
+                            >
+                              <img
+                                src={contact.photoUrl}
+                                alt={contact.name || "Contacto potencial"}
+                                className="size-full object-cover object-center transition-opacity duration-200 group-hover/contactthumb:opacity-90"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/contactthumb:opacity-100 transition-opacity duration-200">
+                                <MagnifyingGlassIcon
+                                  size={14}
+                                  weight="bold"
+                                  className="text-white drop-shadow"
+                                />
+                              </div>
+                            </button>
+                          ) : (
+                            <div className="relative size-11 overflow-hidden rounded-xl bg-accent-3/70 dark:bg-accent-4/30 border border-accent-5/40 shadow-inner shrink-0 flex items-center justify-center">
+                              <span className="font-mono text-sm font-extrabold text-accent-11">
+                                {(contact.name || "Contacto")
+                                  .slice(0, 2)
+                                  .toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex flex-col min-w-0">
+                            <h3 className="font-extrabold text-sm text-grayscale-12 truncate leading-tight">
+                              {contact.name}
+                            </h3>
+                            {contact.organization ? (
+                              <span className="font-mono text-[10px] text-grayscale-10 dark:text-grayscale-9 truncate flex items-center gap-1 mt-0.5">
+                                <BuildingsIcon
+                                  size={12}
+                                  className="shrink-0 text-grayscale-8"
+                                />
+                                {contact.organization}
+                              </span>
+                            ) : null}
+                            {contact.category ? (
+                              <span className="font-mono text-[9px] font-bold text-accent-10 dark:text-accent-9 truncate mt-0.5">
+                                {contact.category}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-grayscale-8 italic mt-0.5">
+                                Sin categoría
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          <Badge
+                            variant={
+                              contact.status === "convertido"
+                                ? "green"
+                                : contact.status === "en_seguimiento"
+                                  ? "orange"
+                                  : contact.status === "contactado"
+                                    ? "accent"
+                                    : contact.status === "descartado"
+                                      ? "gray"
+                                      : "accent"
+                            }
+                          >
+                            {contact.status === "convertido"
+                              ? "Convertido"
+                              : contact.status === "en_seguimiento"
+                                ? "En seguimiento"
+                                : contact.status === "contactado"
+                                  ? "Contactado"
+                                  : contact.status === "descartado"
+                                    ? "Descartado"
+                                    : "Nuevo"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Info & Social Links */}
+                      <div className="flex flex-col gap-1.5 pt-1">
+                        {contact.phone && (
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-grayscale-9 text-[11px]">
+                              WhatsApp:
+                            </span>
+                            <a
+                              href={getWhatsAppLink(contact.phone)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-bold text-grayscale-12 hover:text-green-11 hover:underline transition-colors"
+                              title="Abrir chat de WhatsApp"
+                            >
+                              <PhoneIcon
+                                size={12}
+                                className="text-green-9 shrink-0"
+                              />
+                              <span>{contact.phone}</span>
+                            </a>
+                          </div>
+                        )}
+
+                        {contact.email && (
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-grayscale-9 text-[11px]">
+                              Correo:
+                            </span>
+                            <a
+                              href={`mailto:${contact.email}`}
+                              className="font-bold text-grayscale-12 hover:text-accent-11 hover:underline transition-colors truncate max-w-[170px]"
+                              title={contact.email}
+                            >
+                              {contact.email}
+                            </a>
+                          </div>
+                        )}
+
+                        {contact.socialLink && (
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-grayscale-9 text-[11px]">
+                              Red / Web:
+                            </span>
+                            <a
+                              href={getSocialUrl(contact.socialLink)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-bold text-accent-11 hover:underline transition-colors truncate max-w-[170px]"
+                              title={contact.socialLink}
+                            >
+                              <ArrowSquareOutIcon
+                                size={12}
+                                className="shrink-0"
+                              />
+                              <span className="truncate">
+                                {contact.socialLink}
+                              </span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      {contact.description ? (
+                        <p className="text-[11px] sm:text-xs text-grayscale-10 dark:text-grayscale-11 leading-snug line-clamp-3 bg-grayscale-2/60 dark:bg-grayscale-3/40 p-2.5 rounded-xl border border-grayscale-3/40 dark:border-grayscale-4/40 mt-0.5">
+                          {contact.description}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] sm:text-xs text-grayscale-8 italic mt-0.5">
+                          Sin notas registradas.
+                        </p>
+                      )}
+
+                      {(() => {
+                        const bday = getBirthdayInfo(contact.birthDate);
+                        if (!bday) return null;
+                        return (
+                          <div className="mt-1 flex items-center justify-between gap-1 text-[10px] bg-grayscale-2/80 dark:bg-grayscale-3/60 px-2 py-1 rounded-lg border border-grayscale-3/60 dark:border-grayscale-4/60">
+                            <div className="flex items-center gap-1 text-grayscale-11 font-mono text-[10px] truncate">
+                              <CakeIcon
+                                size={12}
+                                className="text-amber-500 shrink-0"
+                              />
+                              <span className="truncate">
+                                {bday.dayMonthFormatted} ({bday.currentAge}a)
+                              </span>
+                            </div>
+                            <span
+                              className={cn(
+                                "font-mono text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 border",
+                                bday.isToday &&
+                                  "bg-amber-400/20 text-amber-11 border-amber-500/40 animate-pulse",
+                                bday.daysRemaining > 0 &&
+                                  bday.daysRemaining <= 7 &&
+                                  "bg-orange-3 text-orange-11 border-orange-5 dark:bg-orange-4/30",
+                                bday.daysRemaining > 7 &&
+                                  bday.daysRemaining <= 30 &&
+                                  "bg-sky-3 text-sky-11 border-sky-5 dark:bg-sky-4/30",
+                                bday.daysRemaining > 30 &&
+                                  "bg-grayscale-3 text-grayscale-10 border-grayscale-4 dark:bg-grayscale-4 dark:text-grayscale-11",
+                              )}
+                            >
+                              {bday.badgeText}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-grayscale-3 pt-2.5 dark:border-grayscale-4/60">
+                      <span className="text-[10px] text-grayscale-9 font-mono">
+                        {formatDate(contact.createdAt)}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openEditContact(contact)}
+                          className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-12 dark:text-grayscale-8 dark:hover:bg-grayscale-4 transition-colors"
+                          title="Editar contacto"
+                        >
+                          <PencilSimpleIcon size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteContact(contact._id)}
+                          className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-grayscale-9 hover:bg-red-3 hover:text-red-11 dark:text-grayscale-8 dark:hover:bg-red-4/30 transition-colors"
+                          title="Eliminar contacto"
+                        >
+                          <TrashIcon size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredContacts.length === 0 && (
+                  <div className="col-span-full">
+                    <EmptyState
+                      icon={<AddressBookIcon size={40} weight="duotone" />}
+                      title="Sin contactos potenciales"
+                      description={
+                        search ||
+                        contactStatusFilter !== "all" ||
+                        contactCategoryFilter !== "all"
+                          ? "Sin resultados para los filtros seleccionados."
+                          : "Aún no has registrado contactos potenciales de interés comercial, artístico o colaborativo."
+                      }
+                      action={
+                        !search &&
+                        contactStatusFilter === "all" &&
+                        contactCategoryFilter === "all" && (
+                          <Button
+                            variant="primary"
+                            className="text-xs"
+                            onClick={openCreateContact}
+                          >
+                            <PlusIcon size={16} weight="bold" />
+                            Agregar primer contacto potencial
                           </Button>
                         )
                       }
@@ -2888,6 +3364,275 @@ export default function PersonalPage() {
             if (collabToDeleteId) {
               await removeCollaborator({ id: collabToDeleteId as any });
               setCollabToDeleteId(null);
+            }
+          }}
+        />
+
+        {/* Modal Crear / Editar Contacto Potencial */}
+        <Modal
+          open={contactModalOpen}
+          onOpenChange={setContactModalOpen}
+          title={
+            editingContactId
+              ? "Editar contacto potencial"
+              : "Agregar contacto potencial"
+          }
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveContact();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Nombre completo o del contacto"
+                id="contact-name"
+                value={contactForm.name}
+                onChange={(e) =>
+                  setContactForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="Ej: Laura Castro"
+                required
+              />
+
+              <Input
+                label="Organización / Empresa / Colectivo (opcional)"
+                id="contact-org"
+                value={contactForm.organization}
+                onChange={(e) =>
+                  setContactForm((f) => ({
+                    ...f,
+                    organization: e.target.value,
+                  }))
+                }
+                placeholder="Ej: Canal Creativo CR, Marca XYZ"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Categoría o tipo de contacto"
+                id="contact-category"
+                value={contactForm.category}
+                onChange={(e) =>
+                  setContactForm((f) => ({ ...f, category: e.target.value }))
+                }
+                options={[
+                  { value: "", label: "Seleccionar categoría..." },
+                  { value: "Talento / Creador", label: "Talento / Creador" },
+                  { value: "Influencer", label: "Influencer" },
+                  {
+                    value: "Proveedor / Servicio",
+                    label: "Proveedor / Servicio",
+                  },
+                  { value: "Marca / Patrocinio", label: "Marca / Patrocinio" },
+                  {
+                    value: "Técnico / Especialista",
+                    label: "Técnico / Especialista",
+                  },
+                  { value: "Prensa / Medios", label: "Prensa / Medios" },
+                  { value: "General", label: "Contacto general" },
+                ]}
+              />
+
+              <Select
+                label="Estado del contacto"
+                id="contact-status"
+                value={contactForm.status}
+                onChange={(e) =>
+                  setContactForm((f) => ({
+                    ...f,
+                    status: e.target.value as any,
+                  }))
+                }
+                options={[
+                  { value: "nuevo", label: "Nuevo" },
+                  { value: "en_seguimiento", label: "En seguimiento" },
+                  { value: "contactado", label: "Contactado" },
+                  { value: "convertido", label: "Convertido" },
+                  { value: "descartado", label: "Descartado" },
+                ]}
+              />
+            </div>
+
+            {/* Foto Upload Frame */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-grayscale-11">
+                Foto o avatar (opcional)
+              </label>
+              {contactForm.photoUrl ? (
+                <div className="relative flex items-center gap-3 p-2.5 rounded-xl border border-grayscale-4 bg-grayscale-2/40 dark:bg-grayscale-3/40">
+                  <img
+                    src={contactForm.photoUrl}
+                    alt="Vista previa"
+                    className="size-14 rounded-lg object-cover border border-grayscale-4"
+                  />
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-xs font-bold text-grayscale-12 truncate">
+                      Foto adjunta
+                    </span>
+                    <span className="text-[11px] text-green-11 font-medium">
+                      Lista para guardar
+                    </span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="text-xs text-red-11 hover:bg-red-3 border-red-5 dark:border-red-4"
+                    type="button"
+                    onClick={() =>
+                      setContactForm((f) => ({ ...f, photoUrl: "" }))
+                    }
+                  >
+                    Eliminar foto
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-grayscale-4 dark:border-grayscale-5 rounded-xl hover:border-accent-7 transition-colors bg-grayscale-1 dark:bg-grayscale-2/60 text-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const compressed = await compressImage(file);
+                          setContactForm((f) => ({
+                            ...f,
+                            photoUrl: compressed,
+                          }));
+                        } catch {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setContactForm((f) => ({
+                              ...f,
+                              photoUrl: (ev.target?.result as string) || "",
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }
+                    }}
+                    className="absolute inset-0 z-10 opacity-0 cursor-pointer"
+                  />
+                  <ImageSquareIcon size={28} className="text-accent-9 mb-1" />
+                  <p className="text-xs font-bold text-grayscale-12">
+                    Subir foto o logo del contacto
+                  </p>
+                  <p className="text-[11px] text-grayscale-8 mt-0.5">
+                    Haz clic o arrastra un archivo JPG, PNG o WEBP
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Número de teléfono / WhatsApp"
+                id="contact-phone"
+                value={contactForm.phone}
+                onChange={(e) =>
+                  setContactForm((f) => ({ ...f, phone: e.target.value }))
+                }
+                placeholder="+506 8800-0000"
+              />
+
+              <Input
+                label="Correo electrónico (opcional)"
+                id="contact-email"
+                type="email"
+                value={contactForm.email}
+                onChange={(e) =>
+                  setContactForm((f) => ({ ...f, email: e.target.value }))
+                }
+                placeholder="contacto@ejemplo.com"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Red social / Portafolio / Web"
+                id="contact-social"
+                value={contactForm.socialLink}
+                onChange={(e) =>
+                  setContactForm((f) => ({
+                    ...f,
+                    socialLink: e.target.value,
+                  }))
+                }
+                placeholder="Ej: @instagram o https://..."
+              />
+
+              <Input
+                label="Fecha de nacimiento (opcional)"
+                id="contact-birthdate"
+                type="date"
+                value={contactForm.birthDate}
+                onChange={(e) =>
+                  setContactForm((f) => ({ ...f, birthDate: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="contact-desc"
+                className="text-xs font-medium text-grayscale-11"
+              >
+                Descripción / Notas / Resumen
+              </label>
+              <textarea
+                id="contact-desc"
+                rows={3}
+                value={contactForm.description}
+                onChange={(e) =>
+                  setContactForm((f) => ({
+                    ...f,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Detalla de qué trata el contacto, intereses mutuos, antecedentes o acuerdos..."
+                className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-colors focus:border-accent-8 dark:border-grayscale-5 dark:bg-grayscale-3 resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-grayscale-3 dark:border-grayscale-4">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setContactModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                className="text-xs"
+                type="submit"
+                disabled={isSubmittingContact}
+              >
+                {isSubmittingContact
+                  ? "Guardando..."
+                  : editingContactId
+                    ? "Guardar cambios"
+                    : "Registrar contacto"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Confirm Delete Potential Contact Modal */}
+        <ConfirmModal
+          open={!!contactToDeleteId}
+          onOpenChange={(open) => !open && setContactToDeleteId(null)}
+          title="¿Eliminar Contacto Potencial?"
+          description="¿Estás seguro de que deseas eliminar este contacto potencial? Esta acción no se puede deshacer."
+          confirmText="Eliminar Contacto"
+          onConfirm={async () => {
+            if (contactToDeleteId) {
+              await removePotentialContact({ id: contactToDeleteId as any });
+              setContactToDeleteId(null);
             }
           }}
         />

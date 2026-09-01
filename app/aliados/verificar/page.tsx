@@ -430,7 +430,8 @@ function VerificationContent() {
               Código No Registrado
             </h1>
             <p className="text-xs font-mono text-grayscale-10">
-              No existe afiliado con el código <span className="text-grayscale-12 font-bold">{activeCode}</span>.
+              No existe afiliado con el código{" "}
+              <span className="text-grayscale-12 font-bold">{activeCode}</span>.
             </p>
           </motion.div>
         ) : null}

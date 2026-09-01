@@ -41,7 +41,12 @@ export const verifyByCode = query({
     const raw = args.code.trim().toUpperCase();
     const cleanCode = raw.replace(/^#/, "").trim();
     if (!cleanCode) {
-      return { found: false, ally: null, status: "not_found" as const, validUntil: null };
+      return {
+        found: false,
+        ally: null,
+        status: "not_found" as const,
+        validUntil: null,
+      };
     }
 
     const ally = await ctx.db
@@ -50,7 +55,12 @@ export const verifyByCode = query({
       .first();
 
     if (!ally) {
-      return { found: false, ally: null, status: "not_found" as const, validUntil: null };
+      return {
+        found: false,
+        ally: null,
+        status: "not_found" as const,
+        validUntil: null,
+      };
     }
 
     const isPaid =

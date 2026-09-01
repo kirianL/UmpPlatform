@@ -164,10 +164,7 @@ export const removeBenefit = mutation({
 export const getRedemptions = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
-      .query("allyBenefitRedemptions")
-      .order("desc")
-      .collect();
+    return await ctx.db.query("allyBenefitRedemptions").order("desc").collect();
   },
 });
 
@@ -280,9 +277,7 @@ export const redeemBenefit = mutation({
       ally.status === "activo";
 
     if (!isPaid) {
-      throw new Error(
-        "El afiliado cuenta con un estado pendiente de pago.",
-      );
+      throw new Error("El afiliado cuenta con un estado pendiente de pago.");
     }
 
     // 2. Verify benefit

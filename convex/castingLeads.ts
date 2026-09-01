@@ -32,8 +32,7 @@ export const create = mutation({
       // Check if a lead with the same name already exists to prevent accidental duplicate entries
       const allLeads = await ctx.db.query("castingLeads").collect();
       const existing = allLeads.find(
-        (lead) =>
-          lead.name?.trim().toLowerCase() === trimmedName.toLowerCase()
+        (lead) => lead.name?.trim().toLowerCase() === trimmedName.toLowerCase(),
       );
 
       if (existing) {

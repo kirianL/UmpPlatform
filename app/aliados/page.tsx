@@ -160,8 +160,10 @@ export default function AliadosPage() {
 
   // Modals for Benefits
   const [benefitModalOpen, setBenefitModalOpen] = useState(false);
-  const [editingBenefitId, setEditingBenefitId] = useState<Id<"allyBenefits"> | null>(null);
-  const [benefitToDeleteId, setBenefitToDeleteId] = useState<Id<"allyBenefits"> | null>(null);
+  const [editingBenefitId, setEditingBenefitId] =
+    useState<Id<"allyBenefits"> | null>(null);
+  const [benefitToDeleteId, setBenefitToDeleteId] =
+    useState<Id<"allyBenefits"> | null>(null);
   const [benefitForm, setBenefitForm] = useState<{
     businessId?: Id<"partnerBusinesses">;
     businessName: string;
@@ -181,8 +183,10 @@ export default function AliadosPage() {
 
   // Modals for Businesses
   const [businessModalOpen, setBusinessModalOpen] = useState(false);
-  const [editingBusinessId, setEditingBusinessId] = useState<Id<"partnerBusinesses"> | null>(null);
-  const [businessToDeleteId, setBusinessToDeleteId] = useState<Id<"partnerBusinesses"> | null>(null);
+  const [editingBusinessId, setEditingBusinessId] =
+    useState<Id<"partnerBusinesses"> | null>(null);
+  const [businessToDeleteId, setBusinessToDeleteId] =
+    useState<Id<"partnerBusinesses"> | null>(null);
   const [businessForm, setBusinessForm] = useState<{
     name: string;
     pin: string;
@@ -847,7 +851,10 @@ export default function AliadosPage() {
                             rel="noopener noreferrer"
                             className="font-mono text-xs font-semibold text-grayscale-12 hover:text-emerald-600 flex items-center gap-1 transition-colors"
                           >
-                            <PhoneIcon size={12} className="text-grayscale-10" />
+                            <PhoneIcon
+                              size={12}
+                              className="text-grayscale-10"
+                            />
                             <span>{a.phone}</span>
                           </a>
                           <span
@@ -990,7 +997,10 @@ export default function AliadosPage() {
                       header: "Comercio",
                       render: (b) => (
                         <div className="flex items-center gap-1.5">
-                          <StorefrontIcon size={14} className="text-grayscale-10" />
+                          <StorefrontIcon
+                            size={14}
+                            className="text-grayscale-10"
+                          />
                           <span className="font-mono text-xs font-bold text-grayscale-12">
                             {b.businessName}
                           </span>
@@ -1155,7 +1165,9 @@ export default function AliadosPage() {
                       key: "status",
                       header: "Estado",
                       render: (b) => (
-                        <Badge variant={b.status === "inactivo" ? "gray" : "green"}>
+                        <Badge
+                          variant={b.status === "inactivo" ? "gray" : "green"}
+                        >
                           {b.status === "inactivo" ? "Inactivo" : "Activo"}
                         </Badge>
                       ),
@@ -1274,7 +1286,10 @@ export default function AliadosPage() {
                       header: "Comercio",
                       render: (r) => (
                         <div className="flex items-center gap-1.5">
-                          <StorefrontIcon size={14} className="text-grayscale-10" />
+                          <StorefrontIcon
+                            size={14}
+                            className="text-grayscale-10"
+                          />
                           <span className="font-mono text-xs text-grayscale-11">
                             {r.businessName}
                           </span>
@@ -1284,7 +1299,8 @@ export default function AliadosPage() {
                     {
                       key: "period",
                       header: "Periodo",
-                      className: "w-24 text-right font-mono text-xs text-grayscale-10",
+                      className:
+                        "w-24 text-right font-mono text-xs text-grayscale-10",
                       render: (r) => r.period,
                     },
                   ]}
@@ -1679,7 +1695,9 @@ export default function AliadosPage() {
         <Modal
           open={businessModalOpen}
           onOpenChange={setBusinessModalOpen}
-          title={editingBusinessId ? "Editar Comercio" : "Nuevo Comercio Asociado"}
+          title={
+            editingBusinessId ? "Editar Comercio" : "Nuevo Comercio Asociado"
+          }
         >
           <form onSubmit={handleSaveBusiness} className="flex flex-col gap-4">
             <Input

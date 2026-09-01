@@ -514,7 +514,8 @@ export default function PublicAllyFormClient() {
                 </span>
               </Button>
               <p className="text-[11px] text-grayscale-9 text-center font-mono">
-                El archivo se guardará directamente en la carpeta de Descargas de tu dispositivo.
+                El archivo se guardará directamente en la carpeta de Descargas
+                de tu dispositivo.
               </p>
             </motion.div>
           </motion.div>

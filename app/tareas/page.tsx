@@ -167,9 +167,7 @@ export default function TareasPage() {
         (!t.assignedToUsers || t.assignedToUsers.length === 0) && !t.assignedTo;
 
       return (
-        isAssigned ||
-        created === normalized ||
-        (hasNoAssignee && !created)
+        isAssigned || created === normalized || (hasNoAssignee && !created)
       );
     });
   }, [allTasks, isAdmin, userEmail]);
@@ -276,7 +274,14 @@ export default function TareasPage() {
 
   const filteredCompleted = useMemo(
     () => filterList(completedTasks),
-    [completedTasks, search, categoryFilter, priorityFilter, userFilter, isAdmin],
+    [
+      completedTasks,
+      search,
+      categoryFilter,
+      priorityFilter,
+      userFilter,
+      isAdmin,
+    ],
   );
 
   const filteredAll = useMemo(
@@ -826,7 +831,8 @@ export default function TareasPage() {
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[11px] font-semibold uppercase text-grayscale-11">
                     Asignar tarea a ({form.assignedToUsers.length}{" "}
-                    {form.assignedToUsers.length === 1 ? "persona" : "personas"})
+                    {form.assignedToUsers.length === 1 ? "persona" : "personas"}
+                    )
                   </span>
                   <div className="flex items-center gap-2 text-[10px] font-mono">
                     <button
@@ -872,7 +878,8 @@ export default function TareasPage() {
                           setForm((f) => {
                             const exists = f.assignedToUsers.some(
                               (au) =>
-                                au.email.toLowerCase() === u.email.toLowerCase(),
+                                au.email.toLowerCase() ===
+                                u.email.toLowerCase(),
                             );
                             const nextUsers = exists
                               ? f.assignedToUsers.filter(
@@ -1048,7 +1055,9 @@ export default function TareasPage() {
                     }`}
                   >
                     <UploadSimpleIcon size={13} />
-                    <span>{isUploadingImage ? "Comprimiendo..." : "Subir foto"}</span>
+                    <span>
+                      {isUploadingImage ? "Comprimiendo..." : "Subir foto"}
+                    </span>
                     <input
                       type="file"
                       accept="image/*"
@@ -1060,14 +1069,20 @@ export default function TareasPage() {
                           try {
                             setIsUploadingImage(true);
                             setSaveError(null);
-                            const compressedBase64 = await compressImage(file, 1000, 0.75);
+                            const compressedBase64 = await compressImage(
+                              file,
+                              1000,
+                              0.75,
+                            );
                             setForm((f) => ({
                               ...f,
                               imageUrl: compressedBase64,
                             }));
                           } catch (err: any) {
                             console.error("Error al procesar imagen:", err);
-                            setSaveError("No se pudo procesar la imagen seleccionada.");
+                            setSaveError(
+                              "No se pudo procesar la imagen seleccionada.",
+                            );
                           } finally {
                             setIsUploadingImage(false);
                           }

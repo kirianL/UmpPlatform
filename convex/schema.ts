@@ -453,6 +453,27 @@ export default defineSchema({
     birthDate: v.optional(v.string()),
     createdAt: v.optional(v.string()),
   }),
+  potentialContacts: defineTable({
+    name: v.string(),
+    category: v.optional(v.string()),
+    organization: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    socialLink: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("nuevo"),
+        v.literal("en_seguimiento"),
+        v.literal("contactado"),
+        v.literal("convertido"),
+        v.literal("descartado"),
+      ),
+    ),
+    photoUrl: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
+    createdAt: v.optional(v.string()),
+  }),
   partnerBusinesses: defineTable({
     name: v.string(),
     pin: v.string(),

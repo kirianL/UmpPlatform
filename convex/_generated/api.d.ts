@@ -24,6 +24,7 @@ import type * as employees from "../employees.js";
 import type * as equipment from "../equipment.js";
 import type * as events from "../events.js";
 import type * as potentialCollaborators from "../potentialCollaborators.js";
+import type * as potentialContacts from "../potentialContacts.js";
 import type * as scripts from "../scripts.js";
 import type * as seed from "../seed.js";
 import type * as socialMediaGoals from "../socialMediaGoals.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   equipment: typeof equipment;
   events: typeof events;
   potentialCollaborators: typeof potentialCollaborators;
+  potentialContacts: typeof potentialContacts;
   scripts: typeof scripts;
   seed: typeof seed;
   socialMediaGoals: typeof socialMediaGoals;
