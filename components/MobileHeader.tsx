@@ -26,6 +26,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/helpers/classname-helper";
+import { useAuth } from "@/components/AuthProvider";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
@@ -40,9 +41,19 @@ const NAV_ITEMS = [
   { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
 ];
 
-export default function MobileHeader({ userRole }: { userRole?: string }) {
+export default function MobileHeader({
+  userRole: propUserRole,
+  userEmail: propUserEmail,
+}: {
+  userRole?: string;
+  userEmail?: string;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const auth = useAuth();
+  const userRole = auth?.userRole || propUserRole || "produccion";
+  const userEmail = auth?.userEmail || propUserEmail || "";
+  const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (userRole === "actores") {
@@ -62,10 +73,11 @@ export default function MobileHeader({ userRole }: { userRole?: string }) {
         item.href === "/brainstorm"
       );
     }
-    if (userRole === "directorio") {
+    if (userRole === "directorio" || isMichelle) {
       return (
         item.href === "/clientes" ||
         item.href === "/personal" ||
+        item.href === "/calendario-actores" ||
         item.href === "/inventario" ||
         item.href === "/calendario" ||
         item.href === "/tareas"

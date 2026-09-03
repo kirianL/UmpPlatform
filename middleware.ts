@@ -202,11 +202,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  const isMichelle = userEmail.toLowerCase().includes("michelle");
+
   if (userRole === "directorio") {
     const isAllowedPath =
       pathname.startsWith("/clientes") ||
       pathname.startsWith("/personal") ||
       pathname.startsWith("/inventario") ||
+      pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/calendario") ||
       pathname.startsWith("/tareas") ||
       pathname.startsWith("/api/auth/logout");
@@ -217,6 +220,19 @@ export async function middleware(request: NextRequest) {
       );
       return NextResponse.redirect(new URL("/clientes", request.url));
     }
+  }
+
+  // Ensure Michelle always has access to agenda de actores
+  if (isMichelle && pathname.startsWith("/calendario-actores")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", pathname);
+    requestHeaders.set("x-user-role", userRole);
+    requestHeaders.set("x-user-email", userEmail);
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   // Inject current pathname and user info into headers for Server Component layouts to read

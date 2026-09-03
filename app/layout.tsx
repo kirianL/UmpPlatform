@@ -113,8 +113,8 @@ export default async function RootLayout({
                 children
               ) : (
                 <div className="root min-h-screen flex flex-col xl:block">
-                  <MobileHeader userRole={userRole} />
-                  <Sidebar userRole={userRole} />
+                  <MobileHeader userRole={userRole} userEmail={userEmail} />
+                  <Sidebar userRole={userRole} userEmail={userEmail} />
                   <main className="min-h-screen flex-1 xl:pl-56">
                     <ViewTransition enter="page-enter" exit="page-exit">
                       {children}

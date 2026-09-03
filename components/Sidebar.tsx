@@ -21,6 +21,7 @@ import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/helpers/classname-helper";
+import { useAuth } from "@/components/AuthProvider";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
@@ -38,13 +39,19 @@ const NAV_ITEMS = [
 function SidebarNavContent({
   onNavigate,
   hideLogo = false,
-  userRole = "produccion",
+  userRole: propUserRole = "produccion",
+  userEmail: propUserEmail = "",
 }: {
   onNavigate?: () => void;
   hideLogo?: boolean;
   userRole?: string;
+  userEmail?: string;
 }) {
   const pathname = usePathname();
+  const auth = useAuth();
+  const userRole = auth?.userRole || propUserRole;
+  const userEmail = auth?.userEmail || propUserEmail;
+  const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (userRole === "actores") {
@@ -64,10 +71,11 @@ function SidebarNavContent({
         item.href === "/brainstorm"
       );
     }
-    if (userRole === "directorio") {
+    if (userRole === "directorio" || isMichelle) {
       return (
         item.href === "/clientes" ||
         item.href === "/personal" ||
+        item.href === "/calendario-actores" ||
         item.href === "/inventario" ||
         item.href === "/calendario" ||
         item.href === "/tareas"
@@ -171,10 +179,16 @@ function SidebarNavContent({
   );
 }
 
-export default function Sidebar({ userRole }: { userRole?: string }) {
+export default function Sidebar({
+  userRole,
+  userEmail,
+}: {
+  userRole?: string;
+  userEmail?: string;
+}) {
   return (
     <aside className="desktop-sidebar fixed top-0 left-0 z-50 hidden h-full w-56 shrink-0 flex-col px-3 py-4 border-r border-grayscale-3 bg-grayscale-1 dark:border-grayscale-2 dark:bg-grayscale-1 xl:flex">
-      <SidebarNavContent userRole={userRole} />
+      <SidebarNavContent userRole={userRole} userEmail={userEmail} />
     </aside>
   );
 }
