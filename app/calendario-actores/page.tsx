@@ -73,6 +73,32 @@ function format12Hour(timeStr?: string): string {
   return `${formattedHours}:${minutes} ${period}`;
 }
 
+function timeToMinutes(timeStr?: string): number {
+  if (!timeStr) return 9999;
+  const trimmed = timeStr.trim().toLowerCase();
+  const isPM = trimmed.includes("pm");
+  const isAM = trimmed.includes("am");
+  const clean = trimmed.replace(/[^\d:]/g, "");
+  const parts = clean.split(":");
+  if (parts.length === 0 || !parts[0]) return 9999;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+  if (isNaN(hours)) return 9999;
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+  return hours * 60 + (isNaN(minutes) ? 0 : minutes);
+}
+
+function compareEventsByTime(a: any, b: any): number {
+  const timeA = timeToMinutes(a.callTime || a.startTime);
+  const timeB = timeToMinutes(b.callTime || b.startTime);
+  if (timeA !== timeB) return timeA - timeB;
+  const startA = timeToMinutes(a.startTime);
+  const startB = timeToMinutes(b.startTime);
+  if (startA !== startB) return startA - startB;
+  return (a.actorName || "").localeCompare(b.actorName || "");
+}
+
 function formatDate(iso: string): string {
   if (!iso) return "N/A";
   const dateStr = iso.slice(0, 10);
@@ -161,12 +187,16 @@ export default function CalendarioActoresPage() {
       }
       map[ev.date].push(ev);
     }
+    for (const date in map) {
+      map[date].sort(compareEventsByTime);
+    }
     return map;
   }, [filteredSchedules]);
 
   const selectedDayEvents = useMemo(() => {
     if (!selectedDate) return [];
-    return eventsByDate[selectedDate] || [];
+    const list = eventsByDate[selectedDate] || [];
+    return [...list].sort(compareEventsByTime);
   }, [selectedDate, eventsByDate]);
 
   const daysInMonth = getDaysInMonth(year, month);

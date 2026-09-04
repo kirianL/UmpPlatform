@@ -55,6 +55,32 @@ function format12Hour(timeStr?: string): string {
   return `${formattedHours}:${minutes} ${period}`;
 }
 
+function timeToMinutes(timeStr?: string): number {
+  if (!timeStr) return 9999;
+  const trimmed = timeStr.trim().toLowerCase();
+  const isPM = trimmed.includes("pm");
+  const isAM = trimmed.includes("am");
+  const clean = trimmed.replace(/[^\d:]/g, "");
+  const parts = clean.split(":");
+  if (parts.length === 0 || !parts[0]) return 9999;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+  if (isNaN(hours)) return 9999;
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+  return hours * 60 + (isNaN(minutes) ? 0 : minutes);
+}
+
+function compareEventsByTime(a: any, b: any): number {
+  const timeA = timeToMinutes(a.callTime || a.startTime);
+  const timeB = timeToMinutes(b.callTime || b.startTime);
+  if (timeA !== timeB) return timeA - timeB;
+  const startA = timeToMinutes(a.startTime);
+  const startB = timeToMinutes(b.startTime);
+  if (startA !== startB) return startA - startB;
+  return (a.actorName || "").localeCompare(b.actorName || "");
+}
+
 export default function PublicActorScheduleClient({
   token,
 }: {
@@ -95,11 +121,20 @@ export default function PublicActorScheduleClient({
 
   const displayedSchedules = useMemo(() => {
     if (!schedules) return [];
+    let list = schedules;
     if (filterTab === "upcoming") {
-      return upcomingSchedules.length > 0 ? upcomingSchedules : schedules;
+      list = upcomingSchedules.length > 0 ? upcomingSchedules : schedules;
+    } else if (filterTab === "history") {
+      list = historySchedules;
     }
-    if (filterTab === "history") return historySchedules;
-    return schedules;
+    return [...list].sort((a, b) => {
+      if (a.date !== b.date) {
+        return filterTab === "history"
+          ? b.date.localeCompare(a.date)
+          : a.date.localeCompare(b.date);
+      }
+      return compareEventsByTime(a, b);
+    });
   }, [filterTab, upcomingSchedules, historySchedules, schedules]);
 
   if (schedules === undefined) {

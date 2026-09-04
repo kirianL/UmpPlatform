@@ -37,7 +37,13 @@ export const getByShareToken = query({
 
     if (token === "general" || token === "all") {
       const all = await ctx.db.query("actorSchedules").collect();
-      return all.sort((a, b) => a.date.localeCompare(b.date));
+      return all.sort((a, b) => {
+        const dateCmp = a.date.localeCompare(b.date);
+        if (dateCmp !== 0) return dateCmp;
+        return (a.callTime || a.startTime || "").localeCompare(
+          b.callTime || b.startTime || "",
+        );
+      });
     }
 
     const normalizedInput = toSlug(token);
@@ -76,9 +82,13 @@ export const getByShareToken = query({
       uniqueMap.set(item._id, item);
     }
 
-    return Array.from(uniqueMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date),
-    );
+    return Array.from(uniqueMap.values()).sort((a, b) => {
+      const dateCmp = a.date.localeCompare(b.date);
+      if (dateCmp !== 0) return dateCmp;
+      return (a.callTime || a.startTime || "").localeCompare(
+        b.callTime || b.startTime || "",
+      );
+    });
   },
 });
 
