@@ -62,6 +62,31 @@ function formatDate(isoStr?: string): string {
   return `${day}/${month}/${year}`;
 }
 
+function AutoResizeTextarea({
+  className,
+  onInput,
+  ...props
+}: React.ComponentProps<"textarea">) {
+  function resize(el: HTMLTextAreaElement | null) {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+
+  return (
+    <textarea
+      {...props}
+      rows={1}
+      ref={(node) => resize(node)}
+      onInput={(e) => {
+        resize(e.currentTarget);
+        onInput?.(e);
+      }}
+      className={cn("resize-none overflow-hidden", className)}
+    />
+  );
+}
+
 export default function NotasPage() {
   const { userRole, userEmail } = useAuth();
   const isAdmin =
@@ -326,55 +351,106 @@ export default function NotasPage() {
                             )}
                           />
 
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 min-w-0 flex-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  toggleDone({ id: note._id, ...authArgs })
-                                }
-                                className="flex size-10 sm:size-auto sm:mt-0.5 shrink-0 items-center justify-center text-grayscale-8 transition-colors hover:text-accent-9"
-                                title={
-                                  note.done
-                                    ? "Marcar como activa"
-                                    : "Marcar como hecha"
-                                }
-                              >
-                                {note.done ? (
-                                  <CheckCircleIcon
-                                    size={22}
-                                    weight="fill"
-                                    className="text-green-11"
-                                  />
-                                ) : (
-                                  <CircleIcon
-                                    size={22}
-                                    className="text-grayscale-8 hover:text-accent-10"
-                                  />
-                                )}
-                              </button>
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleDone({ id: note._id, ...authArgs })
+                              }
+                              className="flex size-10 shrink-0 items-center justify-center text-grayscale-8 transition-colors hover:text-accent-9"
+                              title={
+                                note.done
+                                  ? "Marcar como activa"
+                                  : "Marcar como hecha"
+                              }
+                            >
+                              {note.done ? (
+                                <CheckCircleIcon
+                                  size={22}
+                                  weight="fill"
+                                  className="text-green-11"
+                                />
+                              ) : (
+                                <CircleIcon
+                                  size={22}
+                                  className="text-grayscale-8 hover:text-accent-10"
+                                />
+                              )}
+                            </button>
 
-                              <div className="flex flex-col gap-1 min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <input
-                                    key={`${note._id}-title-${note.updatedAt}`}
-                                    defaultValue={note.title}
-                                    onBlur={(e) =>
-                                      patchNote(note, {
-                                        title: e.target.value,
-                                      })
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.currentTarget.blur();
+                            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                              <AutoResizeTextarea
+                                key={`${note._id}-title-${note.updatedAt}`}
+                                defaultValue={note.title}
+                                onBlur={(e) =>
+                                  patchNote(note, {
+                                    title: e.target.value,
+                                  })
+                                }
+                                className={cn(
+                                  "w-full bg-transparent border-0 p-0 text-base sm:text-sm font-medium text-grayscale-12 outline-none whitespace-pre-wrap break-words leading-snug",
+                                  note.done && "line-through text-grayscale-9",
+                                )}
+                              />
+
+                              <AutoResizeTextarea
+                                key={`${note._id}-content-${note.updatedAt}`}
+                                defaultValue={note.content ?? ""}
+                                placeholder="Agregar detalle..."
+                                onBlur={(e) =>
+                                  patchNote(note, {
+                                    content: e.target.value,
+                                  })
+                                }
+                                className={cn(
+                                  "w-full bg-transparent border-0 p-0 text-sm sm:text-xs text-grayscale-10 placeholder:text-grayscale-7 outline-none whitespace-pre-wrap break-words leading-relaxed",
+                                  note.done && "text-grayscale-8",
+                                )}
+                              />
+
+                              {checklist.length > 0 && (
+                                <div className="flex flex-col gap-1.5 mt-1">
+                                  {checklist.map((item) => (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      onClick={() =>
+                                        toggleChecklistItem({
+                                          id: note._id,
+                                          itemId: item.id,
+                                          ...authArgs,
+                                        })
                                       }
-                                    }}
-                                    className={cn(
-                                      "min-w-0 flex-1 bg-transparent border-0 p-0 text-base sm:text-sm font-medium text-grayscale-12 outline-none",
-                                      note.done &&
-                                        "line-through text-grayscale-9",
-                                    )}
-                                  />
+                                      className="flex min-h-10 items-start gap-2 py-1 text-left"
+                                    >
+                                      {item.done ? (
+                                        <CheckCircleIcon
+                                          size={15}
+                                          weight="fill"
+                                          className="mt-0.5 shrink-0 text-green-11"
+                                        />
+                                      ) : (
+                                        <CircleIcon
+                                          size={15}
+                                          className="mt-0.5 shrink-0 text-grayscale-8"
+                                        />
+                                      )}
+                                      <span
+                                        className={cn(
+                                          "text-sm sm:text-xs text-grayscale-11 break-words",
+                                          item.done &&
+                                            "line-through text-grayscale-8",
+                                        )}
+                                      >
+                                        {item.text}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-1 mt-1">
+                                <div className="flex min-w-0 flex-1 items-center gap-2 flex-wrap text-[11px] text-grayscale-8">
                                   {note.pinned && (
                                     <Badge
                                       variant="accent"
@@ -390,66 +466,6 @@ export default function NotasPage() {
                                       {note.ownerName || note.ownerEmail}
                                     </span>
                                   )}
-                                </div>
-
-                                <textarea
-                                  key={`${note._id}-content-${note.updatedAt}`}
-                                  defaultValue={note.content ?? ""}
-                                  placeholder="Agregar detalle..."
-                                  rows={note.content ? 2 : 1}
-                                  onBlur={(e) =>
-                                    patchNote(note, {
-                                      content: e.target.value,
-                                    })
-                                  }
-                                  className={cn(
-                                    "w-full resize-none bg-transparent border-0 p-0 text-sm sm:text-xs text-grayscale-10 placeholder:text-grayscale-7 outline-none",
-                                    note.done && "text-grayscale-8",
-                                  )}
-                                />
-
-                                {checklist.length > 0 && (
-                                  <div className="flex flex-col gap-1.5 mt-1.5">
-                                    {checklist.map((item) => (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() =>
-                                          toggleChecklistItem({
-                                            id: note._id,
-                                            itemId: item.id,
-                                            ...authArgs,
-                                          })
-                                        }
-                                        className="flex min-h-10 items-start gap-2 py-1 text-left"
-                                      >
-                                        {item.done ? (
-                                          <CheckCircleIcon
-                                            size={15}
-                                            weight="fill"
-                                            className="mt-0.5 shrink-0 text-green-11"
-                                          />
-                                        ) : (
-                                          <CircleIcon
-                                            size={15}
-                                            className="mt-0.5 shrink-0 text-grayscale-8"
-                                          />
-                                        )}
-                                        <span
-                                          className={cn(
-                                            "text-xs text-grayscale-11",
-                                            item.done &&
-                                              "line-through text-grayscale-8",
-                                          )}
-                                        >
-                                          {item.text}
-                                        </span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-
-                                <div className="flex items-center gap-2 mt-1 flex-wrap text-[11px] text-grayscale-8">
                                   {checklist.length > 0 && (
                                     <span className="inline-flex items-center gap-1 font-mono text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
                                       <ListChecksIcon size={11} />
@@ -462,40 +478,41 @@ export default function NotasPage() {
                                     )}
                                   </span>
                                 </div>
+                                <div className="flex items-center shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      togglePinned({
+                                        id: note._id,
+                                        ...authArgs,
+                                      })
+                                    }
+                                    className={cn(
+                                      "flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md transition-colors",
+                                      note.pinned
+                                        ? "text-accent-11 bg-accent-3 dark:bg-accent-4"
+                                        : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11",
+                                    )}
+                                    title={
+                                      note.pinned ? "Desfijar" : "Fijar nota"
+                                    }
+                                  >
+                                    {note.pinned ? (
+                                      <PushPinIcon size={16} weight="fill" />
+                                    ) : (
+                                      <PushPinSlashIcon size={16} />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteId(note._id)}
+                                    className="flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-8 transition-colors hover:bg-red-3 hover:text-red-11"
+                                    title="Eliminar"
+                                  >
+                                    <TrashIcon size={16} />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-
-                            <div className="flex items-center gap-0.5 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  togglePinned({
-                                    id: note._id,
-                                    ...authArgs,
-                                  })
-                                }
-                                className={cn(
-                                  "flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md transition-colors",
-                                  note.pinned
-                                    ? "text-accent-11 bg-accent-3 dark:bg-accent-4"
-                                    : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11",
-                                )}
-                                title={note.pinned ? "Desfijar" : "Fijar nota"}
-                              >
-                                {note.pinned ? (
-                                  <PushPinIcon size={16} weight="fill" />
-                                ) : (
-                                  <PushPinSlashIcon size={16} />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteId(note._id)}
-                                className="flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-8 transition-colors hover:bg-red-3 hover:text-red-11"
-                                title="Eliminar"
-                              >
-                                <TrashIcon size={16} />
-                              </button>
                             </div>
                           </div>
                         </div>
