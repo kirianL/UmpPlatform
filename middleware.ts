@@ -174,6 +174,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/personal") ||
       pathname.startsWith("/tareas") ||
+      pathname.startsWith("/notas") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
@@ -191,6 +192,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/guiones") ||
       pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/tareas") ||
+      pathname.startsWith("/notas") ||
       pathname.startsWith("/brainstorm") ||
       pathname.startsWith("/api/auth/logout");
 
@@ -212,6 +214,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/calendario") ||
       pathname.startsWith("/tareas") ||
+      pathname.startsWith("/notas") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {

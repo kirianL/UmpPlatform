@@ -19,6 +19,7 @@ import {
   UsersIcon,
   XIcon,
   HandshakeIcon,
+  NotePencilIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ import { useAuth } from "@/components/AuthProvider";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
   { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
+  { href: "/notas", label: "Notas", Icon: NotePencilIcon },
   { href: "/personal", label: "Personal", Icon: UsersIcon },
   { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
   { href: "/calendario-actores", label: "Agenda actores", Icon: UserCheckIcon },
@@ -60,7 +62,8 @@ export default function MobileHeader({
       return (
         item.href === "/calendario-actores" ||
         item.href === "/personal" ||
-        item.href === "/tareas"
+        item.href === "/tareas" ||
+        item.href === "/notas"
       );
     }
     if (userRole === "produccion") {
@@ -70,6 +73,7 @@ export default function MobileHeader({
         item.href === "/guiones" ||
         item.href === "/calendario-actores" ||
         item.href === "/tareas" ||
+        item.href === "/notas" ||
         item.href === "/brainstorm"
       );
     }
@@ -80,7 +84,8 @@ export default function MobileHeader({
         item.href === "/calendario-actores" ||
         item.href === "/inventario" ||
         item.href === "/calendario" ||
-        item.href === "/tareas"
+        item.href === "/tareas" ||
+        item.href === "/notas"
       );
     }
     return true;

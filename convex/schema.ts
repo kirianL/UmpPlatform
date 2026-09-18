@@ -44,6 +44,21 @@ export default defineSchema({
     local: v.optional(v.string()),
     clientId: v.optional(v.string()),
   }),
+  budgetItems: defineTable({
+    concept: v.string(),
+    amount: v.number(),
+    date: v.string(), // ISO format YYYY-MM-DD
+    category: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
+    notes: v.optional(v.string()),
+    createdAt: v.optional(v.string()),
+    transactionId: v.optional(v.id("transactions")),
+  }).index("by_transactionId", ["transactionId"]),
   clients: defineTable({
     name: v.string(),
     company: v.optional(v.string()),
@@ -359,6 +374,26 @@ export default defineSchema({
   })
     .index("by_assignedTo", ["assignedTo"])
     .index("by_createdBy", ["createdBy"]),
+  notes: defineTable({
+    title: v.string(),
+    content: v.optional(v.string()),
+    color: v.string(),
+    pinned: v.boolean(),
+    done: v.boolean(),
+    checklist: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          text: v.string(),
+          done: v.boolean(),
+        }),
+      ),
+    ),
+    ownerEmail: v.string(),
+    ownerName: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  }).index("by_ownerEmail", ["ownerEmail"]),
   brainstormBoards: defineTable({
     title: v.string(),
     clientId: v.optional(v.id("clients")),

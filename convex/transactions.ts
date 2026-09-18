@@ -1,5 +1,28 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+
+async function releaseBudgetLink(
+  ctx: MutationCtx,
+  transactionId: Id<"transactions">,
+) {
+  const linkedBudgetItems = await ctx.db
+    .query("budgetItems")
+    .withIndex("by_transactionId", (q) => q.eq("transactionId", transactionId))
+    .collect();
+
+  for (const item of linkedBudgetItems) {
+    await ctx.db.replace(item._id, {
+      concept: item.concept,
+      amount: item.amount,
+      date: item.date,
+      category: item.category,
+      status: item.status === "completed" ? "pending" : item.status,
+      ...(item.notes ? { notes: item.notes } : {}),
+      ...(item.createdAt ? { createdAt: item.createdAt } : {}),
+    });
+  }
+}
 
 export const get = query({
   args: {},
@@ -44,6 +67,10 @@ export const update = mutation({
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);
+
+    if (args.status === "cancelled") {
+      await releaseBudgetLink(ctx, id);
+    }
 
     // Sincronización bidireccional con el pago de cliente en Clientes si está vinculado
     const payments = await ctx.db
@@ -147,6 +174,7 @@ export const remove = mutation({
       }
 
       await ctx.db.delete(args.id);
+      await releaseBudgetLink(ctx, args.id);
     }
   },
 });

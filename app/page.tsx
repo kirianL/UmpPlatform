@@ -7,6 +7,7 @@ import {
   CurrencyDollarIcon,
   FilmSlateIcon,
   HandshakeIcon,
+  NotePencilIcon,
   TrendUpIcon,
   UsersIcon,
 } from "@phosphor-icons/react/dist/ssr";
@@ -78,10 +79,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { href: "/aliados", label: "Aliados", Icon: HandshakeIcon },
             { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
+            { href: "/notas", label: "Notas", Icon: NotePencilIcon },
             { href: "/personal", label: "Personal", Icon: UsersIcon },
             { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
             { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },

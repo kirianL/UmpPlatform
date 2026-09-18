@@ -2,30 +2,40 @@
 
 import {
   CameraIcon,
+  CheckCircleIcon,
+  ClipboardTextIcon,
   CurrencyDollarIcon,
+  EyeIcon,
+  HourglassIcon,
+  MagnifyingGlassIcon,
   PencilSimpleIcon,
   PlusIcon,
+  TrashIcon,
   TrendDownIcon,
   TrendUpIcon,
-  TrashIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
+  WalletIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useState, useMemo } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import InvoiceScanner from "@/components/InvoiceScanner";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
+import ConfirmModal from "@/components/public/ConfirmModal";
 import DataTable, { type Column } from "@/components/public/DataTable";
 import EmptyState from "@/components/public/EmptyState";
 import Input from "@/components/public/Input";
 import Modal from "@/components/public/Modal";
+import PageContainer from "@/components/public/PageContainer";
 import Select from "@/components/public/Select";
 import StatCard from "@/components/public/StatCard";
 import { Tabs } from "@/components/public/Tabs";
-import type { InvoiceData } from "@/lib/invoice-ocr";
-import InvoiceScanner from "@/components/InvoiceScanner";
-import PageContainer from "@/components/public/PageContainer";
-import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { InvoiceData } from "@/lib/invoice-ocr";
+
+type BudgetStatus = "pending" | "in_progress" | "completed" | "cancelled";
+type FinanceTab = "all" | "income" | "expense" | "presupuesto";
+type BudgetItem = Doc<"budgetItems">;
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("es-CR", {
@@ -72,12 +82,34 @@ const EMPTY_TRANSACTION = {
   local: "",
 };
 
+const EMPTY_BUDGET = {
+  concept: "",
+  amount: 0,
+  date: new Date().toISOString().slice(0, 10),
+  category: "Mantenimiento",
+  status: "pending" as BudgetStatus,
+  notes: "",
+};
+
+const BUDGET_STATUS_OPTIONS: { value: BudgetStatus; label: string }[] = [
+  { value: "pending", label: "Pendiente" },
+  { value: "in_progress", label: "En proceso" },
+  { value: "completed", label: "Completado" },
+  { value: "cancelled", label: "Cancelado" },
+];
+
 export default function FinanzasPage() {
   const transactions = useQuery(api.transactions.get) ?? [];
   const createTransaction = useMutation(api.transactions.create);
   const updateTransaction = useMutation(api.transactions.update);
   const removeTransaction = useMutation(api.transactions.remove);
 
+  const budgetItems = useQuery(api.budgetItems.get) ?? [];
+  const createBudgetItem = useMutation(api.budgetItems.create);
+  const updateBudgetItem = useMutation(api.budgetItems.update);
+  const removeBudgetItem = useMutation(api.budgetItems.remove);
+
+  const [activeTab, setActiveTab] = useState<FinanceTab>("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,6 +119,18 @@ export default function FinanzasPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDateRange, setFilterDateRange] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [editingBudgetId, setEditingBudgetId] =
+    useState<Id<"budgetItems"> | null>(null);
+  const [budgetForm, setBudgetForm] = useState(EMPTY_BUDGET);
+  const [isBudgetViewOnly, setIsBudgetViewOnly] = useState(false);
+  const [budgetSearch, setBudgetSearch] = useState("");
+  const [budgetStatusFilter, setBudgetStatusFilter] = useState<string>("all");
+  const [deleteBudgetId, setDeleteBudgetId] =
+    useState<Id<"budgetItems"> | null>(null);
+
+  const isBudgetTab = activeTab === "presupuesto";
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -240,6 +284,129 @@ export default function FinanzasPage() {
   function handleDelete(id: string) {
     removeTransaction({ id: id as any });
   }
+
+  const filteredBudgetItems = useMemo(() => {
+    return budgetItems.filter((item) => {
+      if (budgetSearch.trim()) {
+        const q = budgetSearch.toLowerCase().trim();
+        const formattedDate = formatDate(item.date).toLowerCase();
+        const matchesConcept = item.concept.toLowerCase().includes(q);
+        const matchesCategory = item.category.toLowerCase().includes(q);
+        const matchesNotes = item.notes
+          ? item.notes.toLowerCase().includes(q)
+          : false;
+        const matchesDate =
+          formattedDate.includes(q) || item.date.toLowerCase().includes(q);
+
+        if (
+          !matchesConcept &&
+          !matchesCategory &&
+          !matchesNotes &&
+          !matchesDate
+        ) {
+          return false;
+        }
+      }
+
+      if (budgetStatusFilter !== "all" && item.status !== budgetStatusFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [budgetItems, budgetSearch, budgetStatusFilter]);
+
+  const sortedBudgetItems = useMemo(() => {
+    return [...filteredBudgetItems].sort((a, b) =>
+      b.date.localeCompare(a.date),
+    );
+  }, [filteredBudgetItems]);
+
+  const activeBudgetItems = sortedBudgetItems.filter(
+    (item) => item.status !== "cancelled",
+  );
+  const budgetTotal = activeBudgetItems.reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  );
+  const budgetPending = activeBudgetItems
+    .filter(
+      (item) => item.status === "pending" || item.status === "in_progress",
+    )
+    .reduce((sum, item) => sum + item.amount, 0);
+  const budgetCompleted = activeBudgetItems
+    .filter((item) => item.status === "completed")
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  function openCreateBudget() {
+    setEditingBudgetId(null);
+    setBudgetForm({ ...EMPTY_BUDGET });
+    setIsBudgetViewOnly(false);
+    setBudgetModalOpen(true);
+  }
+
+  function openEditBudget(item: BudgetItem) {
+    setEditingBudgetId(item._id);
+    setBudgetForm({
+      concept: item.concept,
+      amount: item.amount,
+      date: item.date,
+      category: item.category,
+      status: item.status,
+      notes: item.notes ?? "",
+    });
+    setIsBudgetViewOnly(false);
+    setBudgetModalOpen(true);
+  }
+
+  function openViewBudget(item: BudgetItem) {
+    setEditingBudgetId(null);
+    setBudgetForm({
+      concept: item.concept,
+      amount: item.amount,
+      date: item.date,
+      category: item.category,
+      status: item.status,
+      notes: item.notes ?? "",
+    });
+    setIsBudgetViewOnly(true);
+    setBudgetModalOpen(true);
+  }
+
+  function handleSaveBudget() {
+    const payload = {
+      concept: budgetForm.concept.trim() || "Ítem sin concepto",
+      amount: budgetForm.amount,
+      date: budgetForm.date,
+      category: budgetForm.category,
+      status: budgetForm.status,
+      notes: budgetForm.notes.trim() || undefined,
+    };
+
+    if (editingBudgetId) {
+      updateBudgetItem({ id: editingBudgetId, ...payload });
+    } else {
+      createBudgetItem(payload);
+    }
+    setBudgetModalOpen(false);
+  }
+
+  async function handleConfirmDeleteBudget() {
+    if (!deleteBudgetId) return;
+    await removeBudgetItem({ id: deleteBudgetId });
+    setDeleteBudgetId(null);
+  }
+
+  const budgetStatusBadge = (status: BudgetStatus) => {
+    const map = {
+      pending: { variant: "orange" as const, label: "Pendiente" },
+      in_progress: { variant: "accent" as const, label: "En proceso" },
+      completed: { variant: "green" as const, label: "Completado" },
+      cancelled: { variant: "red" as const, label: "Cancelado" },
+    };
+    const { variant, label } = map[status] || map.pending;
+    return <Badge variant={variant}>{label}</Badge>;
+  };
 
   async function handleScanComplete(data: InvoiceData) {
     const date = data.date ?? new Date().toISOString().slice(0, 10);
@@ -422,6 +589,98 @@ export default function FinanzasPage() {
     },
   ];
 
+  const budgetColumns = (): Column<BudgetItem>[] => [
+    {
+      key: "concept",
+      header: "Ítem / Inversión",
+      render: (item) => (
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-grayscale-12 truncate max-w-[260px]">
+            {item.concept}
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-grayscale-9">{item.category}</span>
+            {item.status === "completed" && item.transactionId && (
+              <>
+                <span className="text-grayscale-6 text-[10px]">•</span>
+                <span className="text-xs text-green-11">En finanzas</span>
+              </>
+            )}
+            {item.notes && (
+              <>
+                <span className="text-grayscale-6 text-[10px]">•</span>
+                <span
+                  className="text-xs text-grayscale-10 truncate max-w-[180px]"
+                  title={item.notes}
+                >
+                  {item.notes}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Inversión",
+      render: (item) => (
+        <span className="text-sm font-medium text-grayscale-12">
+          {formatCurrency(item.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "date",
+      header: "Fecha",
+      className: "hidden sm:table-cell",
+      render: (item) => (
+        <span className="text-sm text-grayscale-11">
+          {formatDate(item.date)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Estado",
+      className: "hidden md:table-cell",
+      render: (item) => budgetStatusBadge(item.status),
+    },
+    {
+      key: "actions",
+      header: "",
+      className: "w-24",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => openViewBudget(item)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
+            title="Ver Detalles"
+          >
+            <EyeIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => openEditBudget(item)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
+            title="Editar"
+          >
+            <PencilSimpleIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteBudgetId(item._id)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
+            title="Eliminar"
+          >
+            <TrashIcon size={14} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
@@ -431,72 +690,127 @@ export default function FinanzasPage() {
             Finanzas
           </h1>
           <p className="text-sm text-grayscale-10">
-            Control de ingresos, gastos y facturación
+            Control de ingresos, gastos, facturación y presupuesto
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard
-            label="Balance Neto"
-            value={formatCurrency(balance)}
-            detail="Ingresos menos egresos"
-            icon={<CurrencyDollarIcon size={18} weight="fill" />}
-            index={0}
-          />
-          <StatCard
-            label="Ingresos Totales"
-            value={formatCurrency(income)}
-            detail={`${incomeData.length} transacciones`}
-            icon={
-              <TrendUpIcon size={18} weight="bold" className="text-green-9" />
-            }
-            index={1}
-          />
-          <StatCard
-            label="Egresos Totales"
-            value={formatCurrency(expenses)}
-            detail={`${expenseData.length} transacciones`}
-            icon={
-              <TrendDownIcon size={18} weight="bold" className="text-red-9" />
-            }
-            index={2}
-          />
-        </div>
+        {isBudgetTab ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Inversión total"
+              value={formatCurrency(budgetTotal)}
+              detail={`${activeBudgetItems.length} ítems activos`}
+              icon={<WalletIcon size={18} weight="fill" />}
+              index={0}
+            />
+            <StatCard
+              label="Pendiente"
+              value={formatCurrency(budgetPending)}
+              detail="Planificado: no descuenta de Finanzas"
+              icon={
+                <HourglassIcon
+                  size={18}
+                  weight="bold"
+                  className="text-orange-9"
+                />
+              }
+              index={1}
+            />
+            <StatCard
+              label="Completado"
+              value={formatCurrency(budgetCompleted)}
+              detail="Ya descontado de Finanzas"
+              icon={
+                <CheckCircleIcon
+                  size={18}
+                  weight="bold"
+                  className="text-green-9"
+                />
+              }
+              index={2}
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Balance Neto"
+              value={formatCurrency(balance)}
+              detail="Ingresos menos egresos"
+              icon={<CurrencyDollarIcon size={18} weight="fill" />}
+              index={0}
+            />
+            <StatCard
+              label="Ingresos Totales"
+              value={formatCurrency(income)}
+              detail={`${incomeData.length} transacciones`}
+              icon={
+                <TrendUpIcon size={18} weight="bold" className="text-green-9" />
+              }
+              index={1}
+            />
+            <StatCard
+              label="Egresos Totales"
+              value={formatCurrency(expenses)}
+              detail={`${expenseData.length} transacciones`}
+              icon={
+                <TrendDownIcon size={18} weight="bold" className="text-red-9" />
+              }
+              index={2}
+            />
+          </div>
+        )}
 
         {/* Toolbar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2">
+        {isBudgetTab ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               variant="primary"
               className="text-xs"
-              onClick={() => openCreate("income")}
+              onClick={openCreateBudget}
             >
               <PlusIcon size={16} weight="bold" />
-              Registrar ingreso
-            </Button>
-            <Button
-              variant="secondary"
-              className="text-xs"
-              onClick={() => openCreate("expense")}
-            >
-              <PlusIcon size={16} weight="bold" />
-              Registrar gasto
+              Agregar ítem de presupuesto
             </Button>
           </div>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                className="text-xs"
+                onClick={() => openCreate("income")}
+              >
+                <PlusIcon size={16} weight="bold" />
+                Registrar ingreso
+              </Button>
+              <Button
+                variant="secondary"
+                className="text-xs"
+                onClick={() => openCreate("expense")}
+              >
+                <PlusIcon size={16} weight="bold" />
+                Registrar gasto
+              </Button>
+            </div>
 
-          <Button
-            variant="primary"
-            className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
-            onClick={() => setScanModalOpen(true)}
-          >
-            <CameraIcon size={16} weight="bold" />
-            Escanear factura
-          </Button>
-        </div>
+            <Button
+              variant="primary"
+              className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
+              onClick={() => setScanModalOpen(true)}
+            >
+              <CameraIcon size={16} weight="bold" />
+              Escanear factura
+            </Button>
+          </div>
+        )}
 
         {/* Tabs */}
-        <Tabs.Root defaultValue="all" className="w-full flex flex-col">
+        <Tabs.Root
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as FinanceTab)}
+          className="w-full flex flex-col"
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
             <Tabs.List className="border-0 pb-0 gap-1.5">
               <Tabs.Tab
@@ -517,80 +831,124 @@ export default function FinanzasPage() {
               >
                 Egresos
               </Tabs.Tab>
+              <Tabs.Tab
+                value="presupuesto"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
+                Presupuesto
+              </Tabs.Tab>
               <Tabs.Indicator />
             </Tabs.List>
 
             {/* Filtering and Sorting controls */}
-            <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
-              {/* Search input for Invoices / Transactions */}
-              <div className="relative flex-1 sm:w-64 sm:flex-initial">
-                <MagnifyingGlassIcon
-                  size={15}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar factura o concepto..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
-                />
-              </div>
+            {isBudgetTab ? (
+              <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
+                <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                  <MagnifyingGlassIcon
+                    size={15}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar ítem o concepto..."
+                    value={budgetSearch}
+                    onChange={(e) => setBudgetSearch(e.target.value)}
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                  />
+                </div>
 
-              {/* Date range filter */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
-                  Periodo:
-                </span>
-                <select
-                  value={filterDateRange}
-                  onChange={(e) => setFilterDateRange(e.target.value)}
-                  className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
-                >
-                  <option value="all">Todos</option>
-                  <option value="7days">Últimos 7 días</option>
-                  <option value="thisMonth">Este Mes</option>
-                  <option value="lastMonth">Mes Anterior</option>
-                  <option value="thisYear">Este Año</option>
-                </select>
-              </div>
-
-              {/* Status filter */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
-                  Estado:
-                </span>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
-                >
-                  <option value="all">Todos</option>
-                  <option value="paid">Pagados</option>
-                  <option value="pending">Pendientes</option>
-                  <option value="cancelled">Anulados</option>
-                </select>
-              </div>
-
-              {/* Sorting order */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
-                  Orden:
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSortOrder(sortOrder === "desc" ? "asc" : "desc")
-                  }
-                  className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
-                >
-                  <span>{sortOrder === "desc" ? "Recientes" : "Antiguos"}</span>
-                  <span className="text-grayscale-9 text-xs leading-none mt-[-1px]">
-                    {sortOrder === "desc" ? "↓" : "↑"}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                    Estado:
                   </span>
-                </button>
+                  <select
+                    value={budgetStatusFilter}
+                    onChange={(e) => setBudgetStatusFilter(e.target.value)}
+                    className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                  >
+                    <option value="all">Todos</option>
+                    {BUDGET_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
+                {/* Search input for Invoices / Transactions */}
+                <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                  <MagnifyingGlassIcon
+                    size={15}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar factura o concepto..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                  />
+                </div>
+
+                {/* Date range filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                    Periodo:
+                  </span>
+                  <select
+                    value={filterDateRange}
+                    onChange={(e) => setFilterDateRange(e.target.value)}
+                    className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="7days">Últimos 7 días</option>
+                    <option value="thisMonth">Este Mes</option>
+                    <option value="lastMonth">Mes Anterior</option>
+                    <option value="thisYear">Este Año</option>
+                  </select>
+                </div>
+
+                {/* Status filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                    Estado:
+                  </span>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="paid">Pagados</option>
+                    <option value="pending">Pendientes</option>
+                    <option value="cancelled">Anulados</option>
+                  </select>
+                </div>
+
+                {/* Sorting order */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                    Orden:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSortOrder(sortOrder === "desc" ? "asc" : "desc")
+                    }
+                    className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                  >
+                    <span>
+                      {sortOrder === "desc" ? "Recientes" : "Antiguos"}
+                    </span>
+                    <span className="text-grayscale-9 text-xs leading-none mt-[-1px]">
+                      {sortOrder === "desc" ? "↓" : "↑"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <Tabs.Panel value="all" className="mt-4">
@@ -660,6 +1018,44 @@ export default function FinanzasPage() {
                     searchQuery
                       ? `No se encontraron egresos o facturas que coincidan con "${searchQuery}".`
                       : "Aún no hay transacciones de tipo egreso registradas."
+                  }
+                />
+              }
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="presupuesto" className="mt-4">
+            <DataTable
+              columns={budgetColumns()}
+              data={sortedBudgetItems}
+              keyExtractor={(item) => item._id}
+              emptyState={
+                <EmptyState
+                  icon={
+                    budgetSearch ? (
+                      <MagnifyingGlassIcon size={40} weight="duotone" />
+                    ) : (
+                      <ClipboardTextIcon size={40} weight="duotone" />
+                    )
+                  }
+                  title={
+                    budgetSearch ? "Sin resultados" : "Sin ítems de presupuesto"
+                  }
+                  description={
+                    budgetSearch
+                      ? `No se encontraron ítems que coincidan con "${budgetSearch}".`
+                      : "Registra inversiones planificadas, como pintar verjas o comprar equipo."
+                  }
+                  action={
+                    !budgetSearch ? (
+                      <Button
+                        variant="primary"
+                        className="text-xs"
+                        onClick={openCreateBudget}
+                      >
+                        <PlusIcon size={16} weight="bold" />
+                        Agregar ítem
+                      </Button>
+                    ) : undefined
                   }
                 />
               }
@@ -804,6 +1200,143 @@ export default function FinanzasPage() {
           open={scanModalOpen}
           onOpenChange={setScanModalOpen}
           onScanComplete={handleScanComplete}
+        />
+
+        {/* Modal: Presupuesto */}
+        <Modal
+          open={budgetModalOpen}
+          onOpenChange={setBudgetModalOpen}
+          title={
+            isBudgetViewOnly
+              ? "Detalle de presupuesto"
+              : editingBudgetId
+                ? "Editar ítem de presupuesto"
+                : "Nuevo ítem de presupuesto"
+          }
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveBudget();
+            }}
+            className="flex flex-col gap-4 w-full min-w-0"
+          >
+            <Input
+              label="Concepto / Qué se ocupa"
+              id="budget-concept"
+              value={budgetForm.concept}
+              onChange={(e) =>
+                setBudgetForm((f) => ({ ...f, concept: e.target.value }))
+              }
+              placeholder="Ej: Pintar verjas"
+              required
+              disabled={isBudgetViewOnly}
+            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Inversión total (CRC)"
+                id="budget-amount"
+                type="number"
+                min={0}
+                value={budgetForm.amount || ""}
+                onChange={(e) =>
+                  setBudgetForm((f) => ({
+                    ...f,
+                    amount: Number(e.target.value),
+                  }))
+                }
+                placeholder="15000"
+                required
+                disabled={isBudgetViewOnly}
+              />
+              <Input
+                label="Fecha"
+                id="budget-date"
+                type="date"
+                value={budgetForm.date}
+                onChange={(e) =>
+                  setBudgetForm((f) => ({ ...f, date: e.target.value }))
+                }
+                required
+                disabled={isBudgetViewOnly}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Categoría"
+                id="budget-category"
+                value={budgetForm.category}
+                onChange={(e) =>
+                  setBudgetForm((f) => ({ ...f, category: e.target.value }))
+                }
+                options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+                disabled={isBudgetViewOnly}
+              />
+              <Select
+                label="Estado"
+                id="budget-status"
+                value={budgetForm.status}
+                onChange={(e) =>
+                  setBudgetForm((f) => ({
+                    ...f,
+                    status: e.target.value as BudgetStatus,
+                  }))
+                }
+                options={BUDGET_STATUS_OPTIONS}
+                disabled={isBudgetViewOnly}
+              />
+            </div>
+            <p className="text-xs text-grayscale-9 -mt-2">
+              {budgetForm.status === "completed"
+                ? "Al guardar como Completado, el monto se registra como egreso en Finanzas."
+                : "Este ítem no descuenta del balance hasta marcarlo como Completado."}
+            </p>
+            <div className="flex flex-col gap-1.5 w-full min-w-0">
+              <label
+                htmlFor="budget-notes"
+                className="text-xs font-medium font-mono uppercase text-grayscale-10"
+              >
+                Notas
+              </label>
+              <textarea
+                id="budget-notes"
+                value={budgetForm.notes}
+                onChange={(e) =>
+                  setBudgetForm((f) => ({ ...f, notes: e.target.value }))
+                }
+                placeholder="Detalle opcional de la inversión"
+                rows={3}
+                disabled={isBudgetViewOnly}
+                className="w-full min-w-0 rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-2 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all duration-200 focus:border-accent-8 focus:ring-2 focus:ring-accent-8/30 disabled:opacity-60 dark:border-grayscale-5 dark:bg-grayscale-3"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setBudgetModalOpen(false)}
+              >
+                {isBudgetViewOnly ? "Cerrar" : "Cancelar"}
+              </Button>
+              {!isBudgetViewOnly && (
+                <Button variant="primary" className="text-xs" type="submit">
+                  {editingBudgetId ? "Guardar cambios" : "Agregar ítem"}
+                </Button>
+              )}
+            </div>
+          </form>
+        </Modal>
+
+        <ConfirmModal
+          open={deleteBudgetId !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleteBudgetId(null);
+          }}
+          title="Eliminar ítem de presupuesto"
+          description="Este ítem se eliminará del presupuesto. Esta acción no se puede deshacer."
+          confirmText="Eliminar"
+          onConfirm={handleConfirmDeleteBudget}
         />
       </div>
     </PageContainer>
