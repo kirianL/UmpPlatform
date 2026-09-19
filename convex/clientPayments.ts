@@ -3,8 +3,10 @@ import { v } from "convex/values";
 import {
   clientLabel,
   insertClientPayment,
+  linksToFinance,
   refreshServicePaymentStatus,
   syncServiceReceivable,
+  unlinkServiceFinance,
 } from "./clientFinance";
 
 export const getByClient = query({
@@ -53,8 +55,16 @@ export const updatePayment = mutation({
 
     await ctx.db.patch(id, args);
 
+    const client = await ctx.db.get(existing.clientId);
+    if (!linksToFinance(client)) {
+      if (existing.serviceId) {
+        await refreshServicePaymentStatus(ctx, existing.serviceId);
+        await unlinkServiceFinance(ctx, existing.serviceId);
+      }
+      return;
+    }
+
     if (existing.transactionId) {
-      const client = await ctx.db.get(existing.clientId);
       let serviceInfo = "";
       if (existing.serviceId) {
         const service = await ctx.db.get(existing.serviceId);

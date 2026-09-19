@@ -10,6 +10,12 @@ export function clientLabel(
   return client.company ? `${client.name} - ${client.company}` : client.name;
 }
 
+export function linksToFinance(
+  client: { type?: "activo" | "potencial" } | null | undefined,
+) {
+  return !!client && client.type !== "potencial";
+}
+
 function serviceFields(
   service: Doc<"clientServices">,
   patch: Partial<
@@ -52,6 +58,131 @@ export async function replaceClientService(
   > & { clearTransactionId?: boolean } = {},
 ) {
   await ctx.db.replace(service._id, serviceFields(service, patch));
+}
+
+async function paymentFields(
+  payment: Doc<"clientPayments">,
+  transactionId?: Id<"transactions">,
+) {
+  return {
+    clientId: payment.clientId,
+    amount: payment.amount,
+    date: payment.date,
+    concept: payment.concept,
+    status: payment.status,
+    ...(payment.serviceId ? { serviceId: payment.serviceId } : {}),
+    ...(transactionId ? { transactionId } : {}),
+  };
+}
+
+async function clearPaymentTransaction(
+  ctx: MutationCtx,
+  payment: Doc<"clientPayments">,
+) {
+  if (!payment.transactionId) return;
+  const tx = await ctx.db.get(payment.transactionId);
+  if (tx) {
+    await ctx.db.delete(payment.transactionId);
+  }
+  await ctx.db.replace(payment._id, await paymentFields(payment));
+}
+
+export async function unlinkServiceFinance(
+  ctx: MutationCtx,
+  serviceId: Id<"clientServices">,
+) {
+  const service = await ctx.db.get(serviceId);
+  if (!service) return;
+
+  if (service.transactionId) {
+    const tx = await ctx.db.get(service.transactionId);
+    if (tx) {
+      await ctx.db.delete(service.transactionId);
+    }
+    await replaceClientService(ctx, service, { clearTransactionId: true });
+  }
+
+  const payments = await ctx.db
+    .query("clientPayments")
+    .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+    .collect();
+
+  for (const payment of payments) {
+    await clearPaymentTransaction(ctx, payment);
+  }
+}
+
+async function ensurePaymentFinance(
+  ctx: MutationCtx,
+  payment: Doc<"clientPayments">,
+) {
+  if (payment.transactionId) {
+    const existing = await ctx.db.get(payment.transactionId);
+    if (existing) return;
+  }
+
+  const client = await ctx.db.get(payment.clientId);
+  let serviceInfo = "";
+  if (payment.serviceId) {
+    const service = await ctx.db.get(payment.serviceId);
+    if (service) {
+      serviceInfo = ` [${service.serviceName}]`;
+    }
+  }
+
+  const clientInfo = clientLabel(client);
+  const fullConcept = payment.concept.trim()
+    ? `${payment.concept.trim()}${serviceInfo} (${clientInfo})`
+    : `Pago de cliente${serviceInfo} - ${clientInfo}`;
+
+  const transactionId = await ctx.db.insert("transactions", {
+    concept: fullConcept,
+    amount: payment.amount,
+    date: payment.date,
+    category: "Producción",
+    type: "income",
+    status: payment.status === "paid" ? "paid" : "pending",
+    local: client?.company || client?.name || "Cliente",
+    clientId: payment.clientId,
+    source: "client_payment",
+  });
+
+  await ctx.db.replace(payment._id, await paymentFields(payment, transactionId));
+}
+
+export async function syncClientFinanceState(
+  ctx: MutationCtx,
+  clientId: Id<"clients">,
+) {
+  const client = await ctx.db.get(clientId);
+  if (!client) return;
+
+  const services = await ctx.db
+    .query("clientServices")
+    .withIndex("by_clientId", (q) => q.eq("clientId", clientId))
+    .collect();
+  const payments = await ctx.db
+    .query("clientPayments")
+    .withIndex("by_clientId", (q) => q.eq("clientId", clientId))
+    .collect();
+
+  if (!linksToFinance(client)) {
+    for (const service of services) {
+      await unlinkServiceFinance(ctx, service._id);
+    }
+    for (const payment of payments) {
+      await clearPaymentTransaction(ctx, payment);
+    }
+    return;
+  }
+
+  for (const payment of payments) {
+    await ensurePaymentFinance(ctx, payment);
+  }
+  for (const service of services) {
+    await refreshServicePaymentStatus(ctx, service._id);
+    await syncServiceReceivable(ctx, service._id);
+  }
 }
 
 export async function getServicePaymentTotals(
@@ -108,6 +239,11 @@ export async function syncServiceReceivable(
   if (!service) return;
 
   const client = await ctx.db.get(service.clientId);
+  if (!linksToFinance(client)) {
+    await unlinkServiceFinance(ctx, serviceId);
+    return;
+  }
+
   const { paid, pending } = await getServicePaymentTotals(ctx, serviceId);
   const writeOff = service.paymentStatus === "sin_pago" && paid === 0;
   const remaining = writeOff ? 0 : Math.max(0, service.amount - paid - pending);
@@ -173,6 +309,7 @@ export async function insertClientPayment(
   },
 ) {
   const client = await ctx.db.get(args.clientId);
+  const linkFinance = linksToFinance(client);
   const clientInfo = clientLabel(client);
 
   let serviceInfo = "";
@@ -187,35 +324,37 @@ export async function insertClientPayment(
     ? `${args.concept.trim()}${serviceInfo} (${clientInfo})`
     : `Pago de cliente${serviceInfo} - ${clientInfo}`;
 
-  let transactionId = args.transactionId;
-  if (!transactionId) {
-    transactionId = await ctx.db.insert("transactions", {
-      concept: fullConcept,
-      amount: args.amount,
-      date: args.date,
-      category: "Producción",
-      type: "income",
-      status: args.status === "paid" ? "paid" : "pending",
-      local: client?.company || client?.name || "Cliente",
-      clientId: args.clientId,
-      source: "client_payment",
-    });
-  } else {
-    await ctx.db.patch(transactionId, {
-      concept: fullConcept,
-      amount: args.amount,
-      date: args.date,
-      status: args.status === "paid" ? "paid" : "pending",
-      local: client?.company || client?.name || "Cliente",
-      clientId: args.clientId,
-      source: "client_payment",
-    });
+  let transactionId = linkFinance ? args.transactionId : undefined;
+  if (linkFinance) {
+    if (!transactionId) {
+      transactionId = await ctx.db.insert("transactions", {
+        concept: fullConcept,
+        amount: args.amount,
+        date: args.date,
+        category: "Producción",
+        type: "income",
+        status: args.status === "paid" ? "paid" : "pending",
+        local: client?.company || client?.name || "Cliente",
+        clientId: args.clientId,
+        source: "client_payment",
+      });
+    } else {
+      await ctx.db.patch(transactionId, {
+        concept: fullConcept,
+        amount: args.amount,
+        date: args.date,
+        status: args.status === "paid" ? "paid" : "pending",
+        local: client?.company || client?.name || "Cliente",
+        clientId: args.clientId,
+        source: "client_payment",
+      });
+    }
   }
 
   const paymentId = await ctx.db.insert("clientPayments", {
     clientId: args.clientId,
     serviceId: args.serviceId,
-    transactionId,
+    ...(transactionId ? { transactionId } : {}),
     amount: args.amount,
     date: args.date,
     concept: args.concept.trim() || `Pago de ${clientInfo}`,
@@ -230,7 +369,11 @@ export async function insertClientPayment(
 
   if (args.serviceId) {
     await refreshServicePaymentStatus(ctx, args.serviceId);
-    await syncServiceReceivable(ctx, args.serviceId);
+    if (linkFinance) {
+      await syncServiceReceivable(ctx, args.serviceId);
+    } else {
+      await unlinkServiceFinance(ctx, args.serviceId);
+    }
   }
 
   return paymentId;
@@ -269,10 +412,9 @@ export async function deleteServiceFinanceLinks(
 export const syncAllReceivables = mutation({
   args: {},
   handler: async (ctx) => {
-    const services = await ctx.db.query("clientServices").collect();
-    for (const service of services) {
-      await refreshServicePaymentStatus(ctx, service._id);
-      await syncServiceReceivable(ctx, service._id);
+    const clients = await ctx.db.query("clients").collect();
+    for (const client of clients) {
+      await syncClientFinanceState(ctx, client._id);
     }
 
     const linkedIds = new Set(
@@ -288,12 +430,19 @@ export const syncAllReceivables = mutation({
     const allTransactions = await ctx.db.query("transactions").collect();
     let removedOrphans = 0;
     for (const tx of allTransactions) {
-      if (tx.source !== "client_receivable") continue;
-      if (linkedIds.has(tx._id) || paymentTxIds.has(tx._id)) continue;
-      await ctx.db.delete(tx._id);
-      removedOrphans += 1;
+      if (tx.source === "client_receivable") {
+        if (linkedIds.has(tx._id) || paymentTxIds.has(tx._id)) continue;
+        await ctx.db.delete(tx._id);
+        removedOrphans += 1;
+        continue;
+      }
+      if (tx.source === "client_payment") {
+        if (paymentTxIds.has(tx._id)) continue;
+        await ctx.db.delete(tx._id);
+        removedOrphans += 1;
+      }
     }
 
-    return { services: services.length, removedOrphans };
+    return { clients: clients.length, removedOrphans };
   },
 });

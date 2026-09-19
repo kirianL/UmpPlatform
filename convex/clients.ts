@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { deleteServiceFinanceLinks } from "./clientFinance";
+import { deleteServiceFinanceLinks, syncClientFinanceState } from "./clientFinance";
 
 export const get = query({
   args: {},
@@ -52,6 +52,9 @@ export const update = mutation({
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);
+    if (args.type !== undefined) {
+      await syncClientFinanceState(ctx, id);
+    }
   },
 });
 
@@ -62,6 +65,7 @@ export const updateType = mutation({
   },
   handler: async (ctx, { id, type }) => {
     await ctx.db.patch(id, { type });
+    await syncClientFinanceState(ctx, id);
   },
 });
 

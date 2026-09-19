@@ -210,15 +210,21 @@ export default function ClientesPage() {
   }, [allServices, clients]);
 
   const totalPendingBalance = useMemo(() => {
-    const contracted = allServices.reduce(
-      (sum: number, s: any) => sum + (s.amount || 0),
-      0,
+    const activeIds = new Set(
+      clients
+        .filter((c: any) => (c.type ?? "activo") !== "potencial")
+        .map((c: any) => c._id),
     );
+    const contracted = allServices
+      .filter((s: any) => activeIds.has(s.clientId))
+      .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
     const paid = allPayments
-      .filter((p: any) => p.status === "paid")
+      .filter(
+        (p: any) => p.status === "paid" && activeIds.has(p.clientId),
+      )
       .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
     return Math.max(0, contracted - paid);
-  }, [allServices, allPayments]);
+  }, [allServices, allPayments, clients]);
 
   function getClientBalance(clientId: string): number {
     const contracted = allServices
@@ -1138,6 +1144,12 @@ export default function ClientesPage() {
                     </div>
                   </div>
                 )}
+                {selectedClient.type === "potencial" && !hidePrices && (
+                  <p className="text-[11px] text-grayscale-10">
+                    Los montos de clientes potenciales no se envían a Finanzas.
+                    Pasan a Por cobrar cuando el cliente se marca como activo.
+                  </p>
+                )}
               </div>
 
               {/* Contenido de Servicios (con o sin Tabs según rol) */}
@@ -1454,7 +1466,8 @@ export default function ClientesPage() {
                                       >
                                         {formatCurrency(balanceService)}
                                       </span>
-                                      {balanceService > 0 && (
+                                      {balanceService > 0 &&
+                                        selectedClient.type !== "potencial" && (
                                         <span className="text-[10px] font-medium text-orange-11 mt-0.5">
                                           En finanzas
                                         </span>
@@ -1608,7 +1621,9 @@ export default function ClientesPage() {
                             type="submit"
                           >
                             <CurrencyDollarIcon size={16} weight="bold" />
-                            Registrar pago en clientes y finanzas
+                            {selectedClient.type === "potencial"
+                              ? "Registrar pago"
+                              : "Registrar pago en clientes y finanzas"}
                           </Button>
                         </div>
                       </form>
