@@ -45,7 +45,12 @@ export default function DashboardPage() {
   const activeEmployees = employees.filter((e) => e.status === "active").length;
 
   const totalIncome = transactions
-    .filter((t) => t.type === "income" && t.status !== "cancelled")
+    .filter(
+      (t) =>
+        t.type === "income" &&
+        t.status !== "cancelled" &&
+        t.source !== "client_receivable",
+    )
     .reduce((s, t) => s + t.amount, 0);
 
   const totalExpenses = transactions
@@ -57,6 +62,7 @@ export default function DashboardPage() {
   ).length;
 
   const recentTransactions = [...transactions]
+    .filter((t) => t.source !== "client_receivable")
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
 

@@ -1,6 +1,12 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
+import {
+  insertClientPayment,
+  refreshServicePaymentStatus,
+  replaceClientService,
+  syncServiceReceivable,
+} from "./clientFinance";
 
 async function releaseBudgetLink(
   ctx: MutationCtx,
@@ -22,6 +28,16 @@ async function releaseBudgetLink(
       ...(item.createdAt ? { createdAt: item.createdAt } : {}),
     });
   }
+}
+
+async function getLinkedServices(
+  ctx: MutationCtx,
+  transactionId: Id<"transactions">,
+) {
+  return await ctx.db
+    .query("clientServices")
+    .withIndex("by_transactionId", (q) => q.eq("transactionId", transactionId))
+    .collect();
 }
 
 export const get = query({
@@ -72,7 +88,6 @@ export const update = mutation({
       await releaseBudgetLink(ctx, id);
     }
 
-    // Sincronización bidireccional con el pago de cliente en Clientes si está vinculado
     const payments = await ctx.db
       .query("clientPayments")
       .withIndex("by_transactionId", (q) => q.eq("transactionId", id))
@@ -87,45 +102,31 @@ export const update = mutation({
         status: paymentStatus,
       });
 
-      // Recalcular el estado de pago del servicio si existe
       if (payment.serviceId) {
-        const service = await ctx.db.get(payment.serviceId);
-        if (service) {
-          const servicePayments = await ctx.db
-            .query("clientPayments")
-            .withIndex("by_serviceId", (q) =>
-              q.eq("serviceId", payment.serviceId),
-            )
-            .collect();
-
-          const totalPaid = servicePayments
-            .filter((p) =>
-              p._id === payment._id
-                ? paymentStatus === "paid"
-                : p.status === "paid",
-            )
-            .reduce(
-              (sum, p) =>
-                sum + (p._id === payment._id ? args.amount : p.amount),
-              0,
-            );
-
-          let newServiceStatus:
-            | "pagado"
-            | "parcial"
-            | "pendiente"
-            | "sin_pago" = "pendiente";
-          if (totalPaid >= service.amount && service.amount > 0) {
-            newServiceStatus = "pagado";
-          } else if (totalPaid > 0) {
-            newServiceStatus = "parcial";
-          }
-
-          await ctx.db.patch(payment.serviceId, {
-            paymentStatus: newServiceStatus,
-          });
-        }
+        await refreshServicePaymentStatus(ctx, payment.serviceId);
+        await syncServiceReceivable(ctx, payment.serviceId);
       }
+    }
+
+    const linkedServices = await getLinkedServices(ctx, id);
+    for (const service of linkedServices) {
+      if (args.status === "paid") {
+        await replaceClientService(ctx, service, {
+          clearTransactionId: true,
+        });
+        await insertClientPayment(ctx, {
+          clientId: service.clientId,
+          serviceId: service._id,
+          amount: args.amount,
+          date: args.date,
+          concept: args.concept,
+          status: "paid",
+          transactionId: id,
+        });
+        continue;
+      }
+
+      await syncServiceReceivable(ctx, service._id);
     }
   },
 });
@@ -135,7 +136,6 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (existing) {
-      // Eliminar y recalcular el pago de cliente vinculado si existe
       const payments = await ctx.db
         .query("clientPayments")
         .withIndex("by_transactionId", (q) => q.eq("transactionId", args.id))
@@ -146,35 +146,28 @@ export const remove = mutation({
         await ctx.db.delete(payment._id);
 
         if (serviceId) {
-          const service = await ctx.db.get(serviceId);
-          if (service) {
-            const remainingPayments = await ctx.db
-              .query("clientPayments")
-              .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
-              .collect();
-
-            const totalPaid = remainingPayments
-              .filter((p) => p._id !== payment._id && p.status === "paid")
-              .reduce((sum, p) => sum + p.amount, 0);
-
-            let newServiceStatus:
-              | "pagado"
-              | "parcial"
-              | "pendiente"
-              | "sin_pago" = "pendiente";
-            if (totalPaid >= service.amount && service.amount > 0) {
-              newServiceStatus = "pagado";
-            } else if (totalPaid > 0) {
-              newServiceStatus = "parcial";
-            }
-
-            await ctx.db.patch(serviceId, { paymentStatus: newServiceStatus });
-          }
+          await refreshServicePaymentStatus(ctx, serviceId);
+          await syncServiceReceivable(ctx, serviceId);
         }
+      }
+
+      const linkedServices = await getLinkedServices(ctx, args.id);
+      if (linkedServices.length > 0 && payments.length === 0) {
+        return;
+      }
+
+      for (const service of linkedServices) {
+        await replaceClientService(ctx, service, {
+          clearTransactionId: true,
+        });
       }
 
       await ctx.db.delete(args.id);
       await releaseBudgetLink(ctx, args.id);
+
+      for (const service of linkedServices) {
+        await syncServiceReceivable(ctx, service._id);
+      }
     }
   },
 });

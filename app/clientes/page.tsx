@@ -5,6 +5,7 @@ import {
   ArrowsLeftRightIcon,
   BriefcaseIcon,
   CurrencyDollarIcon,
+  HourglassIcon,
   HouseLineIcon,
   LockKeyIcon,
   MagnifyingGlassIcon,
@@ -208,6 +209,27 @@ export default function ClientesPage() {
       : clients.reduce((s: number, c: any) => s + (c.projectCount || 0), 0);
   }, [allServices, clients]);
 
+  const totalPendingBalance = useMemo(() => {
+    const contracted = allServices.reduce(
+      (sum: number, s: any) => sum + (s.amount || 0),
+      0,
+    );
+    const paid = allPayments
+      .filter((p: any) => p.status === "paid")
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+    return Math.max(0, contracted - paid);
+  }, [allServices, allPayments]);
+
+  function getClientBalance(clientId: string): number {
+    const contracted = allServices
+      .filter((s: any) => s.clientId === clientId)
+      .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+    const paid = allPayments
+      .filter((p: any) => p.clientId === clientId && p.status === "paid")
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+    return Math.max(0, contracted - paid);
+  }
+
   // Handlers for Client Modal
   function openCreate(defaultType: "activo" | "potencial" = "activo") {
     setEditingId(null);
@@ -385,6 +407,7 @@ export default function ClientesPage() {
   function renderClientPaymentStatus(clientId: string) {
     const services = allServices.filter((s: any) => s.clientId === clientId);
     const payments = allPayments.filter((p: any) => p.clientId === clientId);
+    const balance = getClientBalance(clientId);
 
     if (services.length === 0 && payments.length === 0) {
       return <Badge variant="gray">Sin servicios</Badge>;
@@ -403,7 +426,16 @@ export default function ClientesPage() {
       return <Badge variant="green">Al día</Badge>;
     }
 
-    return <Badge variant="orange">Pendiente</Badge>;
+    return (
+      <div className="flex flex-col gap-1">
+        <Badge variant="orange">Pendiente</Badge>
+        {balance > 0 && (
+          <span className="text-[11px] font-mono font-semibold text-orange-11">
+            {formatCurrency(balance)}
+          </span>
+        )}
+      </div>
+    );
   }
 
   // Columns definition for DataTable
@@ -597,7 +629,11 @@ export default function ClientesPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div
+          className={`grid grid-cols-1 gap-3 ${
+            hidePrices ? "sm:grid-cols-3" : "sm:grid-cols-2 xl:grid-cols-4"
+          }`}
+        >
           <StatCard
             label="Clientes activos"
             value={activeClients.length}
@@ -619,6 +655,21 @@ export default function ClientesPage() {
             icon={<BriefcaseIcon size={18} weight="fill" />}
             index={2}
           />
+          {!hidePrices && (
+            <StatCard
+              label="Por cobrar"
+              value={formatCurrency(totalPendingBalance)}
+              detail="Saldo pendiente sincronizado con Finanzas"
+              icon={
+                <HourglassIcon
+                  size={18}
+                  weight="bold"
+                  className="text-orange-9"
+                />
+              }
+              index={3}
+            />
+          )}
         </div>
 
         {/* Tabs System (Igual a la estructura de Personal) */}
@@ -1403,6 +1454,11 @@ export default function ClientesPage() {
                                       >
                                         {formatCurrency(balanceService)}
                                       </span>
+                                      {balanceService > 0 && (
+                                        <span className="text-[10px] font-medium text-orange-11 mt-0.5">
+                                          En finanzas
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
 
@@ -1454,6 +1510,12 @@ export default function ClientesPage() {
                         <span className="text-xs font-bold text-grayscale-11 uppercase font-mono">
                           Registrar nuevo pago
                         </span>
+                        <p className="text-[11px] text-grayscale-9">
+                          El saldo pendiente de cada servicio se refleja
+                          automáticamente en Finanzas como ingreso por cobrar.
+                          Al registrar un pago, ese saldo se actualiza en ambos
+                          módulos.
+                        </p>
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <Select

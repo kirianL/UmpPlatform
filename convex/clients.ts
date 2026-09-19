@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { deleteServiceFinanceLinks } from "./clientFinance";
 
 export const get = query({
   args: {},
@@ -68,8 +69,33 @@ export const remove = mutation({
   args: { id: v.id("clients") },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
-    if (existing) {
-      await ctx.db.delete(args.id);
+    if (!existing) return;
+
+    const services = await ctx.db
+      .query("clientServices")
+      .withIndex("by_clientId", (q) => q.eq("clientId", args.id))
+      .collect();
+
+    for (const service of services) {
+      await deleteServiceFinanceLinks(ctx, service._id);
+      await ctx.db.delete(service._id);
     }
+
+    const payments = await ctx.db
+      .query("clientPayments")
+      .withIndex("by_clientId", (q) => q.eq("clientId", args.id))
+      .collect();
+
+    for (const payment of payments) {
+      if (payment.transactionId) {
+        const tx = await ctx.db.get(payment.transactionId);
+        if (tx) {
+          await ctx.db.delete(payment.transactionId);
+        }
+      }
+      await ctx.db.delete(payment._id);
+    }
+
+    await ctx.db.delete(args.id);
   },
 });

@@ -1,5 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  deleteServiceFinanceLinks,
+  insertClientPayment,
+  refreshServicePaymentStatus,
+  syncServiceReceivable,
+} from "./clientFinance";
 
 export const getByClient = query({
   args: { clientId: v.id("clients") },
@@ -34,7 +40,6 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const serviceId = await ctx.db.insert("clientServices", args);
 
-    // Actualizar el número de proyectos en la tabla del cliente
     const client = await ctx.db.get(args.clientId);
     if (client) {
       const services = await ctx.db
@@ -44,6 +49,20 @@ export const create = mutation({
       await ctx.db.patch(args.clientId, {
         projectCount: services.length,
       });
+    }
+
+    if (args.paymentStatus === "pagado" && args.amount > 0) {
+      await insertClientPayment(ctx, {
+        clientId: args.clientId,
+        serviceId,
+        amount: args.amount,
+        date: args.contractDate,
+        concept: `Pago completo - ${args.serviceName}`,
+        status: "paid",
+      });
+    } else {
+      await refreshServicePaymentStatus(ctx, serviceId);
+      await syncServiceReceivable(ctx, serviceId);
     }
 
     return serviceId;
@@ -65,6 +84,32 @@ export const update = mutation({
   },
   handler: async (ctx, { id, ...args }) => {
     await ctx.db.patch(id, args);
+
+    if (args.paymentStatus === "pagado") {
+      const service = await ctx.db.get(id);
+      if (service) {
+        const payments = await ctx.db
+          .query("clientPayments")
+          .withIndex("by_serviceId", (q) => q.eq("serviceId", id))
+          .collect();
+        const covered = payments.reduce((sum, p) => sum + p.amount, 0);
+        const remaining = Math.max(0, args.amount - covered);
+        if (remaining > 0) {
+          await insertClientPayment(ctx, {
+            clientId: service.clientId,
+            serviceId: id,
+            amount: remaining,
+            date: args.contractDate,
+            concept: `Pago completo - ${args.serviceName}`,
+            status: "paid",
+          });
+          return;
+        }
+      }
+    }
+
+    await refreshServicePaymentStatus(ctx, id);
+    await syncServiceReceivable(ctx, id);
   },
 });
 
@@ -74,6 +119,7 @@ export const remove = mutation({
     const service = await ctx.db.get(args.id);
     if (service) {
       const clientId = service.clientId;
+      await deleteServiceFinanceLinks(ctx, args.id);
       await ctx.db.delete(args.id);
 
       const client = await ctx.db.get(clientId);

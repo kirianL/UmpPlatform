@@ -17,6 +17,7 @@ import type * as brainstorm from "../brainstorm.js";
 import type * as budgetItems from "../budgetItems.js";
 import type * as castingLeads from "../castingLeads.js";
 import type * as clientCredentials from "../clientCredentials.js";
+import type * as clientFinance from "../clientFinance.js";
 import type * as clientPayments from "../clientPayments.js";
 import type * as clientServices from "../clientServices.js";
 import type * as clients from "../clients.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   budgetItems: typeof budgetItems;
   castingLeads: typeof castingLeads;
   clientCredentials: typeof clientCredentials;
+  clientFinance: typeof clientFinance;
   clientPayments: typeof clientPayments;
   clientServices: typeof clientServices;
   clients: typeof clients;

@@ -212,12 +212,25 @@ export default function FinanzasPage() {
   }, [filteredTransactions, sortOrder]);
 
   const income = sortedTransactions
-    .filter((t) => t.type === "income" && t.status !== "cancelled")
+    .filter(
+      (t) =>
+        t.type === "income" &&
+        t.status !== "cancelled" &&
+        t.source !== "client_receivable",
+    )
     .reduce((s, t) => s + t.amount, 0);
   const expenses = sortedTransactions
     .filter((t) => t.type === "expense" && t.status !== "cancelled")
     .reduce((s, t) => s + t.amount, 0);
   const balance = income - expenses;
+  const pendingIncome = sortedTransactions
+    .filter(
+      (t) =>
+        t.type === "income" &&
+        t.status === "pending" &&
+        t.source === "client_receivable",
+    )
+    .reduce((s, t) => s + t.amount, 0);
 
   const incomeData = useMemo(() => {
     return sortedTransactions.filter((t) => t.type === "income");
@@ -504,27 +517,66 @@ export default function FinanzasPage() {
     {
       key: "concept",
       header: "Concepto",
-      render: (t) => (
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-grayscale-12 truncate max-w-[200px]">
-            {t.concept}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-xs text-grayscale-9">{t.category}</span>
-            {t.local && (
-              <>
+      render: (t) => {
+        if (t.source === "client_receivable") {
+          const match = String(t.concept).match(
+            /^Saldo pendiente \[(.*)\] \((.*)\)$/,
+          );
+          const serviceName = match?.[1] || "";
+          const clientName = match?.[2] || t.local || "";
+
+          return (
+            <div className="min-w-0 max-w-[280px]">
+              <p className="text-sm font-medium text-grayscale-12">
+                Saldo pendiente
+              </p>
+              {clientName ? (
+                <p className="text-xs font-medium text-grayscale-12 mt-0.5 break-words">
+                  {clientName}
+                </p>
+              ) : null}
+              {serviceName ? (
+                <p className="text-xs text-grayscale-10 mt-0.5 break-words">
+                  {serviceName}
+                </p>
+              ) : null}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-xs text-grayscale-9">{t.category}</span>
                 <span className="text-grayscale-6 text-[10px]">•</span>
-                <span
-                  className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded truncate max-w-[120px]"
-                  title={t.local}
-                >
-                  {t.local}
-                </span>
-              </>
-            )}
+                <span className="text-xs text-orange-11">Por cobrar</span>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-grayscale-12 truncate max-w-[200px]">
+              {t.concept}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-xs text-grayscale-9">{t.category}</span>
+              {t.source === "client_payment" && (
+                <>
+                  <span className="text-grayscale-6 text-[10px]">•</span>
+                  <span className="text-xs text-green-11">Cliente</span>
+                </>
+              )}
+              {t.local && (
+                <>
+                  <span className="text-grayscale-6 text-[10px]">•</span>
+                  <span
+                    className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded truncate max-w-[120px]"
+                    title={t.local}
+                  >
+                    {t.local}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "amount",
@@ -579,8 +631,13 @@ export default function FinanzasPage() {
           <button
             type="button"
             onClick={() => handleDelete(t._id)}
-            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
-            title="Eliminar"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-grayscale-9"
+            title={
+              t.source === "client_receivable"
+                ? "Este saldo se gestiona desde Clientes"
+                : "Eliminar"
+            }
+            disabled={t.source === "client_receivable"}
           >
             <TrashIcon size={14} />
           </button>
@@ -732,7 +789,7 @@ export default function FinanzasPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Balance Neto"
               value={formatCurrency(balance)}
@@ -743,11 +800,24 @@ export default function FinanzasPage() {
             <StatCard
               label="Ingresos Totales"
               value={formatCurrency(income)}
-              detail={`${incomeData.length} transacciones`}
+              detail={`${incomeData.filter((t) => t.source !== "client_receivable").length} transacciones`}
               icon={
                 <TrendUpIcon size={18} weight="bold" className="text-green-9" />
               }
               index={1}
+            />
+            <StatCard
+              label="Por cobrar"
+              value={formatCurrency(pendingIncome)}
+              detail="Saldos de clientes, no se suman"
+              icon={
+                <HourglassIcon
+                  size={18}
+                  weight="bold"
+                  className="text-orange-9"
+                />
+              }
+              index={2}
             />
             <StatCard
               label="Egresos Totales"
@@ -756,7 +826,7 @@ export default function FinanzasPage() {
               icon={
                 <TrendDownIcon size={18} weight="bold" className="text-red-9" />
               }
-              index={2}
+              index={3}
             />
           </div>
         )}

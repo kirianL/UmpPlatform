@@ -43,6 +43,9 @@ export default defineSchema({
     ),
     local: v.optional(v.string()),
     clientId: v.optional(v.string()),
+    source: v.optional(
+      v.union(v.literal("client_receivable"), v.literal("client_payment")),
+    ),
   }),
   budgetItems: defineTable({
     concept: v.string(),
@@ -82,7 +85,10 @@ export default defineSchema({
       v.literal("sin_pago"),
     ),
     contractDate: v.string(),
-  }).index("by_clientId", ["clientId"]),
+    transactionId: v.optional(v.id("transactions")),
+  })
+    .index("by_clientId", ["clientId"])
+    .index("by_transactionId", ["transactionId"]),
   clientPayments: defineTable({
     clientId: v.id("clients"),
     serviceId: v.optional(v.id("clientServices")),
