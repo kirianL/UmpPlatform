@@ -6,7 +6,9 @@ import {
   ClipboardTextIcon,
   CurrencyDollarIcon,
   EyeIcon,
+  FileIcon,
   HourglassIcon,
+  ImageIcon,
   MagnifyingGlassIcon,
   PencilSimpleIcon,
   PlusIcon,
@@ -17,7 +19,9 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
-import InvoiceScanner from "@/components/InvoiceScanner";
+import InvoiceScanner, {
+  type ScannedInvoicePayload,
+} from "@/components/InvoiceScanner";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 import ConfirmModal from "@/components/public/ConfirmModal";
@@ -31,10 +35,9 @@ import StatCard from "@/components/public/StatCard";
 import { Tabs } from "@/components/public/Tabs";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import type { InvoiceData } from "@/lib/invoice-ocr";
 
 type BudgetStatus = "pending" | "in_progress" | "completed" | "cancelled";
-type FinanceTab = "all" | "income" | "expense" | "presupuesto";
+type FinanceTab = "all" | "income" | "expense" | "presupuesto" | "facturas";
 type BudgetItem = Doc<"budgetItems">;
 
 function formatCurrency(n: number): string {
@@ -175,6 +178,13 @@ export default function FinanzasPage() {
   const updateBudgetItem = useMutation(api.budgetItems.update);
   const removeBudgetItem = useMutation(api.budgetItems.remove);
 
+  const invoiceImages = useQuery(api.invoiceImages.list) ?? [];
+  const generateInvoiceUploadUrl = useMutation(
+    api.invoiceImages.generateUploadUrl,
+  );
+  const createInvoiceImage = useMutation(api.invoiceImages.create);
+  const removeInvoiceImage = useMutation(api.invoiceImages.remove);
+
   const [activeTab, setActiveTab] = useState<FinanceTab>("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
@@ -195,8 +205,20 @@ export default function FinanzasPage() {
   const [budgetStatusFilter, setBudgetStatusFilter] = useState<string>("all");
   const [deleteBudgetId, setDeleteBudgetId] =
     useState<Id<"budgetItems"> | null>(null);
+  const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [viewingInvoice, setViewingInvoice] = useState<{
+    url: string;
+    fileName: string;
+    contentType: string;
+    vendor?: string;
+    date?: string;
+    amount?: number;
+  } | null>(null);
+  const [deleteInvoiceId, setDeleteInvoiceId] =
+    useState<Id<"invoiceImages"> | null>(null);
 
   const isBudgetTab = activeTab === "presupuesto";
+  const isInvoicesTab = activeTab === "facturas";
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -416,6 +438,17 @@ export default function FinanzasPage() {
     .filter((item) => item.status === "completed")
     .reduce((sum, item) => sum + item.amount, 0);
 
+  const filteredInvoiceImages = useMemo(() => {
+    const q = invoiceSearch.trim().toLowerCase();
+    if (!q) return invoiceImages;
+    return invoiceImages.filter((invoice) => {
+      const vendor = (invoice.vendor || "").toLowerCase();
+      const fileName = invoice.fileName.toLowerCase();
+      const date = (invoice.date || "").toLowerCase();
+      return vendor.includes(q) || fileName.includes(q) || date.includes(q);
+    });
+  }, [invoiceImages, invoiceSearch]);
+
   function openCreateBudget() {
     setEditingBudgetId(null);
     setBudgetForm({ ...EMPTY_BUDGET });
@@ -486,7 +519,41 @@ export default function FinanzasPage() {
     return <Badge variant={variant}>{label}</Badge>;
   };
 
-  async function handleScanComplete(data: InvoiceData) {
+  async function saveScannedInvoiceImage(payload: ScannedInvoicePayload) {
+    const { data, image, fileName } = payload;
+    const uploadUrl = await generateInvoiceUploadUrl();
+    const uploaded = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": image.type || "image/jpeg" },
+      body: image,
+    });
+    if (!uploaded.ok) {
+      throw new Error("No se pudo guardar la imagen de la factura");
+    }
+    const { storageId } = (await uploaded.json()) as {
+      storageId: Id<"_storage">;
+    };
+    const amount =
+      data.convertedTotal ??
+      data.total ??
+      data.items.reduce(
+        (sum, item) => sum + (item.convertedAmount ?? item.amount),
+        0,
+      );
+
+    await createInvoiceImage({
+      storageId,
+      fileName,
+      contentType: image.type || "image/jpeg",
+      ...(data.vendor ? { vendor: data.vendor } : {}),
+      ...(data.date ? { date: data.date } : {}),
+      ...(amount ? { amount } : {}),
+    });
+  }
+
+  async function handleScanComplete(payload: ScannedInvoicePayload) {
+    await saveScannedInvoiceImage(payload);
+    const data = payload.data;
     const date = data.date ?? new Date().toISOString().slice(0, 10);
     const type = data.type ?? "expense";
     const isForeign = data.currency !== "CRC";
@@ -808,7 +875,29 @@ export default function FinanzasPage() {
         </div>
 
         {/* Stats */}
-        {isBudgetTab ? (
+        {isInvoicesTab ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <StatCard
+              label="Facturas guardadas"
+              value={invoiceImages.length}
+              detail="Archivo de facturas"
+              icon={<ImageIcon size={18} weight="fill" />}
+              index={0}
+            />
+            <StatCard
+              label="Monto detectado"
+              value={formatCurrency(
+                invoiceImages.reduce(
+                  (sum, invoice) => sum + (invoice.amount || 0),
+                  0,
+                ),
+              )}
+              detail="Suma informativa, no altera el balance"
+              icon={<CurrencyDollarIcon size={18} weight="fill" />}
+              index={1}
+            />
+          </div>
+        ) : isBudgetTab ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <StatCard
               label="Inversión total"
@@ -899,6 +988,17 @@ export default function FinanzasPage() {
               Agregar ítem de presupuesto
             </Button>
           </div>
+        ) : isInvoicesTab ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              variant="primary"
+              className="text-xs bg-[#0f172a] hover:bg-[#1e293b] text-white border-transparent flex items-center gap-1.5 dark:bg-[#1e293b] dark:hover:bg-[#334155]"
+              onClick={() => setScanModalOpen(true)}
+            >
+              <CameraIcon size={16} weight="bold" />
+              Escanear factura
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-2">
@@ -963,11 +1063,33 @@ export default function FinanzasPage() {
               >
                 Presupuesto
               </Tabs.Tab>
+              <Tabs.Tab
+                value="facturas"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+              >
+                Facturas
+              </Tabs.Tab>
               <Tabs.Indicator />
             </Tabs.List>
 
             {/* Filtering and Sorting controls */}
-            {isBudgetTab ? (
+            {isInvoicesTab ? (
+              <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
+                <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                  <MagnifyingGlassIcon
+                    size={15}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar proveedor o archivo..."
+                    value={invoiceSearch}
+                    onChange={(e) => setInvoiceSearch(e.target.value)}
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                  />
+                </div>
+              </div>
+            ) : isBudgetTab ? (
               <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
                 <div className="relative flex-1 sm:w-64 sm:flex-initial">
                   <MagnifyingGlassIcon
@@ -1186,6 +1308,107 @@ export default function FinanzasPage() {
                 />
               }
             />
+          </Tabs.Panel>
+          <Tabs.Panel value="facturas" className="mt-4">
+            {filteredInvoiceImages.length === 0 ? (
+              <EmptyState
+                icon={
+                  invoiceSearch ? (
+                    <MagnifyingGlassIcon size={40} weight="duotone" />
+                  ) : (
+                    <ImageIcon size={40} weight="duotone" />
+                  )
+                }
+                title={invoiceSearch ? "Sin resultados" : "Sin facturas"}
+                description={
+                  invoiceSearch
+                    ? `No se encontraron facturas que coincidan con "${invoiceSearch}".`
+                    : "Al escanear una factura se guarda aquí la imagen comprimida."
+                }
+                action={
+                  !invoiceSearch ? (
+                    <Button
+                      variant="primary"
+                      className="text-xs"
+                      onClick={() => setScanModalOpen(true)}
+                    >
+                      <CameraIcon size={16} weight="bold" />
+                      Escanear factura
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredInvoiceImages.map((invoice) => {
+                  const isPdf = invoice.contentType.includes("pdf");
+                  return (
+                    <div
+                      key={invoice._id}
+                      className="overflow-hidden rounded-xl border border-grayscale-3 bg-grayscale-2 dark:border-grayscale-3"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!invoice.url) return;
+                          setViewingInvoice({
+                            url: invoice.url,
+                            fileName: invoice.fileName,
+                            contentType: invoice.contentType,
+                            vendor: invoice.vendor,
+                            date: invoice.date,
+                            amount: invoice.amount,
+                          });
+                        }}
+                        className="block w-full cursor-pointer bg-grayscale-1 dark:bg-grayscale-3"
+                      >
+                        {invoice.url && !isPdf ? (
+                          <img
+                            src={invoice.url}
+                            alt={invoice.vendor || invoice.fileName}
+                            className="h-44 w-full object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-44 flex-col items-center justify-center gap-2">
+                            <FileIcon
+                              size={32}
+                              weight="duotone"
+                              className="text-grayscale-8"
+                            />
+                            <span className="text-xs text-grayscale-9">
+                              {isPdf ? "PDF" : "Archivo"}
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                      <div className="flex items-start justify-between gap-2 px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-grayscale-12 whitespace-normal wrap-break-word">
+                            {invoice.vendor || invoice.fileName}
+                          </p>
+                          <p className="text-xs text-grayscale-9 mt-0.5">
+                            {invoice.date
+                              ? formatDate(invoice.date)
+                              : "Sin fecha"}
+                            {invoice.amount
+                              ? ` · ${formatCurrency(invoice.amount)}`
+                              : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteInvoiceId(invoice._id)}
+                          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
+                          title="Eliminar"
+                        >
+                          <TrashIcon size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Tabs.Panel>
         </Tabs.Root>
 
@@ -1464,6 +1687,60 @@ export default function FinanzasPage() {
           confirmText="Eliminar"
           onConfirm={handleConfirmDeleteBudget}
         />
+
+        <ConfirmModal
+          open={deleteInvoiceId !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleteInvoiceId(null);
+          }}
+          title="Eliminar factura"
+          description="Se eliminará la imagen guardada de esta factura. Esta acción no se puede deshacer."
+          confirmText="Eliminar"
+          onConfirm={async () => {
+            if (!deleteInvoiceId) return;
+            await removeInvoiceImage({ id: deleteInvoiceId });
+            setDeleteInvoiceId(null);
+          }}
+        />
+
+        <Modal
+          open={viewingInvoice !== null}
+          onOpenChange={(open) => {
+            if (!open) setViewingInvoice(null);
+          }}
+          title={viewingInvoice?.vendor || viewingInvoice?.fileName || "Factura"}
+          className="sm:max-w-2xl md:max-w-3xl"
+        >
+          {viewingInvoice && (
+            <div className="flex flex-col gap-3">
+              {(viewingInvoice.date || viewingInvoice.amount) && (
+                <p className="text-xs text-grayscale-10">
+                  {viewingInvoice.date ? formatDate(viewingInvoice.date) : ""}
+                  {viewingInvoice.date && viewingInvoice.amount ? " · " : ""}
+                  {viewingInvoice.amount
+                    ? formatCurrency(viewingInvoice.amount)
+                    : ""}
+                </p>
+              )}
+              {viewingInvoice.contentType.includes("pdf") ? (
+                <a
+                  href={viewingInvoice.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-medium text-accent-11 hover:underline"
+                >
+                  Abrir PDF
+                </a>
+              ) : (
+                <img
+                  src={viewingInvoice.url}
+                  alt={viewingInvoice.fileName}
+                  className="max-h-[70vh] w-full rounded-lg object-contain bg-grayscale-2 dark:bg-grayscale-3"
+                />
+              )}
+            </div>
+          )}
+        </Modal>
       </div>
     </PageContainer>
   );

@@ -19,10 +19,16 @@ import { type InvoiceData, recogniseInvoice } from "@/lib/invoice-ocr";
 
 type ScanStatus = "idle" | "processing" | "done" | "error";
 
+export type ScannedInvoicePayload = {
+  data: InvoiceData;
+  image: Blob;
+  fileName: string;
+};
+
 type InvoiceScannerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onScanComplete: (data: InvoiceData) => Promise<void> | void;
+  onScanComplete: (payload: ScannedInvoicePayload) => Promise<void> | void;
 };
 
 function formatCurrency(n: number): string {
@@ -41,71 +47,90 @@ function formatWithCurrency(n: number, currency: string): string {
   }).format(n);
 }
 
-function compressImage(
-  file: File,
-  maxWidth = 1600,
-  maxHeight = 1600,
-  quality = 0.85,
-): Promise<File | Blob> {
-  return new Promise((resolve) => {
-    if (file.type === "application/pdf") {
-      resolve(file);
-      return;
+function loadImage(source: File | Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(source);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo leer la imagen"));
+    };
+    img.src = url;
+  });
+}
+
+function canvasToJpeg(
+  img: HTMLImageElement,
+  maxSize: number,
+  quality: number,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    let width = img.width;
+    let height = img.height;
+
+    if (width > height) {
+      if (width > maxSize) {
+        height = Math.round((height * maxSize) / width);
+        width = maxSize;
+      }
+    } else if (height > maxSize) {
+      width = Math.round((width * maxSize) / height);
+      height = maxSize;
     }
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve(file);
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: file.type || "image/jpeg",
-                lastModified: Date.now(),
-              });
-              resolve(compressedFile);
-            } else {
-              resolve(file);
-            }
-          },
-          file.type || "image/jpeg",
-          quality,
-        );
-      };
-      img.onerror = () => resolve(file);
-    };
-    reader.onerror = () => resolve(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      reject(new Error("No se pudo comprimir la imagen"));
+      return;
+    }
+    ctx.drawImage(img, 0, 0, width, height);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("No se pudo comprimir la imagen"));
+      },
+      "image/jpeg",
+      quality,
+    );
   });
+}
+
+async function compressForOcr(file: File): Promise<File> {
+  if (file.type === "application/pdf") return file;
+  try {
+    const img = await loadImage(file);
+    const blob = await canvasToJpeg(img, 1600, 0.82);
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
+async function compressForArchive(source: File | Blob): Promise<Blob> {
+  if (source.type === "application/pdf") return source;
+  try {
+    const img = await loadImage(source);
+    let blob = await canvasToJpeg(img, 1200, 0.68);
+    if (blob.size > 380_000) {
+      blob = await canvasToJpeg(img, 960, 0.52);
+    }
+    if (blob.size > 380_000) {
+      blob = await canvasToJpeg(img, 800, 0.42);
+    }
+    return blob;
+  } catch {
+    return source;
+  }
 }
 
 export default function InvoiceScanner({
@@ -122,16 +147,21 @@ export default function InvoiceScanner({
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<InvoiceData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [archiveBlob, setArchiveBlob] = useState<Blob | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const reset = useCallback(() => {
-    setPreview(null);
+    setPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
     setFileName(null);
     setIsPdf(false);
     setStatus("idle");
     setProgress(0);
     setResult(null);
     setError(null);
+    setArchiveBlob(null);
     if (cameraRef.current) cameraRef.current.value = "";
     if (fileRef.current) fileRef.current.value = "";
   }, []);
@@ -161,10 +191,10 @@ export default function InvoiceScanner({
     setError(null);
 
     try {
-      const compressedFile = await compressImage(file);
-      const data = await recogniseInvoice(compressedFile, (p) =>
-        setProgress(p),
-      );
+      const ocrFile = await compressForOcr(file);
+      const archive = await compressForArchive(ocrFile);
+      setArchiveBlob(archive);
+      const data = await recogniseInvoice(ocrFile, (p) => setProgress(p));
       setResult(data);
       setStatus("done");
     } catch (err) {
@@ -184,11 +214,19 @@ export default function InvoiceScanner({
   );
 
   const handleConfirm = useCallback(async () => {
-    if (result) {
+    if (result && archiveBlob) {
       try {
         setIsSaving(true);
         setError(null);
-        await onScanComplete(result);
+        await onScanComplete({
+          data: result,
+          image: archiveBlob,
+          fileName: fileName
+            ? fileName.replace(/\.[^.]+$/, archiveBlob.type === "application/pdf" ? ".pdf" : ".jpg")
+            : archiveBlob.type === "application/pdf"
+              ? "factura.pdf"
+              : "factura.jpg",
+        });
         handleClose(false);
       } catch (err) {
         console.error("Save error:", err);
@@ -202,7 +240,7 @@ export default function InvoiceScanner({
         setIsSaving(false);
       }
     }
-  }, [result, onScanComplete, handleClose]);
+  }, [result, archiveBlob, fileName, onScanComplete, handleClose]);
 
   return (
     <Modal
@@ -478,7 +516,7 @@ export default function InvoiceScanner({
                 className="w-full sm:flex-1 justify-center text-xs"
                 type="button"
                 onClick={handleConfirm}
-                disabled={isSaving}
+                disabled={isSaving || !archiveBlob}
               >
                 {isSaving ? (
                   <SpinnerIcon size={14} className="animate-spin" />

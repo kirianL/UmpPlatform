@@ -62,6 +62,15 @@ export default defineSchema({
     createdAt: v.optional(v.string()),
     transactionId: v.optional(v.id("transactions")),
   }).index("by_transactionId", ["transactionId"]),
+  invoiceImages: defineTable({
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    contentType: v.string(),
+    vendor: v.optional(v.string()),
+    date: v.optional(v.string()),
+    amount: v.optional(v.number()),
+    createdAt: v.string(),
+  }).index("by_createdAt", ["createdAt"]),
   clients: defineTable({
     name: v.string(),
     company: v.optional(v.string()),
