@@ -96,6 +96,26 @@ export const update = mutation({
     for (const payment of payments) {
       const paymentStatus: "paid" | "pending" =
         args.status === "paid" ? "paid" : "pending";
+
+      if (args.status === "pending" && payment.serviceId) {
+        const service = await ctx.db.get(payment.serviceId);
+        const canRestoreReceivable =
+          !!service &&
+          (!service.transactionId || service.transactionId === id);
+
+        if (canRestoreReceivable && service) {
+          await ctx.db.delete(payment._id);
+          await ctx.db.patch(id, {
+            source: "client_receivable",
+            status: "pending",
+          });
+          await replaceClientService(ctx, service, { transactionId: id });
+          await refreshServicePaymentStatus(ctx, payment.serviceId);
+          await syncServiceReceivable(ctx, payment.serviceId);
+          continue;
+        }
+      }
+
       await ctx.db.patch(payment._id, {
         amount: args.amount,
         date: args.date,

@@ -49,7 +49,8 @@ export default function DashboardPage() {
       (t) =>
         t.type === "income" &&
         t.status !== "cancelled" &&
-        t.source !== "client_receivable",
+        t.source !== "client_receivable" &&
+        !(t.source === "client_payment" && t.status === "pending"),
     )
     .reduce((s, t) => s + t.amount, 0);
 
@@ -62,7 +63,11 @@ export default function DashboardPage() {
   ).length;
 
   const recentTransactions = [...transactions]
-    .filter((t) => t.source !== "client_receivable")
+    .filter(
+      (t) =>
+        t.source !== "client_receivable" &&
+        !(t.source === "client_payment" && t.status === "pending"),
+    )
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
 
@@ -167,7 +172,7 @@ export default function DashboardPage() {
                   className="flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/40"
                 >
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <p className="text-sm text-grayscale-11 truncate">
+                    <p className="text-sm text-grayscale-11 whitespace-normal wrap-break-word">
                       {t.concept}
                     </p>
                     <p className="text-xs text-grayscale-9">

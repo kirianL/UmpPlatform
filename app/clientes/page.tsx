@@ -1636,11 +1636,11 @@ export default function ClientesPage() {
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="flex flex-col min-w-0">
-                                      <span className="font-bold text-xs sm:text-sm text-grayscale-12 truncate">
+                                      <span className="font-bold text-xs sm:text-sm text-grayscale-12 whitespace-normal wrap-break-word">
                                         {p.concept}
                                       </span>
                                       {linkedService && (
-                                        <span className="text-[11px] font-medium text-grayscale-10 truncate mt-0.5">
+                                        <span className="text-[11px] font-medium text-grayscale-10 whitespace-normal wrap-break-word mt-0.5">
                                           Servicio: {linkedService.serviceName}
                                         </span>
                                       )}

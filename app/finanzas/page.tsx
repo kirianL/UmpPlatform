@@ -61,6 +61,72 @@ function formatDate(iso: string): string {
   return `${day}/${month}/${year}`;
 }
 
+function parseLinkedConcept(concept: string, fallbackLocal?: string) {
+  let title = String(concept ?? "").replace(/\s+/g, " ").trim();
+  let serviceName = "";
+  let clientName = fallbackLocal?.trim() || "";
+
+  const tagged = title.match(/^(.*?)\s*\[([^\]]+)\]\s*\((.+)\)\s*$/);
+  if (tagged) {
+    title = tagged[1].trim();
+    serviceName = tagged[2].trim();
+    clientName = tagged[3].trim() || clientName;
+  } else {
+    const withClient = title.match(/^(.*) \((.+)\)$/);
+    if (withClient) {
+      title = withClient[1].trim();
+      clientName = withClient[2].trim() || clientName;
+    }
+  }
+
+  if (serviceName && title.endsWith(` - ${serviceName}`)) {
+    title = title.slice(0, -(serviceName.length + 3)).trim();
+  }
+
+  const abono = title.match(/^(.*?Abono servicio)\s+-\s+(.+)$/i);
+  if (abono) {
+    title = abono[1].trim();
+    serviceName = serviceName || abono[2].trim();
+  }
+
+  return { title, serviceName, clientName };
+}
+
+function getClientFinanceSource(t: {
+  source?: string;
+  concept?: string;
+}): "client_receivable" | "client_payment" | null {
+  if (t.source === "client_receivable" || t.source === "client_payment") {
+    return t.source;
+  }
+
+  const concept = String(t.concept ?? "");
+  if (/^Saldo pendiente\b/i.test(concept)) return "client_receivable";
+  if (
+    /Abono servicio/i.test(concept) ||
+    /Pago de cliente/i.test(concept) ||
+    /\[[^\]]+\]\s*\([^)]+\)\s*$/.test(concept)
+  ) {
+    return "client_payment";
+  }
+
+  return null;
+}
+
+function clientLinkedHeading(
+  source: string | undefined,
+  parsedTitle: string,
+) {
+  if (source === "client_receivable") return "Saldo pendiente";
+
+  const percentMatch = parsedTitle.match(/^(\d+(?:[.,]\d+)?)\s*%/);
+  const percent = percentMatch ? `${percentMatch[1]}% ` : "";
+
+  if (/abono/i.test(parsedTitle)) return `${percent}Abono`.trim();
+  if (/pago/i.test(parsedTitle)) return `${percent}Pago de cliente`.trim();
+  return parsedTitle;
+}
+
 const CATEGORIES = [
   "Producción",
   "Comercial",
@@ -211,14 +277,17 @@ export default function FinanzasPage() {
     });
   }, [filteredTransactions, sortOrder]);
 
-  const income = sortedTransactions
-    .filter(
+  const incomeData = useMemo(() => {
+    return sortedTransactions.filter(
       (t) =>
         t.type === "income" &&
         t.status !== "cancelled" &&
-        t.source !== "client_receivable",
-    )
-    .reduce((s, t) => s + t.amount, 0);
+        t.source !== "client_receivable" &&
+        !(t.source === "client_payment" && t.status === "pending"),
+    );
+  }, [sortedTransactions]);
+
+  const income = incomeData.reduce((s, t) => s + t.amount, 0);
   const expenses = sortedTransactions
     .filter((t) => t.type === "expense" && t.status !== "cancelled")
     .reduce((s, t) => s + t.amount, 0);
@@ -228,13 +297,9 @@ export default function FinanzasPage() {
       (t) =>
         t.type === "income" &&
         t.status === "pending" &&
-        t.source === "client_receivable",
+        (t.source === "client_receivable" || t.source === "client_payment"),
     )
     .reduce((s, t) => s + t.amount, 0);
-
-  const incomeData = useMemo(() => {
-    return sortedTransactions.filter((t) => t.type === "income");
-  }, [sortedTransactions]);
 
   const expenseData = useMemo(() => {
     return sortedTransactions.filter((t) => t.type === "expense");
@@ -518,57 +583,51 @@ export default function FinanzasPage() {
       key: "concept",
       header: "Concepto",
       render: (t) => {
-        if (t.source === "client_receivable") {
-          const match = String(t.concept).match(
-            /^Saldo pendiente \[(.*)\] \((.*)\)$/,
-          );
-          const serviceName = match?.[1] || "";
-          const clientName = match?.[2] || t.local || "";
+        const linkedSource = getClientFinanceSource(t);
+
+        if (linkedSource) {
+          const parsed = parseLinkedConcept(t.concept, t.local);
+          const heading = clientLinkedHeading(linkedSource, parsed.title);
+          const isPendingReceivable =
+            linkedSource === "client_receivable" || t.status === "pending";
+          const metaLabel = isPendingReceivable ? "Por cobrar" : "Abonado";
+          const metaClass = isPendingReceivable
+            ? "text-xs text-orange-11"
+            : "text-xs text-green-11";
 
           return (
             <div className="min-w-0 max-w-[280px]">
-              <p className="text-sm font-medium text-grayscale-12">
-                Saldo pendiente
-              </p>
-              {clientName ? (
-                <p className="text-xs font-medium text-grayscale-12 mt-0.5 break-words">
-                  {clientName}
+              <p className="text-sm font-medium text-grayscale-12">{heading}</p>
+              {parsed.clientName ? (
+                <p className="text-xs font-medium text-grayscale-12 mt-0.5 whitespace-normal wrap-break-word">
+                  {parsed.clientName}
                 </p>
               ) : null}
-              {serviceName ? (
-                <p className="text-xs text-grayscale-10 mt-0.5 break-words">
-                  {serviceName}
+              {parsed.serviceName ? (
+                <p className="text-xs text-grayscale-10 mt-0.5 whitespace-normal wrap-break-word">
+                  {parsed.serviceName}
                 </p>
               ) : null}
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                 <span className="text-xs text-grayscale-9">{t.category}</span>
                 <span className="text-grayscale-6 text-[10px]">•</span>
-                <span className="text-xs text-orange-11">Por cobrar</span>
+                <span className={metaClass}>{metaLabel}</span>
               </div>
             </div>
           );
         }
 
         return (
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-grayscale-12 truncate max-w-[200px]">
+          <div className="min-w-0 max-w-[280px]">
+            <p className="text-sm font-medium text-grayscale-12 whitespace-normal wrap-break-word">
               {t.concept}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
               <span className="text-xs text-grayscale-9">{t.category}</span>
-              {t.source === "client_payment" && (
-                <>
-                  <span className="text-grayscale-6 text-[10px]">•</span>
-                  <span className="text-xs text-green-11">Cliente</span>
-                </>
-              )}
               {t.local && (
                 <>
                   <span className="text-grayscale-6 text-[10px]">•</span>
-                  <span
-                    className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded truncate max-w-[120px]"
-                    title={t.local}
-                  >
+                  <span className="text-xs font-mono text-grayscale-10 bg-grayscale-2 px-1 rounded whitespace-normal wrap-break-word">
                     {t.local}
                   </span>
                 </>
@@ -652,10 +711,10 @@ export default function FinanzasPage() {
       header: "Ítem / Inversión",
       render: (item) => (
         <div className="min-w-0">
-          <p className="text-sm font-medium text-grayscale-12 truncate max-w-[260px]">
+          <p className="text-sm font-medium text-grayscale-12 whitespace-normal wrap-break-word max-w-[280px]">
             {item.concept}
           </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
             <span className="text-xs text-grayscale-9">{item.category}</span>
             {item.status === "completed" && item.transactionId && (
               <>
@@ -666,10 +725,7 @@ export default function FinanzasPage() {
             {item.notes && (
               <>
                 <span className="text-grayscale-6 text-[10px]">•</span>
-                <span
-                  className="text-xs text-grayscale-10 truncate max-w-[180px]"
-                  title={item.notes}
-                >
+                <span className="text-xs text-grayscale-10 whitespace-normal wrap-break-word max-w-[280px]">
                   {item.notes}
                 </span>
               </>
@@ -800,7 +856,7 @@ export default function FinanzasPage() {
             <StatCard
               label="Ingresos Totales"
               value={formatCurrency(income)}
-              detail={`${incomeData.filter((t) => t.source !== "client_receivable").length} transacciones`}
+              detail={`${incomeData.length} transacciones`}
               icon={
                 <TrendUpIcon size={18} weight="bold" className="text-green-9" />
               }
