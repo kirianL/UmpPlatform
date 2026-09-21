@@ -1,5 +1,13 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import {
+  deleteAllyPayment,
+  deletePaymentsForAlly,
+  getAllyExpiration,
+  insertAllyPayment,
+  isAllyPaid,
+  todayYmd,
+} from "./allyFinance";
 
 function generateAllyCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -63,16 +71,9 @@ export const verifyByCode = query({
       };
     }
 
-    const isPaid =
-      ally.status === "pagado" ||
-      ally.paymentStatus === "pagado" ||
-      ally.status === "activo";
-
-    const createdAtDate = new Date(ally.createdAt || ally._creationTime);
-    const expirationDate = new Date(createdAtDate);
-    expirationDate.setMonth(expirationDate.getMonth() + 1);
-
-    const isExpired = new Date() > expirationDate;
+    const isPaid = isAllyPaid(ally);
+    const paidUntil = getAllyExpiration(ally);
+    const isExpired = todayYmd() > paidUntil;
 
     let status: "valid" | "expired" | "pending_payment" = "valid";
     if (!isPaid) {
@@ -93,8 +94,10 @@ export const verifyByCode = query({
         idCard: ally.idCard,
         status: ally.status,
         paymentStatus: ally.paymentStatus,
+        lastPaidAt: ally.lastPaidAt,
+        paidUntil,
       },
-      validUntil: expirationDate.toISOString(),
+      validUntil: paidUntil,
     };
   },
 });
@@ -231,6 +234,13 @@ export const createPublic = mutation({
       createdAt,
     });
 
+    const payment = await insertAllyPayment(ctx, {
+      allyId,
+      amount: packageAmount,
+      date: todayYmd(),
+      concept: `Membresía ${args.package === "vip" ? "VIP" : "Élite"} - ${trimmedName} (#${code})`,
+    });
+
     if (tokenRecord) {
       await ctx.db.patch(tokenRecord._id, {
         used: true,
@@ -239,7 +249,7 @@ export const createPublic = mutation({
       });
     }
 
-    return { allyId, code };
+    return { allyId, code, paidUntil: payment.validUntil };
   },
 });
 
@@ -282,7 +292,7 @@ export const create = mutation({
       args.paymentStatus || (status === "pagado" ? "pagado" : "no_pagado");
     const code = args.code?.trim().toUpperCase() || generateAllyCode();
 
-    return await ctx.db.insert("allies", {
+    const allyId = await ctx.db.insert("allies", {
       fullName: args.fullName.trim(),
       idCard: args.idCard.trim(),
       phone: args.phone.trim(),
@@ -296,6 +306,16 @@ export const create = mutation({
       notes: args.notes?.trim() || undefined,
       createdAt,
     });
+
+    if (status === "pagado" || paymentStatus === "pagado") {
+      await insertAllyPayment(ctx, {
+        allyId,
+        amount: packageAmount,
+        date: todayYmd(),
+      });
+    }
+
+    return allyId;
   },
 });
 
@@ -330,6 +350,9 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...args }) => {
+    const previous = await ctx.db.get(id);
+    if (!previous) return;
+
     const patchData: Record<string, any> = { ...args };
     if (args.package && args.packageAmount === undefined) {
       patchData.packageAmount = args.package === "vip" ? 12000 : 10000;
@@ -341,6 +364,71 @@ export const update = mutation({
     if (args.code) patchData.code = args.code.trim().toUpperCase();
 
     await ctx.db.patch(id, patchData);
+
+    const updated = await ctx.db.get(id);
+    if (!updated) return;
+
+    const wasPaid = isAllyPaid(previous);
+    const nowPaid = isAllyPaid(updated);
+    if (!nowPaid || wasPaid) return;
+
+    const existingPayments = await ctx.db
+      .query("allyPayments")
+      .withIndex("by_allyId", (q) => q.eq("allyId", id))
+      .first();
+
+    if (!existingPayments) {
+      await insertAllyPayment(ctx, {
+        allyId: id,
+        amount: updated.packageAmount,
+        date: todayYmd(),
+      });
+    }
+  },
+});
+
+export const registerPayment = mutation({
+  args: {
+    allyId: v.id("allies"),
+    amount: v.number(),
+    date: v.string(),
+    concept: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await insertAllyPayment(ctx, args);
+  },
+});
+
+export const getPaymentsByAlly = query({
+  args: { allyId: v.id("allies") },
+  handler: async (ctx, args) => {
+    const payments = await ctx.db
+      .query("allyPayments")
+      .withIndex("by_allyId", (q) => q.eq("allyId", args.allyId))
+      .collect();
+
+    return payments.sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return b._creationTime - a._creationTime;
+    });
+  },
+});
+
+export const listPayments = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("allyPayments").order("desc").collect();
+  },
+});
+
+export const removePayment = mutation({
+  args: { id: v.id("allyPayments") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (existing) {
+      await deleteAllyPayment(ctx, existing);
+    }
   },
 });
 
@@ -349,6 +437,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (existing) {
+      await deletePaymentsForAlly(ctx, args.id);
       await ctx.db.delete(args.id);
     }
   },

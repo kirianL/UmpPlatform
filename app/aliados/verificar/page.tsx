@@ -22,8 +22,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   CarnetCard,
-  getAutomaticExpiration,
-  getDefaultFormattedDate,
+  formatExpirationFromYmd,
+  resolveAllyValidUntil,
 } from "@/components/CarnetModal";
 import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -110,16 +110,11 @@ function VerificationContent() {
     verification !== undefined &&
     (!verification.found || verification.status === "not_found");
 
-  const formattedDate = ally?.createdAt
-    ? new Date(ally.createdAt).toLocaleDateString("es-CR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : getDefaultFormattedDate();
-
-  const expirationInfo = getAutomaticExpiration(formattedDate);
-  const validityText = expirationInfo.value;
+  const validUntil =
+    verification?.validUntil ||
+    (ally ? resolveAllyValidUntil(ally) : undefined);
+  const validityText =
+    formatExpirationFromYmd(validUntil)?.value || "Sin vigencia";
 
   const benefitsList = allyBenefitsData?.benefits || [];
 
@@ -275,7 +270,7 @@ function VerificationContent() {
                   code: ally.code,
                   package: ally.package as "vip" | "elite",
                   idCard: ally.idCard,
-                  date: formattedDate,
+                  validUntil,
                   validityMonth: validityText,
                 }}
               />

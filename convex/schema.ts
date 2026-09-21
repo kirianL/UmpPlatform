@@ -44,7 +44,11 @@ export default defineSchema({
     local: v.optional(v.string()),
     clientId: v.optional(v.string()),
     source: v.optional(
-      v.union(v.literal("client_receivable"), v.literal("client_payment")),
+      v.union(
+        v.literal("client_receivable"),
+        v.literal("client_payment"),
+        v.literal("ally_payment"),
+      ),
     ),
   }),
   budgetItems: defineTable({
@@ -470,10 +474,24 @@ export default defineSchema({
     ),
     notes: v.optional(v.string()),
     code: v.optional(v.string()),
+    lastPaidAt: v.optional(v.string()),
+    paidUntil: v.optional(v.string()),
     createdAt: v.string(),
   })
     .index("by_createdAt", ["createdAt"])
     .index("by_code", ["code"]),
+  allyPayments: defineTable({
+    allyId: v.id("allies"),
+    amount: v.number(),
+    date: v.string(),
+    concept: v.string(),
+    validUntil: v.string(),
+    transactionId: v.optional(v.id("transactions")),
+    createdAt: v.string(),
+  })
+    .index("by_allyId", ["allyId"])
+    .index("by_transactionId", ["transactionId"])
+    .index("by_date", ["date"]),
   allyTokens: defineTable({
     token: v.string(),
     used: v.boolean(),

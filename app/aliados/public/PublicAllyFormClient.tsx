@@ -22,7 +22,11 @@ import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { CarnetCard, downloadCarnetAsImage } from "@/components/CarnetModal";
+import {
+  CarnetCard,
+  downloadCarnetAsImage,
+  formatExpirationFromYmd,
+} from "@/components/CarnetModal";
 import Logo from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Button from "@/components/public/Button";
@@ -92,6 +96,7 @@ export default function PublicAllyFormClient() {
     package: PackageType;
     packageAmount: number;
     code: string;
+    paidUntil?: string;
   } | null>(null);
 
   const handleDownloadCarnet = async () => {
@@ -103,6 +108,8 @@ export default function PublicAllyFormClient() {
         code: submittedData.code,
         package: submittedData.package,
         idCard: submittedData.idCard,
+        validUntil: submittedData.paidUntil,
+        validityMonth: formatExpirationFromYmd(submittedData.paidUntil)?.value,
       });
     } catch (err) {
       console.error("Error al descargar carnet:", err);
@@ -250,6 +257,7 @@ export default function PublicAllyFormClient() {
         package: selectedPackage,
         packageAmount: selectedPackage === "vip" ? 12000 : 10000,
         code: res?.code || "",
+        paidUntil: res?.paidUntil,
       });
       setSubmitted(true);
     } catch (err: unknown) {
@@ -488,6 +496,9 @@ export default function PublicAllyFormClient() {
                   code: submittedData.code,
                   package: submittedData.package,
                   idCard: submittedData.idCard,
+                  validUntil: submittedData.paidUntil,
+                  validityMonth: formatExpirationFromYmd(submittedData.paidUntil)
+                    ?.value,
                 }}
               />
             </motion.div>

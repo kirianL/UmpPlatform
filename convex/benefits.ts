@@ -1,11 +1,13 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { getAllyExpiration, isAllyPaid, todayYmd } from "./allyFinance";
 
 function getCurrentPeriod(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
+  return new Date()
+    .toLocaleDateString("en-CA", { timeZone: "America/Costa_Rica" })
+    .slice(0, 7);
 }
 
 // ----------------------------------------------------
@@ -158,6 +160,37 @@ export const removeBenefit = mutation({
   },
 });
 
+async function deleteRedemptions(
+  ctx: MutationCtx,
+  redemptions: { _id: Id<"allyBenefitRedemptions"> }[],
+) {
+  for (const redemption of redemptions) {
+    await ctx.db.delete(redemption._id);
+  }
+  return { deleted: redemptions.length };
+}
+
+export const resetAllyRedemptions = mutation({
+  args: { allyId: v.id("allies") },
+  handler: async (ctx, args) => {
+    const redemptions = await ctx.db
+      .query("allyBenefitRedemptions")
+      .withIndex("by_allyId", (q) => q.eq("allyId", args.allyId))
+      .collect();
+    return await deleteRedemptions(ctx, redemptions);
+  },
+});
+
+export const resetAllRedemptions = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const redemptions = await ctx.db
+      .query("allyBenefitRedemptions")
+      .collect();
+    return await deleteRedemptions(ctx, redemptions);
+  },
+});
+
 // ----------------------------------------------------
 // 3. REDEMPTIONS & VERIFICATION (Canjes de Beneficios)
 // ----------------------------------------------------
@@ -244,6 +277,7 @@ export const getBenefitsForAlly = query({
         status: ally.status,
         paymentStatus: ally.paymentStatus,
         createdAt: ally.createdAt,
+        paidUntil: getAllyExpiration(ally),
       },
       benefits: mappedBenefits,
     };
@@ -271,13 +305,14 @@ export const redeemBenefit = mutation({
       throw new Error("Afiliado no encontrado.");
     }
 
-    const isPaid =
-      ally.status === "pagado" ||
-      ally.paymentStatus === "pagado" ||
-      ally.status === "activo";
+    const isPaid = isAllyPaid(ally);
 
     if (!isPaid) {
       throw new Error("El afiliado cuenta con un estado pendiente de pago.");
+    }
+
+    if (todayYmd() > getAllyExpiration(ally)) {
+      throw new Error("La membresía del afiliado está vencida.");
     }
 
     // 2. Verify benefit

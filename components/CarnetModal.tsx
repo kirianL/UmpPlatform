@@ -17,8 +17,54 @@ export type CarnetData = {
   package: "vip" | "elite";
   idCard?: string;
   validityMonth?: string;
+  validUntil?: string;
   date?: string;
 };
+
+export function toCostaRicaYmd(iso?: string): string {
+  if (!iso) {
+    return new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/Costa_Rica",
+    });
+  }
+  const trimmed = iso.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/Costa_Rica",
+    });
+  }
+  return parsed.toLocaleDateString("en-CA", {
+    timeZone: "America/Costa_Rica",
+  });
+}
+
+export function addMonthsYmd(ymd: string, months: number): string {
+  const [year, month, day] = toCostaRicaYmd(ymd).split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return date.toISOString().slice(0, 10);
+}
+
+export function resolveAllyValidUntil(ally: {
+  paidUntil?: string;
+  lastPaidAt?: string;
+  createdAt?: string;
+}): string {
+  if (ally.paidUntil) return toCostaRicaYmd(ally.paidUntil);
+  const start = ally.lastPaidAt || ally.createdAt;
+  if (start) return addMonthsYmd(toCostaRicaYmd(start), 1);
+  return addMonthsYmd(toCostaRicaYmd(), 1);
+}
+
+function resolveCardValidityText(data: CarnetData): string {
+  const fromUntil = formatExpirationFromYmd(data.validUntil);
+  if (fromUntil) return fromUntil.value;
+  if (data.validityMonth) return data.validityMonth;
+  if (data.date) return getAutomaticExpiration(data.date).value;
+  return getAutomaticExpiration().value;
+}
 
 // Formats default formatted date DD/MM/YYYY
 export function getDefaultFormattedDate(dateObj = new Date()): string {
@@ -81,6 +127,41 @@ export function getAutomaticExpiration(dateInput?: string | Date): {
   return {
     label: "Válido hasta",
     value: `${day} DE ${monthName} ${year}`,
+  };
+}
+
+export function formatExpirationFromYmd(ymd?: string): {
+  label: string;
+  value: string;
+} | null {
+  if (!ymd) return null;
+  const normalized =
+    /^\d{4}-\d{2}-\d{2}$/.test(ymd.trim()) ? ymd.trim() : toCostaRicaYmd(ymd);
+  const match = normalized.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!year || !month || !day) return null;
+
+  const months = [
+    "ENERO",
+    "FEBRERO",
+    "MARZO",
+    "ABRIL",
+    "MAYO",
+    "JUNIO",
+    "JULIO",
+    "AGOSTO",
+    "SEPTIEMBRE",
+    "OCTUBRE",
+    "NOVIEMBRE",
+    "DICIEMBRE",
+  ];
+
+  return {
+    label: "Válido hasta",
+    value: `${day} DE ${months[month - 1]} ${year}`,
   };
 }
 
@@ -180,7 +261,6 @@ export async function generateCarnetCanvas(
   const qrSize = 150;
   const qrX = 775;
   const qrY = 295;
-  const qrCenterX = qrX + qrSize / 2; // 850
 
   // Rounded background badge for QR (generous white border for instant camera recognition)
   ctx.save();
@@ -195,22 +275,8 @@ export async function generateCarnetCanvas(
 
   ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-  // 4. Date (Centered exactly below the QR code)
-  const dateStr = data.date || getDefaultFormattedDate();
-  ctx.save();
-  ctx.font = "700 23px 'Pattanakarn', sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
-  ctx.shadowBlur = 8;
-  ctx.shadowOffsetY = 2;
-  ctx.fillText(dateStr, qrCenterX, qrY + qrSize + 34);
-  ctx.restore();
-
-  // 5. Expiration Date (Top-Right)
-  const expirationInfo = getAutomaticExpiration(data.date);
-  const validityText = data.validityMonth || expirationInfo.value;
+  // 4. Expiration Date (Top-Right)
+  const validityText = resolveCardValidityText(data);
   ctx.save();
   ctx.textAlign = "right";
   ctx.textBaseline = "top";
@@ -383,9 +449,7 @@ export function CarnetCard({
     ? "/Carnet/Afiliado_VIP.jpg"
     : "/Carnet/Afiliado_Elite.jpg";
 
-  const dateStr = data.date || getDefaultFormattedDate();
-  const expirationInfo = getAutomaticExpiration(dateStr);
-  const validityText = data.validityMonth || expirationInfo.value;
+  const validityText = resolveCardValidityText(data);
 
   const displayCode = data.code
     ? data.code.startsWith("#")
@@ -460,7 +524,7 @@ export function CarnetCard({
               </div>
             </div>
 
-            {/* Bottom Content Area: Name & ID on Left, (QR Code + Date centered underneath) on Right */}
+            {/* Bottom Content Area: Name & ID on Left, QR on Right */}
             <div className="flex items-end justify-between gap-2 pb-[3%]">
               {/* Left Side: Name and ID */}
               <div className="flex-1 pr-2">
@@ -473,7 +537,7 @@ export function CarnetCard({
                 </div>
               </div>
 
-              {/* Right Side: QR Code + Date centered below QR */}
+              {/* Right Side: QR Code */}
               <div className="flex flex-col items-center shrink-0">
                 {qrUrl && (
                   <div className="bg-white p-1.5 sm:p-2 rounded-xl shadow-lg border border-black/5">
@@ -484,9 +548,6 @@ export function CarnetCard({
                     />
                   </div>
                 )}
-                <p className="mt-1 text-[10px] sm:text-[13px] font-bold text-white tracking-tight drop-shadow-md text-center">
-                  {dateStr}
-                </p>
               </div>
             </div>
           </div>
@@ -510,6 +571,8 @@ export function CarnetModal({
     idCard?: string;
     package: "vip" | "elite";
     createdAt?: string;
+    paidUntil?: string;
+    lastPaidAt?: string;
   } | null;
 }) {
   const [downloading, setDownloading] = useState(false);
@@ -520,23 +583,19 @@ export function CarnetModal({
   const isElite = (ally.package || "").toLowerCase() === "elite";
   const allyPackage: "vip" | "elite" = isElite ? "elite" : "vip";
 
-  const formattedDate = ally.createdAt
-    ? new Date(ally.createdAt).toLocaleDateString("es-CR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : getDefaultFormattedDate();
-
-  const expirationInfo = getAutomaticExpiration(formattedDate);
+  const validUntil = resolveAllyValidUntil(ally);
+  const expirationInfo = formatExpirationFromYmd(validUntil) || {
+    label: "Válido hasta",
+    value: getAutomaticExpiration().value,
+  };
 
   const carnetData: CarnetData = {
     fullName: ally.fullName,
     code: ally.code || "AL-000000",
     idCard: ally.idCard,
     package: allyPackage,
+    validUntil,
     validityMonth: expirationInfo.value,
-    date: formattedDate,
   };
 
   const handleDownload = async () => {

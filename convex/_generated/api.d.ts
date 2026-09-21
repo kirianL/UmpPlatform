@@ -11,6 +11,7 @@
 import type * as actorSchedules from "../actorSchedules.js";
 import type * as actors from "../actors.js";
 import type * as allies from "../allies.js";
+import type * as allyFinance from "../allyFinance.js";
 import type * as analytics from "../analytics.js";
 import type * as benefits from "../benefits.js";
 import type * as brainstorm from "../brainstorm.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   actorSchedules: typeof actorSchedules;
   actors: typeof actors;
   allies: typeof allies;
+  allyFinance: typeof allyFinance;
   analytics: typeof analytics;
   benefits: typeof benefits;
   brainstorm: typeof brainstorm;

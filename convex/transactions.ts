@@ -7,6 +7,10 @@ import {
   replaceClientService,
   syncServiceReceivable,
 } from "./clientFinance";
+import {
+  removeAllyPaymentByTransaction,
+  syncAllyPaymentFromTransaction,
+} from "./allyFinance";
 
 async function releaseBudgetLink(
   ctx: MutationCtx,
@@ -88,6 +92,8 @@ export const update = mutation({
       await releaseBudgetLink(ctx, id);
     }
 
+    await syncAllyPaymentFromTransaction(ctx, id, args);
+
     const payments = await ctx.db
       .query("clientPayments")
       .withIndex("by_transactionId", (q) => q.eq("transactionId", id))
@@ -156,6 +162,8 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (existing) {
+      await removeAllyPaymentByTransaction(ctx, args.id);
+
       const payments = await ctx.db
         .query("clientPayments")
         .withIndex("by_transactionId", (q) => q.eq("transactionId", args.id))

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowClockwiseIcon,
   ArrowSquareOutIcon,
   CheckIcon,
   CopyIcon,
@@ -22,7 +23,7 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CarnetModal } from "@/components/CarnetModal";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
@@ -52,6 +53,8 @@ type AllyRecord = {
   paymentStatus?: "pagado" | "no_pagado" | "pendiente" | "cancelado";
   code?: string;
   notes?: string;
+  lastPaidAt?: string;
+  paidUntil?: string;
   createdAt: string;
 };
 
@@ -94,6 +97,59 @@ function formatDateTime(iso: string): string {
   return `${day}/${month}/${year} ${formattedHour}:${mins} ${ampm}`;
 }
 
+function todayYmd(): string {
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Costa_Rica",
+  });
+}
+
+function toYmd(iso?: string): string {
+  if (!iso) return todayYmd();
+  const trimmed = iso.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return todayYmd();
+  return parsed.toLocaleDateString("en-CA", {
+    timeZone: "America/Costa_Rica",
+  });
+}
+
+function addMonthsYmd(ymd: string, months: number): string {
+  const [year, month, day] = toYmd(ymd).split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return date.toISOString().slice(0, 10);
+}
+
+function isAllyPaid(ally: AllyRecord): boolean {
+  return (
+    ally.status === "pagado" ||
+    ally.paymentStatus === "pagado" ||
+    ally.status === "activo"
+  );
+}
+
+function getAllyPaidUntil(ally: AllyRecord): string {
+  if (ally.paidUntil) return toYmd(ally.paidUntil);
+  const start = ally.lastPaidAt || ally.createdAt;
+  if (start) return addMonthsYmd(toYmd(start), 1);
+  return addMonthsYmd(todayYmd(), 1);
+}
+
+function isAllyExpired(ally: AllyRecord): boolean {
+  return isAllyPaid(ally) && todayYmd() > getAllyPaidUntil(ally);
+}
+
+function nextPaidUntilFor(ally: AllyRecord, paymentDate: string): string {
+  const current = getAllyPaidUntil(ally);
+  const today = todayYmd();
+  const base =
+    isAllyPaid(ally) && !isAllyExpired(ally) && current >= today
+      ? current
+      : paymentDate;
+  return addMonthsYmd(base, 1);
+}
+
 function getWhatsAppLink(
   phone: string,
   fullName: string,
@@ -112,6 +168,7 @@ function getWhatsAppLink(
 export default function AliadosPage() {
   // 1. Data queries
   const rawAllies = useQuery(api.allies.getAll) ?? [];
+  const allAllyPayments = useQuery(api.allies.listPayments) ?? [];
   const benefits = useQuery(api.benefits.getBenefits) ?? [];
   const businesses = useQuery(api.benefits.getBusinesses) ?? [];
   const redemptions = useQuery(api.benefits.getRedemptions) ?? [];
@@ -121,10 +178,14 @@ export default function AliadosPage() {
   const updateAlly = useMutation(api.allies.update);
   const removeAlly = useMutation(api.allies.remove);
   const generateToken = useMutation(api.allies.generateToken);
+  const registerPayment = useMutation(api.allies.registerPayment);
+  const removePayment = useMutation(api.allies.removePayment);
 
   const createBenefitMutation = useMutation(api.benefits.createBenefit);
   const updateBenefitMutation = useMutation(api.benefits.updateBenefit);
   const removeBenefitMutation = useMutation(api.benefits.removeBenefit);
+  const resetAllyRedemptions = useMutation(api.benefits.resetAllyRedemptions);
+  const resetAllRedemptions = useMutation(api.benefits.resetAllRedemptions);
 
   const createBusinessMutation = useMutation(api.benefits.createBusiness);
   const updateBusinessMutation = useMutation(api.benefits.updateBusiness);
@@ -157,6 +218,38 @@ export default function AliadosPage() {
   const [carnetModalOpen, setCarnetModalOpen] = useState(false);
   const [carnetAlly, setCarnetAlly] = useState<AllyRecord | null>(null);
   const [selectedAlly, setSelectedAlly] = useState<AllyRecord | null>(null);
+  const [resetAlly, setResetAlly] = useState<AllyRecord | null>(null);
+  const [resetAllOpen, setResetAllOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentAlly, setPaymentAlly] = useState<AllyRecord | null>(null);
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentToDeleteId, setPaymentToDeleteId] =
+    useState<Id<"allyPayments"> | null>(null);
+  const [paymentForm, setPaymentForm] = useState({
+    amount: 0,
+    date: todayYmd(),
+    concept: "",
+  });
+
+  const allyPayments =
+    useQuery(
+      api.allies.getPaymentsByAlly,
+      paymentAlly ? { allyId: paymentAlly._id } : "skip",
+    ) ?? [];
+
+  useEffect(() => {
+    if (!paymentAlly) return;
+    const latest = allies.find((ally) => ally._id === paymentAlly._id);
+    if (
+      latest &&
+      (latest.paidUntil !== paymentAlly.paidUntil ||
+        latest.status !== paymentAlly.status ||
+        latest.paymentStatus !== paymentAlly.paymentStatus)
+    ) {
+      setPaymentAlly(latest);
+    }
+  }, [allies, paymentAlly]);
 
   // Modals for Benefits
   const [benefitModalOpen, setBenefitModalOpen] = useState(false);
@@ -257,6 +350,60 @@ export default function AliadosPage() {
   const openCarnetModal = (ally: AllyRecord) => {
     setCarnetAlly(ally);
     setCarnetModalOpen(true);
+  };
+
+  const openPaymentModal = (ally: AllyRecord) => {
+    setPaymentAlly(ally);
+    setPaymentError("");
+    setPaymentForm({
+      amount: ally.packageAmount || (ally.package === "vip" ? 12000 : 10000),
+      date: todayYmd(),
+      concept: "",
+    });
+    setPaymentModalOpen(true);
+  };
+
+  const handleRegisterPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAlly) return;
+    if (!(paymentForm.amount > 0)) {
+      setPaymentError("El monto debe ser mayor a 0.");
+      return;
+    }
+    if (!paymentForm.date) {
+      setPaymentError("La fecha del pago es requerida.");
+      return;
+    }
+
+    setPaymentSaving(true);
+    setPaymentError("");
+    try {
+      await registerPayment({
+        allyId: paymentAlly._id,
+        amount: Number(paymentForm.amount),
+        date: paymentForm.date,
+        concept: paymentForm.concept.trim() || undefined,
+      });
+      setPaymentForm({
+        amount: paymentAlly.packageAmount || paymentForm.amount,
+        date: todayYmd(),
+        concept: "",
+      });
+    } catch (err: any) {
+      setPaymentError(err?.message || "Error al registrar el pago.");
+    } finally {
+      setPaymentSaving(false);
+    }
+  };
+
+  const handleDeletePayment = async () => {
+    if (!paymentToDeleteId) return;
+    try {
+      await removePayment({ id: paymentToDeleteId });
+      setPaymentToDeleteId(null);
+    } catch (err) {
+      console.error("Error al eliminar pago:", err);
+    }
   };
 
   const openCreateModal = () => {
@@ -376,6 +523,25 @@ export default function AliadosPage() {
       setDeleteModalOpen(false);
     } catch (err) {
       console.error("Error al eliminar aliado:", err);
+    }
+  };
+
+  const handleResetAllyBenefits = async () => {
+    if (!resetAlly) return;
+    try {
+      await resetAllyRedemptions({ allyId: resetAlly._id });
+      setResetAlly(null);
+    } catch (err) {
+      console.error("Error al reiniciar beneficios:", err);
+    }
+  };
+
+  const handleResetAllBenefits = async () => {
+    try {
+      await resetAllRedemptions({});
+      setResetAllOpen(false);
+    } catch (err) {
+      console.error("Error al reiniciar beneficios:", err);
     }
   };
 
@@ -537,10 +703,11 @@ export default function AliadosPage() {
       if (whatsappFilter === "yes" && !ally.whatsappOptIn) return false;
       if (whatsappFilter === "no" && ally.whatsappOptIn) return false;
       if (statusFilter !== "all") {
-        const isPaid =
-          ally.status === "pagado" || ally.paymentStatus === "pagado";
-        if (statusFilter === "pagado" && !isPaid) return false;
-        if (statusFilter === "no_pagado" && isPaid) return false;
+        const paid = isAllyPaid(ally);
+        const expired = isAllyExpired(ally);
+        if (statusFilter === "pagado" && (!paid || expired)) return false;
+        if (statusFilter === "no_pagado" && paid) return false;
+        if (statusFilter === "vencido" && !expired) return false;
       }
       return true;
     });
@@ -584,10 +751,16 @@ export default function AliadosPage() {
 
   // Stats calculation
   const totalRevenue = useMemo(() => {
-    return allies
-      .filter((a) => a.status === "pagado" || a.paymentStatus === "pagado")
-      .reduce((acc, a) => acc + (a.packageAmount || 0), 0);
-  }, [allies]);
+    const fromPayments = allAllyPayments.reduce(
+      (acc, payment) => acc + (payment.amount || 0),
+      0,
+    );
+    const paidAllyIds = new Set(allAllyPayments.map((payment) => payment.allyId));
+    const legacy = allies
+      .filter((ally) => isAllyPaid(ally) && !paidAllyIds.has(ally._id))
+      .reduce((acc, ally) => acc + (ally.packageAmount || 0), 0);
+    return fromPayments + legacy;
+  }, [allies, allAllyPayments]);
 
   const vipCount = useMemo(() => {
     return allies.filter((a) => a.package === "vip").length;
@@ -619,7 +792,7 @@ export default function AliadosPage() {
           <StatCard
             label="Recaudación Membresías"
             value={formatCurrency(totalRevenue)}
-            detail="Ingresos por afiliaciones"
+            detail="Pagos de membresía registrados"
             icon={<CurrencyDollarIcon size={18} weight="fill" />}
             index={1}
           />
@@ -751,8 +924,9 @@ export default function AliadosPage() {
                     className="rounded-lg border border-grayscale-4 bg-grayscale-1 px-2.5 py-1.5 font-mono text-xs font-semibold text-grayscale-12 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
                   >
                     <option value="all">Todos</option>
-                    <option value="pagado">Pagados</option>
+                    <option value="pagado">Vigentes</option>
                     <option value="no_pagado">Pendientes</option>
+                    <option value="vencido">Vencidos</option>
                   </select>
                 </div>
               </div>
@@ -870,31 +1044,46 @@ export default function AliadosPage() {
                       key: "status",
                       header: "Pago",
                       render: (a) => {
-                        const isPaid =
-                          a.status === "pagado" || a.paymentStatus === "pagado";
-                        return isPaid ? (
-                          <Badge variant="green">Pagado</Badge>
-                        ) : (
-                          <Badge variant="orange">Pendiente</Badge>
-                        );
+                        if (!isAllyPaid(a)) {
+                          return <Badge variant="orange">Pendiente</Badge>;
+                        }
+                        if (isAllyExpired(a)) {
+                          return <Badge variant="red">Vencido</Badge>;
+                        }
+                        return <Badge variant="green">Vigente</Badge>;
                       },
                     },
                     {
-                      key: "createdAt",
-                      header: "Fecha",
-                      className: "hidden lg:table-cell w-24",
+                      key: "paidUntil",
+                      header: "Vigencia",
+                      className: "hidden lg:table-cell w-28",
                       render: (a) => (
-                        <span className="font-mono text-xs text-grayscale-10">
-                          {formatDate(a.createdAt)}
-                        </span>
+                        <div>
+                          <p className="font-mono text-xs text-grayscale-12">
+                            {isAllyPaid(a)
+                              ? formatDate(getAllyPaidUntil(a))
+                              : "Sin vigencia"}
+                          </p>
+                          <p className="font-mono text-[10px] text-grayscale-9">
+                            Registrado {formatDate(a.createdAt)}
+                          </p>
+                        </div>
                       ),
                     },
                     {
                       key: "actions",
                       header: "",
-                      className: "w-28 text-right",
+                      className: "w-40 text-right",
                       render: (a) => (
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openPaymentModal(a)}
+                            className="p-1.5 text-grayscale-10 hover:text-grayscale-12 hover:bg-grayscale-3 rounded-lg transition-colors cursor-pointer"
+                            title="Registrar pago"
+                          >
+                            <CurrencyDollarIcon size={16} />
+                          </button>
                           <button
                             type="button"
                             onClick={() => openCarnetModal(a)}
@@ -902,6 +1091,14 @@ export default function AliadosPage() {
                             title="Ver Carnet"
                           >
                             <IdentificationCardIcon size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResetAlly(a)}
+                            className="p-1.5 text-grayscale-10 hover:text-grayscale-12 hover:bg-grayscale-3 rounded-lg transition-colors cursor-pointer"
+                            title="Reiniciar beneficios"
+                          >
+                            <ArrowClockwiseIcon size={16} />
                           </button>
                           <button
                             type="button"
@@ -1231,9 +1428,20 @@ export default function AliadosPage() {
                 </div>
               </div>
 
-              <span className="font-mono text-xs text-grayscale-10">
-                Total de canjes auditados: {redemptions.length}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-grayscale-10">
+                  Total de canjes auditados: {redemptions.length}
+                </span>
+                <Button
+                  variant="secondary"
+                  className="text-xs font-mono font-bold"
+                  onClick={() => setResetAllOpen(true)}
+                  disabled={redemptions.length === 0}
+                >
+                  <ArrowClockwiseIcon size={14} weight="bold" />
+                  <span>Reiniciar beneficios</span>
+                </Button>
+              </div>
             </div>
 
             {filteredRedemptions.length === 0 ? (
@@ -1506,6 +1714,11 @@ export default function AliadosPage() {
               />
             </div>
 
+            <p className="text-xs text-grayscale-10">
+              Para cobrar o renovar el mes y enviarlo a Finanzas, usá Registrar
+              pago.
+            </p>
+
             <div className="flex justify-end gap-2 pt-2 border-t border-grayscale-3 dark:border-grayscale-4">
               <Button
                 type="button"
@@ -1514,6 +1727,18 @@ export default function AliadosPage() {
               >
                 Cancelar
               </Button>
+              {selectedAlly ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setEditModalOpen(false);
+                    openPaymentModal(selectedAlly);
+                  }}
+                >
+                  Registrar pago
+                </Button>
+              ) : null}
               <Button type="submit" variant="primary" disabled={saving}>
                 {saving ? "Guardando..." : "Guardar cambios"}
               </Button>
@@ -1530,6 +1755,171 @@ export default function AliadosPage() {
           confirmText="Eliminar"
           variant="danger"
           onConfirm={handleDeleteAlly}
+        />
+
+        <ConfirmModal
+          open={Boolean(resetAlly)}
+          onOpenChange={(open) => !open && setResetAlly(null)}
+          title="Reiniciar beneficios"
+          description={`Se eliminan los canjes de ${resetAlly?.fullName} y vuelve a poder usar todos sus beneficios.`}
+          confirmText="Reiniciar"
+          variant="warning"
+          onConfirm={handleResetAllyBenefits}
+        />
+
+        <ConfirmModal
+          open={resetAllOpen}
+          onOpenChange={setResetAllOpen}
+          title="Reiniciar todos los beneficios"
+          description="Se elimina el historial de canjes y todos los afiliados vuelven a poder usar sus beneficios."
+          confirmText="Reiniciar todos"
+          variant="warning"
+          onConfirm={handleResetAllBenefits}
+        />
+
+        {/* Register Payment Modal */}
+        <Modal
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+          title={
+            paymentAlly
+              ? `Registrar pago: ${paymentAlly.fullName}`
+              : "Registrar pago"
+          }
+        >
+          <form onSubmit={handleRegisterPayment} className="flex flex-col gap-4">
+            {paymentAlly ? (
+              <div className="rounded-xl border border-grayscale-3 bg-grayscale-2 px-3 py-2.5 dark:border-grayscale-4 dark:bg-grayscale-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
+                  Membresía actual
+                </p>
+                <p className="mt-1 text-sm font-semibold text-grayscale-12">
+                  {paymentAlly.package === "vip" ? "VIP" : "Élite"} —{" "}
+                  {formatCurrency(paymentAlly.packageAmount)}
+                </p>
+                <p className="mt-0.5 font-mono text-xs text-grayscale-10">
+                  {isAllyPaid(paymentAlly)
+                    ? isAllyExpired(paymentAlly)
+                      ? `Vencida el ${formatDate(getAllyPaidUntil(paymentAlly))}`
+                      : `Vigente hasta ${formatDate(getAllyPaidUntil(paymentAlly))}`
+                    : "Pendiente de pago"}
+                </p>
+                <p className="mt-1 text-xs text-grayscale-10">
+                  Este cobro activa o renueva 1 mes y se registra como ingreso
+                  en Finanzas. Nueva vigencia:{" "}
+                  <span className="font-mono font-semibold text-grayscale-12">
+                    {formatDate(
+                      nextPaidUntilFor(paymentAlly, paymentForm.date || todayYmd()),
+                    )}
+                  </span>
+                </p>
+              </div>
+            ) : null}
+
+            {paymentError ? (
+              <p className="text-xs font-mono text-rose-600 dark:text-rose-400">
+                {paymentError}
+              </p>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Monto"
+                id="ally-payment-amount"
+                type="number"
+                min={1}
+                required
+                value={paymentForm.amount || ""}
+                onChange={(e) =>
+                  setPaymentForm((f) => ({
+                    ...f,
+                    amount: Number(e.target.value) || 0,
+                  }))
+                }
+              />
+              <Input
+                label="Fecha del pago"
+                id="ally-payment-date"
+                type="date"
+                required
+                value={paymentForm.date}
+                onChange={(e) =>
+                  setPaymentForm((f) => ({ ...f, date: e.target.value }))
+                }
+              />
+            </div>
+
+            <Input
+              label="Concepto (opcional)"
+              id="ally-payment-concept"
+              placeholder="Ej: SINPE, efectivo o renovación de septiembre"
+              value={paymentForm.concept}
+              onChange={(e) =>
+                setPaymentForm((f) => ({ ...f, concept: e.target.value }))
+              }
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-grayscale-3 dark:border-grayscale-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setPaymentModalOpen(false)}
+              >
+                Cerrar
+              </Button>
+              <Button type="submit" variant="primary" disabled={paymentSaving}>
+                {paymentSaving ? "Registrando..." : "Registrar pago"}
+              </Button>
+            </div>
+          </form>
+
+          <div className="mt-4 pt-3 border-t border-grayscale-3 dark:border-grayscale-4">
+            <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-9">
+              Historial de pagos
+            </p>
+            {allyPayments.length === 0 ? (
+              <p className="text-xs text-grayscale-10">
+                Todavía no hay pagos registrados para este afiliado.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {allyPayments.map((payment) => (
+                  <div
+                    key={payment._id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-2 dark:border-grayscale-4"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-grayscale-12">
+                        {formatCurrency(payment.amount)}
+                      </p>
+                      <p className="font-mono text-[11px] text-grayscale-10">
+                        {formatDate(payment.date)} · vigente hasta{" "}
+                        {formatDate(payment.validUntil)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentToDeleteId(payment._id)}
+                      className="p-1.5 text-grayscale-10 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                      title="Eliminar pago"
+                    >
+                      <TrashIcon size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+
+        <ConfirmModal
+          open={Boolean(paymentToDeleteId)}
+          onOpenChange={(open) => !open && setPaymentToDeleteId(null)}
+          title="Eliminar pago"
+          description="¿Eliminar este pago? También se quita el ingreso en Finanzas y se recalcula la vigencia."
+          confirmText="Eliminar"
+          variant="danger"
+          onConfirm={handleDeletePayment}
         />
 
         {/* Carnet Modal */}

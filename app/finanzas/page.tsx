@@ -133,6 +133,7 @@ function clientLinkedHeading(
 const CATEGORIES = [
   "Producción",
   "Comercial",
+  "Aliados",
   "Nómina",
   "Locaciones",
   "Alquiler",
@@ -651,6 +652,26 @@ export default function FinanzasPage() {
       header: "Concepto",
       render: (t) => {
         const linkedSource = getClientFinanceSource(t);
+
+        if (t.source === "ally_payment") {
+          return (
+            <div className="min-w-0 max-w-[280px]">
+              <p className="text-sm font-medium text-grayscale-12">
+                Membresía aliado
+              </p>
+              {t.local ? (
+                <p className="text-xs font-medium text-grayscale-12 mt-0.5 whitespace-normal wrap-break-word">
+                  {t.local}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                <span className="text-xs text-grayscale-9">{t.category}</span>
+                <span className="text-grayscale-6 text-[10px]">•</span>
+                <span className="text-xs text-green-11">Abonado</span>
+              </div>
+            </div>
+          );
+        }
 
         if (linkedSource) {
           const parsed = parseLinkedConcept(t.concept, t.local);
