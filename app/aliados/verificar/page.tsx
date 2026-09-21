@@ -17,6 +17,7 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -39,6 +40,51 @@ function maskIdCard(idCard?: string): string {
   const start = trimmed.slice(0, 2);
   const end = trimmed.slice(-3);
   return `${start}****${end}`;
+}
+
+const INVALID_PIN_MESSAGE = "El PIN del comercio es incorrecto.";
+
+function getRedeemErrorMessage(err: unknown): string {
+  if (err instanceof ConvexError) {
+    const data = err.data;
+    if (
+      data &&
+      typeof data === "object" &&
+      "code" in data &&
+      data.code === "INVALID_PIN"
+    ) {
+      return INVALID_PIN_MESSAGE;
+    }
+    if (typeof data === "string") {
+      if (/PIN/i.test(data) && /incorrecto/i.test(data)) {
+        return INVALID_PIN_MESSAGE;
+      }
+      return data;
+    }
+    if (
+      data &&
+      typeof data === "object" &&
+      "message" in data &&
+      typeof data.message === "string"
+    ) {
+      if (/PIN/i.test(data.message) && /incorrecto/i.test(data.message)) {
+        return INVALID_PIN_MESSAGE;
+      }
+      return data.message;
+    }
+  }
+
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  if (/PIN/i.test(raw) && /incorrecto/i.test(raw)) {
+    return INVALID_PIN_MESSAGE;
+  }
+
+  const uncaught = raw.match(/Uncaught Error:\s*([^\n]+)/);
+  if (uncaught?.[1]) {
+    return uncaught[1].replace(/\s+at\s+handler.*$/, "").trim();
+  }
+
+  return "No se pudo canjear el beneficio. Intentá de nuevo.";
 }
 
 function formatDateTime(iso: string): string {
@@ -140,9 +186,8 @@ function VerificationContent() {
       setEnteredPin("");
       setRedeemSuccess(`Beneficio "${benefit.title}" canjeado con éxito.`);
       setTimeout(() => setRedeemSuccess(null), 4000);
-    } catch (err: any) {
-      const errorMsg = err?.message || "Error al canjear el beneficio.";
-      setPinError(errorMsg);
+    } catch (err: unknown) {
+      setPinError(getRedeemErrorMessage(err));
       setShakeKey((prev) => prev + 1);
 
       if (typeof window !== "undefined" && "vibrate" in navigator) {

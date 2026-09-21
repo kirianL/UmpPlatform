@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
@@ -331,7 +331,10 @@ export const redeemBenefit = mutation({
 
     if (partnerBusiness) {
       if (partnerBusiness.pin !== cleanPin) {
-        throw new Error("El PIN de autorización del comercio es incorrecto.");
+        throw new ConvexError({
+          code: "INVALID_PIN",
+          message: "El PIN del comercio es incorrecto.",
+        });
       }
     } else {
       // Find any business matching PIN or benefit's businessName
@@ -341,7 +344,10 @@ export const redeemBenefit = mutation({
         .first();
 
       if (businessByName && businessByName.pin !== cleanPin) {
-        throw new Error("El PIN de autorización del comercio es incorrecto.");
+        throw new ConvexError({
+          code: "INVALID_PIN",
+          message: "El PIN del comercio es incorrecto.",
+        });
       }
     }
 
