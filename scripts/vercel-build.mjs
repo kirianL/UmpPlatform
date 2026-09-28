@@ -5,10 +5,17 @@ function run(command, args) {
     stdio: "inherit",
     shell: true,
   });
-  process.exit(result.status ?? 1);
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
 }
 
-if (process.env.CONVEX_DEPLOY_KEY) {
+const deployKey = process.env.CONVEX_DEPLOY_KEY || "";
+
+if (deployKey.startsWith("dev:")) {
+  run("npx", ["convex", "dev", "--once"]);
+  run("npx", ["next", "build"]);
+} else if (deployKey) {
   run("npx", ["convex", "deploy", "--cmd", "next build"]);
 } else {
   run("npx", ["next", "build"]);

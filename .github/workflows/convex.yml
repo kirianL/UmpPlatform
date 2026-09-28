@@ -18,6 +18,6 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npx convex deploy
+      - run: npx convex dev --once
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
