@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "build": "node scripts/vercel-build.mjs",
+    "build:next": "next build",
     "trigger:dev": "npx trigger.dev@latest dev",
     "trigger:deploy": "npx trigger.dev@latest deploy",
-    "build": "next build",
     "start": "next start",
     "lint": "biome lint .",
     "format": "biome format --write .",
