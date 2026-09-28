@@ -87,20 +87,21 @@ async function deleteUnusedImages(
 
 function cleanAuthors(authors: { id?: string; name: string }[]) {
   const seen = new Set<string>();
-  return authors
-    .map((author) => {
-      const known = resolveNewsAuthor(author);
-      if (known) return { id: known.id, name: known.name };
-      const name = author.name.trim();
-      return name ? { name } : null;
-    })
-    .filter((author): author is { id?: string; name: string } => {
-      if (!author?.name) return false;
-      const key = author.id || author.name.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  const cleaned: { id?: string; name: string }[] = [];
+  for (const author of authors) {
+    const known = resolveNewsAuthor(author);
+    const next = known
+      ? { id: String(known.id), name: String(known.name) }
+      : author.name.trim()
+        ? { name: author.name.trim() }
+        : null;
+    if (!next) continue;
+    const key = next.id || next.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(next);
+  }
+  return cleaned;
 }
 
 function toPublicAuthors(authors: { id?: string; name: string }[]) {
@@ -141,14 +142,15 @@ function readMinutes(article: {
   return Math.max(1, Math.round(wordCount(article) / 200) || 1);
 }
 
-async function withCoverUrl<T extends Doc<"newsArticles">>(
-  ctx: QueryCtx,
-  article: T,
-) {
+type NewsSectionWithUrl = Doc<"newsArticles">["sections"][number] & {
+  imageUrl: string | null;
+};
+
+async function withCoverUrl(ctx: QueryCtx, article: Doc<"newsArticles">) {
   const coverUrl = article.coverStorageId
     ? await ctx.storage.getUrl(article.coverStorageId)
     : null;
-  const sections = await Promise.all(
+  const sections: NewsSectionWithUrl[] = await Promise.all(
     article.sections.map(async (section) => ({
       ...section,
       imageUrl: section.imageStorageId
@@ -156,8 +158,9 @@ async function withCoverUrl<T extends Doc<"newsArticles">>(
         : null,
     })),
   );
+  const { sections: _storedSections, ...rest } = article;
   return {
-    ...article,
+    ...rest,
     coverUrl,
     sections,
     readMinutes: readMinutes(article),
