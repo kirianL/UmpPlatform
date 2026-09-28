@@ -26,6 +26,7 @@ import type * as deals from "../deals.js";
 import type * as employees from "../employees.js";
 import type * as equipment from "../equipment.js";
 import type * as events from "../events.js";
+import type * as fixedExpenses from "../fixedExpenses.js";
 import type * as invoiceImages from "../invoiceImages.js";
 import type * as notes from "../notes.js";
 import type * as potentialCollaborators from "../potentialCollaborators.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   employees: typeof employees;
   equipment: typeof equipment;
   events: typeof events;
+  fixedExpenses: typeof fixedExpenses;
   invoiceImages: typeof invoiceImages;
   notes: typeof notes;
   potentialCollaborators: typeof potentialCollaborators;

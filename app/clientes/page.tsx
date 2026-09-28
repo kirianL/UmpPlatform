@@ -433,10 +433,10 @@ export default function ClientesPage() {
     }
 
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-start gap-0.5">
         <Badge variant="orange">Pendiente</Badge>
         {balance > 0 && (
-          <span className="text-[11px] font-mono font-semibold text-orange-11">
+          <span className="text-[11px] font-mono font-medium text-orange-11 pl-0.5">
             {formatCurrency(balance)}
           </span>
         )}

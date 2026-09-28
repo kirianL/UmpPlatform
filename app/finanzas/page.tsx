@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  CalendarDotsIcon,
   CameraIcon,
   CheckCircleIcon,
+  CheckIcon,
   ClipboardTextIcon,
   CurrencyDollarIcon,
   EyeIcon,
@@ -37,7 +39,13 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 type BudgetStatus = "pending" | "in_progress" | "completed" | "cancelled";
-type FinanceTab = "all" | "income" | "expense" | "presupuesto" | "facturas";
+type FinanceTab =
+  | "all"
+  | "income"
+  | "expense"
+  | "presupuesto"
+  | "gastos_fijos"
+  | "facturas";
 type BudgetItem = Doc<"budgetItems">;
 
 function formatCurrency(n: number): string {
@@ -131,6 +139,7 @@ function clientLinkedHeading(
 }
 
 const CATEGORIES = [
+  "Servicios Públicos",
   "Producción",
   "Comercial",
   "Aliados",
@@ -161,6 +170,27 @@ const EMPTY_BUDGET = {
   notes: "",
 };
 
+const EMPTY_FIXED_EXPENSE = {
+  concept: "",
+  amount: 0,
+  category: "Alquiler",
+  dueDay: 1,
+  active: true,
+  notes: "",
+};
+
+function formatMonthYearLabel(ym: string): string {
+  if (!ym) return "";
+  const [year, month] = ym.split("-").map(Number);
+  if (!year || !month) return ym;
+  const date = new Date(year, month - 1, 1);
+  const name = date.toLocaleDateString("es-CR", {
+    month: "long",
+    year: "numeric",
+  });
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 const BUDGET_STATUS_OPTIONS: { value: BudgetStatus; label: string }[] = [
   { value: "pending", label: "Pendiente" },
   { value: "in_progress", label: "En proceso" },
@@ -178,6 +208,19 @@ export default function FinanzasPage() {
   const createBudgetItem = useMutation(api.budgetItems.create);
   const updateBudgetItem = useMutation(api.budgetItems.update);
   const removeBudgetItem = useMutation(api.budgetItems.remove);
+
+  const [selectedFixedExpenseMonth, setSelectedFixedExpenseMonth] = useState(
+    () => new Date().toISOString().slice(0, 7),
+  );
+  const fixedExpenses =
+    useQuery(api.fixedExpenses.get, {
+      month: selectedFixedExpenseMonth,
+    }) ?? [];
+  const createFixedExpense = useMutation(api.fixedExpenses.create);
+  const updateFixedExpense = useMutation(api.fixedExpenses.update);
+  const removeFixedExpense = useMutation(api.fixedExpenses.remove);
+  const toggleFixedExpenseActive = useMutation(api.fixedExpenses.toggleActive);
+  const toggleFixedExpensePayment = useMutation(api.fixedExpenses.togglePayment);
 
   const invoiceImages = useQuery(api.invoiceImages.list) ?? [];
   const generateInvoiceUploadUrl = useMutation(
@@ -218,7 +261,19 @@ export default function FinanzasPage() {
   const [deleteInvoiceId, setDeleteInvoiceId] =
     useState<Id<"invoiceImages"> | null>(null);
 
+  const [fixedExpenseModalOpen, setFixedExpenseModalOpen] = useState(false);
+  const [editingFixedExpenseId, setEditingFixedExpenseId] =
+    useState<Id<"fixedExpenses"> | null>(null);
+  const [fixedExpenseForm, setFixedExpenseForm] = useState(EMPTY_FIXED_EXPENSE);
+  const [isFixedExpenseViewOnly, setIsFixedExpenseViewOnly] = useState(false);
+  const [fixedExpenseSearch, setFixedExpenseSearch] = useState("");
+  const [fixedExpenseStatusFilter, setFixedExpenseStatusFilter] =
+    useState<string>("all");
+  const [deleteFixedExpenseId, setDeleteFixedExpenseId] =
+    useState<Id<"fixedExpenses"> | null>(null);
+
   const isBudgetTab = activeTab === "presupuesto";
+  const isFixedExpensesTab = activeTab === "gastos_fijos";
   const isInvoicesTab = activeTab === "facturas";
 
   const filteredTransactions = useMemo(() => {
@@ -507,6 +562,148 @@ export default function FinanzasPage() {
     if (!deleteBudgetId) return;
     await removeBudgetItem({ id: deleteBudgetId });
     setDeleteBudgetId(null);
+  }
+
+  const filteredFixedExpenses = useMemo(() => {
+    return fixedExpenses.filter((item) => {
+      if (fixedExpenseSearch.trim()) {
+        const q = fixedExpenseSearch.toLowerCase().trim();
+        const matchesConcept = item.concept.toLowerCase().includes(q);
+        const matchesCategory = item.category.toLowerCase().includes(q);
+        const matchesNotes = item.notes
+          ? item.notes.toLowerCase().includes(q)
+          : false;
+        const matchesDay =
+          `día ${item.dueDay}`.includes(q) || `${item.dueDay}`.includes(q);
+
+        if (
+          !matchesConcept &&
+          !matchesCategory &&
+          !matchesNotes &&
+          !matchesDay
+        ) {
+          return false;
+        }
+      }
+
+      if (fixedExpenseStatusFilter === "active" && !item.active) return false;
+      if (fixedExpenseStatusFilter === "paused" && item.active) return false;
+      if (
+        fixedExpenseStatusFilter === "paid" &&
+        (!item.active || !item.isPaidThisMonth)
+      ) {
+        return false;
+      }
+      if (
+        fixedExpenseStatusFilter === "pending" &&
+        (!item.active || item.isPaidThisMonth)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [fixedExpenses, fixedExpenseSearch, fixedExpenseStatusFilter]);
+
+  const sortedFixedExpenses = useMemo(() => {
+    return [...filteredFixedExpenses].sort((a, b) => {
+      if (a.active !== b.active) {
+        return a.active ? -1 : 1;
+      }
+      return a.dueDay - b.dueDay;
+    });
+  }, [filteredFixedExpenses]);
+
+  const activeFixedExpenses = useMemo(() => {
+    return fixedExpenses.filter((item) => item.active);
+  }, [fixedExpenses]);
+
+  const fixedExpensesTotalMonthly = useMemo(() => {
+    return activeFixedExpenses.reduce((sum, item) => sum + item.amount, 0);
+  }, [activeFixedExpenses]);
+
+  const fixedExpensesPaidThisMonth = useMemo(() => {
+    return activeFixedExpenses
+      .filter((item) => item.isPaidThisMonth)
+      .reduce((sum, item) => sum + item.amount, 0);
+  }, [activeFixedExpenses]);
+
+  const fixedExpensesPendingThisMonth = useMemo(() => {
+    return activeFixedExpenses
+      .filter((item) => !item.isPaidThisMonth)
+      .reduce((sum, item) => sum + item.amount, 0);
+  }, [activeFixedExpenses]);
+
+  const fixedExpensesPaidCount = useMemo(() => {
+    return activeFixedExpenses.filter((item) => item.isPaidThisMonth).length;
+  }, [activeFixedExpenses]);
+
+  function openCreateFixedExpense() {
+    setEditingFixedExpenseId(null);
+    setFixedExpenseForm({ ...EMPTY_FIXED_EXPENSE });
+    setIsFixedExpenseViewOnly(false);
+    setFixedExpenseModalOpen(true);
+  }
+
+  function openEditFixedExpense(item: any) {
+    setEditingFixedExpenseId(item._id);
+    setFixedExpenseForm({
+      concept: item.concept,
+      amount: item.amount,
+      category: item.category,
+      dueDay: item.dueDay ?? 1,
+      active: item.active ?? true,
+      notes: item.notes ?? "",
+    });
+    setIsFixedExpenseViewOnly(false);
+    setFixedExpenseModalOpen(true);
+  }
+
+  function openViewFixedExpense(item: any) {
+    setEditingFixedExpenseId(null);
+    setFixedExpenseForm({
+      concept: item.concept,
+      amount: item.amount,
+      category: item.category,
+      dueDay: item.dueDay ?? 1,
+      active: item.active ?? true,
+      notes: item.notes ?? "",
+    });
+    setIsFixedExpenseViewOnly(true);
+    setFixedExpenseModalOpen(true);
+  }
+
+  function handleSaveFixedExpense() {
+    const payload = {
+      concept: fixedExpenseForm.concept.trim() || "Gasto fijo sin concepto",
+      amount: fixedExpenseForm.amount,
+      category: fixedExpenseForm.category,
+      dueDay: Number(fixedExpenseForm.dueDay) || 1,
+      active: fixedExpenseForm.active,
+      notes: fixedExpenseForm.notes.trim() || undefined,
+    };
+
+    if (editingFixedExpenseId) {
+      updateFixedExpense({ id: editingFixedExpenseId, ...payload });
+    } else {
+      createFixedExpense(payload);
+    }
+    setFixedExpenseModalOpen(false);
+  }
+
+  async function handleConfirmDeleteFixedExpense() {
+    if (!deleteFixedExpenseId) return;
+    await removeFixedExpense({ id: deleteFixedExpenseId });
+    setDeleteFixedExpenseId(null);
+  }
+
+  async function handleToggleFixedExpensePayment(item: any) {
+    const nextStatus = item.isPaidThisMonth ? "pending" : "paid";
+    await toggleFixedExpensePayment({
+      fixedExpenseId: item._id,
+      month: selectedFixedExpenseMonth,
+      status: nextStatus,
+    });
   }
 
   const budgetStatusBadge = (status: BudgetStatus) => {
@@ -882,6 +1079,117 @@ export default function FinanzasPage() {
     },
   ];
 
+  const fixedExpenseColumns = (): Column<any>[] => [
+    {
+      key: "concept",
+      header: "Concepto / Servicio",
+      render: (item) => (
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-grayscale-12 whitespace-normal wrap-break-word max-w-[280px]">
+            {item.concept}
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-grayscale-9">{item.category}</span>
+            {item.notes && (
+              <>
+                <span className="text-grayscale-6 text-[10px]">•</span>
+                <span className="text-xs text-grayscale-10 whitespace-normal wrap-break-word max-w-[280px]">
+                  {item.notes}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "dueDay",
+      header: "Día de cobro",
+      className: "hidden sm:table-cell",
+      render: (item) => (
+        <div className="flex items-center gap-1.5 text-xs text-grayscale-11 font-mono">
+          <CalendarDotsIcon size={14} className="text-grayscale-9" />
+          <span>Día {item.dueDay} de cada mes</span>
+        </div>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Monto mensual",
+      render: (item) => (
+        <span className="text-sm font-medium text-grayscale-12">
+          {formatCurrency(item.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Estado",
+      className: "hidden md:table-cell",
+      render: (item) => {
+        if (!item.active) {
+          return <Badge variant="gray">Pausado</Badge>;
+        }
+        if (item.isPaidThisMonth) {
+          return <Badge variant="green">Pagado</Badge>;
+        }
+        return <Badge variant="orange">Pendiente</Badge>;
+      },
+    },
+    {
+      key: "actions",
+      header: "",
+      className: "w-24",
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleToggleFixedExpensePayment(item)}
+            className={`flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors ${
+              item.isPaidThisMonth
+                ? "text-green-11 hover:bg-green-3"
+                : "text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-11"
+            } ${!item.active ? "opacity-30 pointer-events-none" : ""}`}
+            title={
+              item.isPaidThisMonth
+                ? "Marcar como pendiente este mes"
+                : "Marcar como pagado este mes"
+            }
+          >
+            <CheckIcon
+              size={14}
+              weight={item.isPaidThisMonth ? "bold" : "regular"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => openViewFixedExpense(item)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
+            title="Ver detalles"
+          >
+            <EyeIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => openEditFixedExpense(item)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-11"
+            title="Editar"
+          >
+            <PencilSimpleIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteFixedExpenseId(item._id)}
+            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-red-3 hover:text-red-11"
+            title="Eliminar"
+          >
+            <TrashIcon size={14} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
@@ -954,6 +1262,42 @@ export default function FinanzasPage() {
               index={2}
             />
           </div>
+        ) : isFixedExpensesTab ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Total mensual"
+              value={formatCurrency(fixedExpensesTotalMonthly)}
+              detail={`${activeFixedExpenses.length} gastos fijos activos · Modo Beta`}
+              icon={<WalletIcon size={18} weight="fill" />}
+              index={0}
+            />
+            <StatCard
+              label="Pagado este mes"
+              value={formatCurrency(fixedExpensesPaidThisMonth)}
+              detail={`${fixedExpensesPaidCount} de ${activeFixedExpenses.length} pagados · No descuenta de Finanzas`}
+              icon={
+                <CheckCircleIcon
+                  size={18}
+                  weight="bold"
+                  className="text-green-9"
+                />
+              }
+              index={1}
+            />
+            <StatCard
+              label="Pendiente este mes"
+              value={formatCurrency(fixedExpensesPendingThisMonth)}
+              detail="Control interno, no altera el balance"
+              icon={
+                <HourglassIcon
+                  size={18}
+                  weight="bold"
+                  className="text-orange-9"
+                />
+              }
+              index={2}
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
@@ -1009,6 +1353,17 @@ export default function FinanzasPage() {
               Agregar ítem de presupuesto
             </Button>
           </div>
+        ) : isFixedExpensesTab ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              variant="primary"
+              className="text-xs"
+              onClick={openCreateFixedExpense}
+            >
+              <PlusIcon size={16} weight="bold" />
+              Agregar gasto fijo
+            </Button>
+          </div>
         ) : isInvoicesTab ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
@@ -1056,138 +1411,197 @@ export default function FinanzasPage() {
         <Tabs.Root
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as FinanceTab)}
-          className="w-full flex flex-col"
+          className="w-full flex flex-col gap-4"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
-            <Tabs.List className="border-0 pb-0 gap-1.5">
+          <div className="border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
+            <Tabs.List className="border-0 pb-0 gap-1.5 overflow-x-auto">
               <Tabs.Tab
                 value="all"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3 whitespace-nowrap"
               >
                 Todos
               </Tabs.Tab>
               <Tabs.Tab
                 value="income"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3 whitespace-nowrap"
               >
                 Ingresos
               </Tabs.Tab>
               <Tabs.Tab
                 value="expense"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3 whitespace-nowrap"
               >
                 Egresos
               </Tabs.Tab>
               <Tabs.Tab
                 value="presupuesto"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3 whitespace-nowrap"
               >
                 Presupuesto
               </Tabs.Tab>
               <Tabs.Tab
+                value="gastos_fijos"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3 whitespace-nowrap"
+              >
+                Gastos fijos
+              </Tabs.Tab>
+              <Tabs.Tab
                 value="facturas"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3 whitespace-nowrap"
               >
                 Facturas
               </Tabs.Tab>
               <Tabs.Indicator />
             </Tabs.List>
+          </div>
 
-            {/* Filtering and Sorting controls */}
-            {isInvoicesTab ? (
-              <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
-                <div className="relative flex-1 sm:w-64 sm:flex-initial">
-                  <MagnifyingGlassIcon
-                    size={15}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar proveedor o archivo..."
-                    value={invoiceSearch}
-                    onChange={(e) => setInvoiceSearch(e.target.value)}
-                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
-                  />
-                </div>
+          {/* Filtering and Sorting controls */}
+          {isInvoicesTab ? (
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-64 sm:flex-initial">
+                <MagnifyingGlassIcon
+                  size={15}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar proveedor o archivo..."
+                  value={invoiceSearch}
+                  onChange={(e) => setInvoiceSearch(e.target.value)}
+                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                />
               </div>
-            ) : isBudgetTab ? (
-              <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
-                <div className="relative flex-1 sm:w-64 sm:flex-initial">
-                  <MagnifyingGlassIcon
-                    size={15}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
-                  />
+            </div>
+          ) : isBudgetTab ? (
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-64 sm:flex-initial">
+                <MagnifyingGlassIcon
+                  size={15}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar ítem o concepto..."
+                  value={budgetSearch}
+                  onChange={(e) => setBudgetSearch(e.target.value)}
+                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none shrink-0">
+                  Estado:
+                </span>
+                <select
+                  value={budgetStatusFilter}
+                  onChange={(e) => setBudgetStatusFilter(e.target.value)}
+                  className="flex-1 sm:flex-initial rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                >
+                  <option value="all">Todos</option>
+                  {BUDGET_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : isFixedExpensesTab ? (
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-64 sm:flex-initial">
+                <MagnifyingGlassIcon
+                  size={15}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar gasto fijo..."
+                  value={fixedExpenseSearch}
+                  onChange={(e) => setFixedExpenseSearch(e.target.value)}
+                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none shrink-0">
+                    Mes:
+                  </span>
                   <input
-                    type="text"
-                    placeholder="Buscar ítem o concepto..."
-                    value={budgetSearch}
-                    onChange={(e) => setBudgetSearch(e.target.value)}
-                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                    type="month"
+                    value={selectedFixedExpenseMonth}
+                    onChange={(e) =>
+                      setSelectedFixedExpenseMonth(
+                        e.target.value || new Date().toISOString().slice(0, 7),
+                      )
+                    }
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 px-2 py-1.5 font-mono text-[10px] text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none shrink-0">
                     Estado:
                   </span>
                   <select
-                    value={budgetStatusFilter}
-                    onChange={(e) => setBudgetStatusFilter(e.target.value)}
-                    className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                    value={fixedExpenseStatusFilter}
+                    onChange={(e) => setFixedExpenseStatusFilter(e.target.value)}
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
                   >
                     <option value="all">Todos</option>
-                    {BUDGET_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
+                    <option value="pending">Pendientes</option>
+                    <option value="paid">Pagados</option>
+                    <option value="active">Solo activos</option>
+                    <option value="paused">Pausados</option>
                   </select>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2.5 mt-2 sm:mt-0">
-                {/* Search input for Invoices / Transactions */}
-                <div className="relative flex-1 sm:w-64 sm:flex-initial">
-                  <MagnifyingGlassIcon
-                    size={15}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar factura o concepto..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
-                  />
-                </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              {/* Search input for Invoices / Transactions */}
+              <div className="relative w-full sm:w-64 sm:flex-initial">
+                <MagnifyingGlassIcon
+                  size={15}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar factura o concepto..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4"
+                />
+              </div>
 
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2.5">
                 {/* Date range filter */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none shrink-0">
                     Periodo:
                   </span>
                   <select
                     value={filterDateRange}
                     onChange={(e) => setFilterDateRange(e.target.value)}
-                    className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 px-2 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
                   >
                     <option value="all">Todos</option>
-                    <option value="7days">Últimos 7 días</option>
+                    <option value="7days">7 días</option>
                     <option value="thisMonth">Este Mes</option>
-                    <option value="lastMonth">Mes Anterior</option>
+                    <option value="lastMonth">Mes Ant.</option>
                     <option value="thisYear">Este Año</option>
                   </select>
                 </div>
 
                 {/* Status filter */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none shrink-0">
                     Estado:
                   </span>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                    className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 px-2 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
                   >
                     <option value="all">Todos</option>
                     <option value="paid">Pagados</option>
@@ -1197,8 +1611,8 @@ export default function FinanzasPage() {
                 </div>
 
                 {/* Sorting order */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none">
+                <div className="col-span-2 sm:col-auto flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] font-mono font-bold uppercase text-grayscale-9 select-none shrink-0">
                     Orden:
                   </span>
                   <button
@@ -1206,7 +1620,7 @@ export default function FinanzasPage() {
                     onClick={() =>
                       setSortOrder(sortOrder === "desc" ? "asc" : "desc")
                     }
-                    className="flex items-center gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
+                    className="flex-1 sm:flex-initial flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 transition-all hover:bg-grayscale-2 active:scale-95 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3 dark:hover:bg-grayscale-4 transform-gpu"
                   >
                     <span>
                       {sortOrder === "desc" ? "Recientes" : "Antiguos"}
@@ -1217,8 +1631,8 @@ export default function FinanzasPage() {
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <Tabs.Panel value="all" className="mt-4">
             <DataTable
@@ -1323,6 +1737,46 @@ export default function FinanzasPage() {
                       >
                         <PlusIcon size={16} weight="bold" />
                         Agregar ítem
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              }
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="gastos_fijos" className="mt-4">
+            <DataTable
+              columns={fixedExpenseColumns()}
+              data={sortedFixedExpenses}
+              keyExtractor={(item) => item._id}
+              emptyState={
+                <EmptyState
+                  icon={
+                    fixedExpenseSearch ? (
+                      <MagnifyingGlassIcon size={40} weight="duotone" />
+                    ) : (
+                      <CalendarDotsIcon size={40} weight="duotone" />
+                    )
+                  }
+                  title={
+                    fixedExpenseSearch
+                      ? "Sin resultados"
+                      : "Sin gastos fijos registrados"
+                  }
+                  description={
+                    fixedExpenseSearch
+                      ? `No se encontraron gastos fijos que coincidan con "${fixedExpenseSearch}".`
+                      : "Registra costos recurrentes mensuales como alquiler, suscripciones de software y servicios."
+                  }
+                  action={
+                    !fixedExpenseSearch ? (
+                      <Button
+                        variant="primary"
+                        className="text-xs"
+                        onClick={openCreateFixedExpense}
+                      >
+                        <PlusIcon size={16} weight="bold" />
+                        Agregar gasto fijo
                       </Button>
                     ) : undefined
                   }
@@ -1707,6 +2161,159 @@ export default function FinanzasPage() {
           description="Este ítem se eliminará del presupuesto. Esta acción no se puede deshacer."
           confirmText="Eliminar"
           onConfirm={handleConfirmDeleteBudget}
+        />
+
+        {/* Modal Gasto Fijo */}
+        <Modal
+          open={fixedExpenseModalOpen}
+          onOpenChange={(open) => {
+            if (!open) setFixedExpenseModalOpen(false);
+          }}
+          title={
+            isFixedExpenseViewOnly
+              ? "Detalle de gasto fijo"
+              : editingFixedExpenseId
+                ? "Editar gasto fijo"
+                : "Nuevo gasto fijo"
+          }
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveFixedExpense();
+            }}
+            className="flex flex-col gap-4 w-full min-w-0"
+          >
+            <Input
+              label="Concepto / Servicio"
+              id="fixed-concept"
+              value={fixedExpenseForm.concept}
+              onChange={(e) =>
+                setFixedExpenseForm((f) => ({ ...f, concept: e.target.value }))
+              }
+              placeholder="Ej: Alquiler de estudio"
+              required
+              disabled={isFixedExpenseViewOnly}
+            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Monto mensual (CRC)"
+                id="fixed-amount"
+                type="number"
+                min={0}
+                value={fixedExpenseForm.amount || ""}
+                onChange={(e) =>
+                  setFixedExpenseForm((f) => ({
+                    ...f,
+                    amount: Number(e.target.value),
+                  }))
+                }
+                placeholder="250000"
+                required
+                disabled={isFixedExpenseViewOnly}
+              />
+              <Input
+                label="Día de cobro del mes (1-31)"
+                id="fixed-due-day"
+                type="number"
+                min={1}
+                max={31}
+                value={fixedExpenseForm.dueDay}
+                onChange={(e) =>
+                  setFixedExpenseForm((f) => ({
+                    ...f,
+                    dueDay: Math.min(
+                      31,
+                      Math.max(1, Number(e.target.value) || 1),
+                    ),
+                  }))
+                }
+                required
+                disabled={isFixedExpenseViewOnly}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Categoría"
+                id="fixed-category"
+                value={fixedExpenseForm.category}
+                onChange={(e) =>
+                  setFixedExpenseForm((f) => ({
+                    ...f,
+                    category: e.target.value,
+                  }))
+                }
+                options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+                disabled={isFixedExpenseViewOnly}
+              />
+              <Select
+                label="Estado del catálogo"
+                id="fixed-active"
+                value={fixedExpenseForm.active ? "active" : "paused"}
+                onChange={(e) =>
+                  setFixedExpenseForm((f) => ({
+                    ...f,
+                    active: e.target.value === "active",
+                  }))
+                }
+                options={[
+                  { value: "active", label: "Activo" },
+                  { value: "paused", label: "Pausado" },
+                ]}
+                disabled={isFixedExpenseViewOnly}
+              />
+            </div>
+            <p className="text-xs text-grayscale-9 -mt-2">
+              Modo Beta: el registro de pagos es para control y seguimiento interno, no altera el balance general ni genera egresos en Finanzas.
+            </p>
+            <div className="flex flex-col gap-1.5 w-full min-w-0">
+              <label
+                htmlFor="fixed-notes"
+                className="text-xs font-medium font-mono uppercase text-grayscale-10"
+              >
+                Notas / Referencia
+              </label>
+              <textarea
+                id="fixed-notes"
+                value={fixedExpenseForm.notes}
+                onChange={(e) =>
+                  setFixedExpenseForm((f) => ({ ...f, notes: e.target.value }))
+                }
+                placeholder="Detalles adicionales, proveedor, número de cuenta o contrato"
+                rows={3}
+                disabled={isFixedExpenseViewOnly}
+                className="w-full min-w-0 rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-2 text-sm text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all duration-200 focus:border-accent-8 focus:ring-2 focus:ring-accent-8/30 disabled:opacity-60 dark:border-grayscale-5 dark:bg-grayscale-3"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="text-xs"
+                type="button"
+                onClick={() => setFixedExpenseModalOpen(false)}
+              >
+                {isFixedExpenseViewOnly ? "Cerrar" : "Cancelar"}
+              </Button>
+              {!isFixedExpenseViewOnly && (
+                <Button variant="primary" className="text-xs" type="submit">
+                  {editingFixedExpenseId
+                    ? "Guardar cambios"
+                    : "Agregar gasto fijo"}
+                </Button>
+              )}
+            </div>
+          </form>
+        </Modal>
+
+        <ConfirmModal
+          open={deleteFixedExpenseId !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleteFixedExpenseId(null);
+          }}
+          title="Eliminar gasto fijo"
+          description="Se eliminará este gasto fijo del catálogo y sus registros de pago asociados. Esta acción no se puede deshacer."
+          confirmText="Eliminar"
+          onConfirm={handleConfirmDeleteFixedExpense}
         />
 
         <ConfirmModal

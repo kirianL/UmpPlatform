@@ -66,6 +66,27 @@ export default defineSchema({
     createdAt: v.optional(v.string()),
     transactionId: v.optional(v.id("transactions")),
   }).index("by_transactionId", ["transactionId"]),
+  fixedExpenses: defineTable({
+    concept: v.string(),
+    amount: v.number(),
+    category: v.string(),
+    dueDay: v.number(), // 1-31
+    active: v.boolean(),
+    notes: v.optional(v.string()),
+    createdAt: v.optional(v.string()),
+  }),
+  fixedExpensePayments: defineTable({
+    fixedExpenseId: v.id("fixedExpenses"),
+    month: v.string(), // YYYY-MM
+    status: v.union(v.literal("paid"), v.literal("pending")),
+    paidAt: v.optional(v.string()), // YYYY-MM-DD
+    amount: v.number(),
+    transactionId: v.optional(v.id("transactions")),
+    notes: v.optional(v.string()),
+  })
+    .index("by_fixedExpenseId", ["fixedExpenseId"])
+    .index("by_month", ["month"])
+    .index("by_transactionId", ["transactionId"]),
   invoiceImages: defineTable({
     storageId: v.id("_storage"),
     fileName: v.string(),

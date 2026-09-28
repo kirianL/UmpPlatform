@@ -34,6 +34,20 @@ async function releaseBudgetLink(
   }
 }
 
+async function releaseFixedExpenseLink(
+  ctx: MutationCtx,
+  transactionId: Id<"transactions">,
+) {
+  const linkedPayments = await ctx.db
+    .query("fixedExpensePayments")
+    .withIndex("by_transactionId", (q) => q.eq("transactionId", transactionId))
+    .collect();
+
+  for (const payment of linkedPayments) {
+    await ctx.db.delete(payment._id);
+  }
+}
+
 async function getLinkedServices(
   ctx: MutationCtx,
   transactionId: Id<"transactions">,
@@ -192,6 +206,7 @@ export const remove = mutation({
 
       await ctx.db.delete(args.id);
       await releaseBudgetLink(ctx, args.id);
+      await releaseFixedExpenseLink(ctx, args.id);
 
       for (const service of linkedServices) {
         await syncServiceReceivable(ctx, service._id);

@@ -21,14 +21,12 @@ import Button from "@/components/public/Button";
 import ConfirmModal from "@/components/public/ConfirmModal";
 import EmptyState from "@/components/public/EmptyState";
 import PageContainer from "@/components/public/PageContainer";
-import { Tabs } from "@/components/public/Tabs";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/helpers/classname-helper";
 
 type Note = Doc<"notes">;
 type NoteColor = "neutral" | "accent" | "orange" | "green";
-type NotesTab = "activas" | "hechas" | "todas";
 
 const SYSTEM_ACCOUNTS = [
   { email: "admin@ultimate.cr", name: "Administrador UMP" },
@@ -118,7 +116,6 @@ export default function NotasPage() {
   const [quickText, setQuickText] = useState("");
   const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState<NotesTab>("activas");
   const [deleteId, setDeleteId] = useState<Id<"notes"> | null>(null);
   const quickInputRef = useRef<HTMLInputElement>(null);
 
@@ -156,8 +153,15 @@ export default function NotasPage() {
     });
   }, [notes, search, ownerFilter, isAdmin]);
 
-  const activeNotes = filteredNotes.filter((note) => !note.done);
-  const doneNotes = filteredNotes.filter((note) => note.done);
+  const sortedNotes = useMemo(() => {
+    return [...filteredNotes].sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      const dateA = a.updatedAt || a.createdAt || "";
+      const dateB = b.updatedAt || b.createdAt || "";
+      return dateB.localeCompare(dateA);
+    });
+  }, [filteredNotes]);
 
   async function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -238,292 +242,240 @@ export default function NotasPage() {
           </Button>
         </form>
 
-        <Tabs.Root
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as NotesTab)}
-          className="w-full flex flex-col"
-        >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
-            <Tabs.List className="border-0 pb-0 gap-1 w-full sm:w-auto">
-              <Tabs.Tab
-                value="activas"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Activas ({activeNotes.length})
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="hechas"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Hechas ({doneNotes.length})
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="todas"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Todas ({filteredNotes.length})
-              </Tabs.Tab>
-              <Tabs.Indicator />
-            </Tabs.List>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 sm:w-56 sm:flex-initial">
-                <MagnifyingGlassIcon
-                  size={15}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar nota..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3"
-                />
-              </div>
-              {isAdmin && owners.length > 0 && (
-                <select
-                  value={ownerFilter}
-                  onChange={(e) => setOwnerFilter(e.target.value)}
-                  className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
-                >
-                  <option value="all">Todo el equipo</option>
-                  {owners.map(([email, name]) => (
-                    <option key={email} value={email}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+        {/* Controles de búsqueda y filtros */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
+          <div className="relative flex-1 sm:w-64 sm:flex-initial">
+            <MagnifyingGlassIcon
+              size={15}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-grayscale-8"
+            />
+            <input
+              type="text"
+              placeholder="Buscar nota..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-grayscale-3 bg-grayscale-1 py-1.5 pl-8 pr-3 font-mono text-[11px] text-grayscale-12 placeholder:text-grayscale-8 outline-none transition-all focus:border-accent-8 dark:border-grayscale-4 dark:bg-grayscale-3"
+            />
           </div>
+          {isAdmin && owners.length > 0 && (
+            <select
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+              className="rounded-lg border border-grayscale-3 bg-grayscale-1 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase text-grayscale-11 outline-none transition-all hover:bg-grayscale-2 cursor-pointer dark:border-grayscale-4 dark:bg-grayscale-3"
+            >
+              <option value="all">Todo el equipo</option>
+              {owners.map(([email, name]) => (
+                <option key={email} value={email}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
-          {(["activas", "hechas", "todas"] as NotesTab[]).map((tab) => {
-            const panelNotes =
-              tab === "activas"
-                ? activeNotes
-                : tab === "hechas"
-                  ? doneNotes
-                  : filteredNotes;
+        {/* Lista de notas */}
+        {sortedNotes.length === 0 ? (
+          <EmptyState
+            icon={
+              search ? (
+                <MagnifyingGlassIcon size={40} weight="duotone" />
+              ) : (
+                <NotePencilIcon size={40} weight="duotone" />
+              )
+            }
+            title={search ? "Sin resultados" : "Sin notas todavía"}
+            description={
+              search
+                ? `No hay notas que coincidan con "${search}".`
+                : "Escribí arriba y tocá + para anotar."
+            }
+          />
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {sortedNotes.map((note) => {
+              const styles = colorStyles(note.color);
+              const checklist = note.checklist ?? [];
+              const doneCount = checklist.filter((item) => item.done).length;
 
-            return (
-              <Tabs.Panel key={tab} value={tab} className="mt-4">
-                {panelNotes.length === 0 ? (
-                  <EmptyState
-                    icon={
-                      search ? (
-                        <MagnifyingGlassIcon size={40} weight="duotone" />
-                      ) : (
-                        <NotePencilIcon size={40} weight="duotone" />
-                      )
-                    }
-                    title={search ? "Sin resultados" : "Sin notas todavía"}
-                    description={
-                      search
-                        ? `No hay notas que coincidan con "${search}".`
-                        : "Escribí arriba y tocá + para anotar."
-                    }
+              return (
+                <div
+                  key={note._id}
+                  className={cn(
+                    "group relative flex flex-col gap-2.5 rounded-xl border p-3 pl-4 sm:p-4 sm:pl-5 transition-all duration-200",
+                    note.done
+                      ? "border-grayscale-3 bg-grayscale-2/60 dark:border-grayscale-4 dark:bg-grayscale-3/40"
+                      : note.pinned
+                        ? "border-accent-6 bg-accent-2/30 shadow-xs dark:border-accent-6/50 dark:bg-accent-3/20"
+                        : "border-grayscale-4 bg-grayscale-1 hover:border-grayscale-5 dark:border-grayscale-5 dark:bg-grayscale-2",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute left-2 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full",
+                      styles.indicator,
+                    )}
                   />
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    {panelNotes.map((note) => {
-                      const styles = colorStyles(note.color);
-                      const checklist = note.checklist ?? [];
-                      const doneCount = checklist.filter(
-                        (item) => item.done,
-                      ).length;
 
-                      return (
-                        <div
-                          key={note._id}
-                          className={cn(
-                            "group relative flex flex-col gap-2.5 rounded-xl border p-3 pl-4 sm:p-4 sm:pl-5 transition-all duration-200",
-                            note.done
-                              ? "border-grayscale-3 bg-grayscale-2/60 dark:border-grayscale-4 dark:bg-grayscale-3/40"
-                              : note.pinned
-                                ? "border-accent-6 bg-accent-2/30 shadow-xs dark:border-accent-6/50 dark:bg-accent-3/20"
-                                : "border-grayscale-4 bg-grayscale-1 hover:border-grayscale-5 dark:border-grayscale-5 dark:bg-grayscale-2",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "absolute left-2 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full",
-                              styles.indicator,
-                            )}
-                          />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleDone({ id: note._id, ...authArgs })}
+                      className="flex size-10 shrink-0 items-center justify-center text-grayscale-8 transition-colors hover:text-accent-9"
+                      title={
+                        note.done ? "Marcar como activa" : "Marcar como hecha"
+                      }
+                    >
+                      {note.done ? (
+                        <CheckCircleIcon
+                          size={22}
+                          weight="fill"
+                          className="text-green-11"
+                        />
+                      ) : (
+                        <CircleIcon
+                          size={22}
+                          className="text-grayscale-8 hover:text-accent-10"
+                        />
+                      )}
+                    </button>
 
-                          <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <AutoResizeTextarea
+                        key={`${note._id}-title-${note.updatedAt}`}
+                        defaultValue={note.title}
+                        onBlur={(e) =>
+                          patchNote(note, {
+                            title: e.target.value,
+                          })
+                        }
+                        className={cn(
+                          "w-full bg-transparent border-0 p-0 text-base sm:text-sm font-medium text-grayscale-12 outline-none whitespace-pre-wrap break-words leading-snug",
+                          note.done && "line-through text-grayscale-9",
+                        )}
+                      />
+
+                      <AutoResizeTextarea
+                        key={`${note._id}-content-${note.updatedAt}`}
+                        defaultValue={note.content ?? ""}
+                        placeholder="Agregar detalle..."
+                        onBlur={(e) =>
+                          patchNote(note, {
+                            content: e.target.value,
+                          })
+                        }
+                        className={cn(
+                          "w-full bg-transparent border-0 p-0 text-sm sm:text-xs text-grayscale-10 placeholder:text-grayscale-7 outline-none whitespace-pre-wrap break-words leading-relaxed",
+                          note.done && "text-grayscale-8",
+                        )}
+                      />
+
+                      {checklist.length > 0 && (
+                        <div className="flex flex-col gap-1.5 mt-1">
+                          {checklist.map((item) => (
                             <button
+                              key={item.id}
                               type="button"
                               onClick={() =>
-                                toggleDone({ id: note._id, ...authArgs })
+                                toggleChecklistItem({
+                                  id: note._id,
+                                  itemId: item.id,
+                                  ...authArgs,
+                                })
                               }
-                              className="flex size-10 shrink-0 items-center justify-center text-grayscale-8 transition-colors hover:text-accent-9"
-                              title={
-                                note.done
-                                  ? "Marcar como activa"
-                                  : "Marcar como hecha"
-                              }
+                              className="flex min-h-10 items-start gap-2 py-1 text-left"
                             >
-                              {note.done ? (
+                              {item.done ? (
                                 <CheckCircleIcon
-                                  size={22}
+                                  size={15}
                                   weight="fill"
-                                  className="text-green-11"
+                                  className="mt-0.5 shrink-0 text-green-11"
                                 />
                               ) : (
                                 <CircleIcon
-                                  size={22}
-                                  className="text-grayscale-8 hover:text-accent-10"
+                                  size={15}
+                                  className="mt-0.5 shrink-0 text-grayscale-8"
                                 />
                               )}
+                              <span
+                                className={cn(
+                                  "text-sm sm:text-xs text-grayscale-11 break-words",
+                                  item.done && "line-through text-grayscale-8",
+                                )}
+                              >
+                                {item.text}
+                              </span>
                             </button>
-
-                            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                              <AutoResizeTextarea
-                                key={`${note._id}-title-${note.updatedAt}`}
-                                defaultValue={note.title}
-                                onBlur={(e) =>
-                                  patchNote(note, {
-                                    title: e.target.value,
-                                  })
-                                }
-                                className={cn(
-                                  "w-full bg-transparent border-0 p-0 text-base sm:text-sm font-medium text-grayscale-12 outline-none whitespace-pre-wrap break-words leading-snug",
-                                  note.done && "line-through text-grayscale-9",
-                                )}
-                              />
-
-                              <AutoResizeTextarea
-                                key={`${note._id}-content-${note.updatedAt}`}
-                                defaultValue={note.content ?? ""}
-                                placeholder="Agregar detalle..."
-                                onBlur={(e) =>
-                                  patchNote(note, {
-                                    content: e.target.value,
-                                  })
-                                }
-                                className={cn(
-                                  "w-full bg-transparent border-0 p-0 text-sm sm:text-xs text-grayscale-10 placeholder:text-grayscale-7 outline-none whitespace-pre-wrap break-words leading-relaxed",
-                                  note.done && "text-grayscale-8",
-                                )}
-                              />
-
-                              {checklist.length > 0 && (
-                                <div className="flex flex-col gap-1.5 mt-1">
-                                  {checklist.map((item) => (
-                                    <button
-                                      key={item.id}
-                                      type="button"
-                                      onClick={() =>
-                                        toggleChecklistItem({
-                                          id: note._id,
-                                          itemId: item.id,
-                                          ...authArgs,
-                                        })
-                                      }
-                                      className="flex min-h-10 items-start gap-2 py-1 text-left"
-                                    >
-                                      {item.done ? (
-                                        <CheckCircleIcon
-                                          size={15}
-                                          weight="fill"
-                                          className="mt-0.5 shrink-0 text-green-11"
-                                        />
-                                      ) : (
-                                        <CircleIcon
-                                          size={15}
-                                          className="mt-0.5 shrink-0 text-grayscale-8"
-                                        />
-                                      )}
-                                      <span
-                                        className={cn(
-                                          "text-sm sm:text-xs text-grayscale-11 break-words",
-                                          item.done &&
-                                            "line-through text-grayscale-8",
-                                        )}
-                                      >
-                                        {item.text}
-                                      </span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div className="flex items-center gap-1 mt-1">
-                                <div className="flex min-w-0 flex-1 items-center gap-2 flex-wrap text-[11px] text-grayscale-8">
-                                  {note.pinned && (
-                                    <Badge
-                                      variant="accent"
-                                      className="flex items-center gap-1 text-[10px]"
-                                    >
-                                      <PushPinIcon size={10} weight="fill" />
-                                      Fijada
-                                    </Badge>
-                                  )}
-                                  {isAdmin && (
-                                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
-                                      <UserIcon size={11} />
-                                      {note.ownerName || note.ownerEmail}
-                                    </span>
-                                  )}
-                                  {checklist.length > 0 && (
-                                    <span className="inline-flex items-center gap-1 font-mono text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
-                                      <ListChecksIcon size={11} />
-                                      {doneCount}/{checklist.length}
-                                    </span>
-                                  )}
-                                  <span className="font-mono text-grayscale-8">
-                                    {formatDate(
-                                      note.updatedAt || note.createdAt,
-                                    )}
-                                  </span>
-                                </div>
-                                <div className="flex items-center shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      togglePinned({
-                                        id: note._id,
-                                        ...authArgs,
-                                      })
-                                    }
-                                    className={cn(
-                                      "flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md transition-colors",
-                                      note.pinned
-                                        ? "text-accent-11 bg-accent-3 dark:bg-accent-4"
-                                        : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11",
-                                    )}
-                                    title={
-                                      note.pinned ? "Desfijar" : "Fijar nota"
-                                    }
-                                  >
-                                    {note.pinned ? (
-                                      <PushPinIcon size={16} weight="fill" />
-                                    ) : (
-                                      <PushPinSlashIcon size={16} />
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeleteId(note._id)}
-                                    className="flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-8 transition-colors hover:bg-red-3 hover:text-red-11"
-                                    title="Eliminar"
-                                  >
-                                    <TrashIcon size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          ))}
                         </div>
-                      );
-                    })}
+                      )}
+
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 flex-wrap text-[11px] text-grayscale-8">
+                          {note.pinned && (
+                            <Badge
+                              variant="accent"
+                              className="flex items-center gap-1 text-[10px]"
+                            >
+                              <PushPinIcon size={10} weight="fill" />
+                              Fijada
+                            </Badge>
+                          )}
+                          {isAdmin && (
+                            <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
+                              <UserIcon size={11} />
+                              {note.ownerName || note.ownerEmail}
+                            </span>
+                          )}
+                          {checklist.length > 0 && (
+                            <span className="inline-flex items-center gap-1 font-mono text-grayscale-9 bg-grayscale-3 dark:bg-grayscale-4 px-2 py-0.5 rounded-md">
+                              <ListChecksIcon size={11} />
+                              {doneCount}/{checklist.length}
+                            </span>
+                          )}
+                          <span className="font-mono text-grayscale-8">
+                            {formatDate(note.updatedAt || note.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center shrink-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              togglePinned({
+                                id: note._id,
+                                ...authArgs,
+                              })
+                            }
+                            className={cn(
+                              "flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md transition-colors",
+                              note.pinned
+                                ? "text-accent-11 bg-accent-3 dark:bg-accent-4"
+                                : "text-grayscale-8 hover:bg-grayscale-3 hover:text-grayscale-11",
+                            )}
+                            title={note.pinned ? "Desfijar" : "Fijar nota"}
+                          >
+                            {note.pinned ? (
+                              <PushPinIcon size={16} weight="fill" />
+                            ) : (
+                              <PushPinSlashIcon size={16} />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteId(note._id)}
+                            className="flex size-10 sm:size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-8 transition-colors hover:bg-red-3 hover:text-red-11"
+                            title="Eliminar"
+                          >
+                            <TrashIcon size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </Tabs.Panel>
-            );
-          })}
-        </Tabs.Root>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <ConfirmModal
           open={deleteId !== null}
