@@ -20,6 +20,7 @@ import {
   XIcon,
   HandshakeIcon,
   NotePencilIcon,
+  NewspaperClippingIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
   { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
   { href: "/aliados", label: "Aliados", Icon: HandshakeIcon },
+  { href: "/noticias", label: "Noticias", Icon: NewspaperClippingIcon },
   { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
 ];
 

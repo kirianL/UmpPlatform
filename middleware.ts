@@ -87,6 +87,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/public") ||
     pathname.startsWith("/guiones/public") ||
     pathname.startsWith("/calendario-actores/public") ||
     pathname.startsWith("/aliados/public") ||

@@ -590,6 +590,33 @@ export default defineSchema({
   })
     .index("by_businessId", ["businessId"])
     .index("by_active", ["active"]),
+  newsArticles: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    excerpt: v.string(),
+    category: v.string(),
+    publishedAt: v.string(),
+    status: v.union(v.literal("borrador"), v.literal("publicado")),
+    coverStorageId: v.optional(v.id("_storage")),
+    intro: v.array(v.string()),
+    sections: v.array(
+      v.object({
+        title: v.string(),
+        paragraphs: v.array(v.string()),
+      }),
+    ),
+    authors: v.array(
+      v.object({
+        name: v.string(),
+      }),
+    ),
+    teamLabel: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_publishedAt", ["publishedAt"]),
   allyBenefitRedemptions: defineTable({
     allyId: v.id("allies"),
     allyCode: v.string(),
