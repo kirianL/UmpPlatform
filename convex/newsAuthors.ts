@@ -28,11 +28,6 @@ export function resolveNewsAuthor(author: { id?: string; name: string }) {
 
   return NEWS_AUTHORS.find((person) => {
     const full = person.name.toLowerCase();
-    return (
-      full === name ||
-      full.includes(name) ||
-      name.includes(person.id) ||
-      name.includes(full.split(" ")[0])
-    );
+    return full === name || full.startsWith(name) || name.startsWith(full);
   });
 }

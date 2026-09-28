@@ -163,6 +163,15 @@ function compressCover(file: File): Promise<Blob> {
   });
 }
 
+function uniqueAuthorIds(ids: string[]) {
+  const seen = new Set<string>();
+  return ids.filter((id) => {
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
 export default function NoticiasPage() {
   const articles = useQuery(api.news.list);
   const generateUploadUrl = useMutation(api.news.generateUploadUrl);
@@ -212,9 +221,11 @@ export default function NoticiasPage() {
               imagePreview: section.imageUrl || "",
             }))
           : [{ title: "", body: "", imagePreview: "" }],
-      authorIds: article.authors
-        .map((author) => findNewsAuthor(author)?.id)
-        .filter((id): id is string => Boolean(id)),
+      authorIds: uniqueAuthorIds(
+        article.authors
+          .map((author) => findNewsAuthor(author)?.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
       teamLabel: article.teamLabel || "Equipo Creativo UMP Media",
       coverStorageId: article.coverStorageId,
       coverPreview: article.coverUrl || "",
@@ -227,10 +238,6 @@ export default function NoticiasPage() {
   function patchForm(partial: Partial<FormState>) {
     setForm((current) => ({ ...current, ...partial }));
   }
-
-  const selectedAuthors = form.authorIds
-    .map((id) => NEWS_AUTHORS.find((person) => person.id === id))
-    .filter((person): person is (typeof NEWS_AUTHORS)[number] => Boolean(person));
 
   async function uploadImage(file: File) {
     const blob = await compressCover(file);
@@ -314,7 +321,7 @@ export default function NoticiasPage() {
         paragraphs: splitParagraphs(section.body),
         imageStorageId: section.imageStorageId,
       })),
-      authors: form.authorIds
+      authors: uniqueAuthorIds(form.authorIds)
         .map((id) => NEWS_AUTHORS.find((person) => person.id === id))
         .filter((person): person is (typeof NEWS_AUTHORS)[number] => Boolean(person))
         .map((person) => ({ id: person.id, name: person.name })),
@@ -642,103 +649,68 @@ export default function NoticiasPage() {
               <span className="text-xs font-medium font-mono uppercase text-grayscale-10">
                 Autores
               </span>
-              {NEWS_AUTHORS.filter((person) => !form.authorIds.includes(person.id))
-                .length > 0 && (
-                <div className="flex flex-col gap-1.5">
-                  {NEWS_AUTHORS.filter(
-                    (person) => !form.authorIds.includes(person.id),
-                  ).map((person) => (
-                    <button
-                      key={person.id}
-                      type="button"
-                      onClick={() =>
-                        patchForm({
-                          authorIds: [...form.authorIds, person.id],
-                        })
-                      }
-                      className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-grayscale-3 bg-grayscale-1 px-2.5 py-2 text-left transition-colors hover:border-grayscale-5 hover:bg-grayscale-2 dark:border-grayscale-4 dark:bg-grayscale-2 dark:hover:bg-grayscale-3"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={person.cmsPhoto}
-                        alt=""
-                        className="size-9 rounded-full object-cover"
-                      />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium text-grayscale-12">
-                          {person.name}
-                        </span>
-                        <span className="block text-[11px] text-grayscale-9">
-                          {person.role}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {selectedAuthors.length > 0 && (
-              <div className="rounded-xl border border-grayscale-3 bg-grayscale-1 p-3 dark:border-grayscale-4 dark:bg-grayscale-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2 shrink-0">
-                    {selectedAuthors.map((person) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={person.id}
-                        src={person.cmsPhoto}
-                        alt={person.name}
-                        className="inline-block size-9 rounded-full object-cover ring-2 ring-white dark:ring-grayscale-2"
-                      />
-                    ))}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-grayscale-12">
-                      {selectedAuthors.map((person) => person.name).join(", ")}
-                    </p>
-                    <p className="text-[11px] text-grayscale-9">
-                      {form.teamLabel || "Equipo Creativo UMP Media"}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-col gap-1.5">
-                  {selectedAuthors.map((person) => (
+              <div className="flex flex-col gap-1.5">
+                {NEWS_AUTHORS.map((person) => {
+                  const selected = form.authorIds.includes(person.id);
+                  return (
                     <div
                       key={person.id}
-                      className="flex items-center gap-2 rounded-lg px-1 py-1"
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-xl border px-2.5 py-2",
+                        selected
+                          ? "border-accent-7 bg-accent-2/40 dark:border-accent-8 dark:bg-accent-3/20"
+                          : "border-grayscale-3 bg-grayscale-1 dark:border-grayscale-4 dark:bg-grayscale-2",
+                      )}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={person.cmsPhoto}
-                        alt=""
-                        className="size-8 rounded-full object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-grayscale-12">
-                          {person.name}
-                        </p>
-                        <p className="text-[11px] text-grayscale-9">
-                          {person.role}
-                        </p>
-                      </div>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          if (selected) return;
                           patchForm({
-                            authorIds: form.authorIds.filter(
-                              (id) => id !== person.id,
-                            ),
-                          })
-                        }
-                        className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-8 hover:bg-red-3 hover:text-red-11"
-                        aria-label={`Quitar a ${person.name}`}
+                            authorIds: uniqueAuthorIds([
+                              ...form.authorIds,
+                              person.id,
+                            ]),
+                          });
+                        }}
+                        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left"
                       >
-                        <XIcon size={14} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={person.cmsPhoto}
+                          alt=""
+                          className="size-9 rounded-full object-cover"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium text-grayscale-12">
+                            {person.name}
+                          </span>
+                          <span className="block text-[11px] text-grayscale-9">
+                            {person.role}
+                          </span>
+                        </span>
                       </button>
+                      {selected && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patchForm({
+                              authorIds: form.authorIds.filter(
+                                (id) => id !== person.id,
+                              ),
+                            })
+                          }
+                          className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-8 hover:bg-red-3 hover:text-red-11"
+                          aria-label={`Quitar a ${person.name}`}
+                        >
+                          <XIcon size={14} />
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
             <Input
               id="news-team"
               label="Equipo"
