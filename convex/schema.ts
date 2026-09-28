@@ -603,10 +603,12 @@ export default defineSchema({
       v.object({
         title: v.string(),
         paragraphs: v.array(v.string()),
+        imageStorageId: v.optional(v.id("_storage")),
       }),
     ),
     authors: v.array(
       v.object({
+        id: v.optional(v.string()),
         name: v.string(),
       }),
     ),

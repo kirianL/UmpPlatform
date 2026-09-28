@@ -2,13 +2,16 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import { resolveNewsAuthor } from "./newsAuthors";
 
 const sectionValidator = v.object({
   title: v.string(),
   paragraphs: v.array(v.string()),
+  imageStorageId: v.optional(v.id("_storage")),
 });
 
 const authorValidator = v.object({
+  id: v.optional(v.string()),
   name: v.string(),
 });
 
@@ -41,20 +44,74 @@ function cleanParagraphs(paragraphs: string[]) {
 }
 
 function cleanSections(
-  sections: { title: string; paragraphs: string[] }[],
+  sections: {
+    title: string;
+    paragraphs: string[];
+    imageStorageId?: Id<"_storage">;
+  }[],
 ) {
   return sections
     .map((section) => ({
       title: section.title.trim(),
       paragraphs: cleanParagraphs(section.paragraphs),
+      imageStorageId: section.imageStorageId,
     }))
-    .filter((section) => section.title || section.paragraphs.length > 0);
+    .filter(
+      (section) =>
+        section.title ||
+        section.paragraphs.length > 0 ||
+        section.imageStorageId,
+    );
 }
 
-function cleanAuthors(authors: { name: string }[]) {
+function sectionImageIds(
+  sections: { imageStorageId?: Id<"_storage"> }[],
+) {
+  return sections
+    .map((section) => section.imageStorageId)
+    .filter((id): id is Id<"_storage"> => Boolean(id));
+}
+
+async function deleteUnusedImages(
+  ctx: { storage: { delete: (id: Id<"_storage">) => Promise<void> } },
+  previous: { imageStorageId?: Id<"_storage"> }[],
+  next: { imageStorageId?: Id<"_storage"> }[],
+) {
+  const keep = new Set(sectionImageIds(next));
+  for (const id of sectionImageIds(previous)) {
+    if (!keep.has(id)) {
+      await ctx.storage.delete(id);
+    }
+  }
+}
+
+function cleanAuthors(authors: { id?: string; name: string }[]) {
+  const seen = new Set<string>();
   return authors
-    .map((author) => ({ name: author.name.trim() }))
-    .filter((author) => author.name);
+    .map((author) => {
+      const known = resolveNewsAuthor(author);
+      if (known) return { id: known.id, name: known.name };
+      const name = author.name.trim();
+      return name ? { name } : null;
+    })
+    .filter((author): author is { id?: string; name: string } => {
+      if (!author?.name) return false;
+      const key = author.id || author.name.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function toPublicAuthors(authors: { id?: string; name: string }[]) {
+  return cleanAuthors(authors).map((author) => {
+    const known = resolveNewsAuthor(author);
+    return {
+      id: known?.id,
+      name: known?.name ?? author.name,
+      photo: known?.photo,
+    };
+  });
 }
 
 function wordCount(article: {
@@ -91,11 +148,20 @@ async function withCoverUrl<T extends Doc<"newsArticles">>(
   const coverUrl = article.coverStorageId
     ? await ctx.storage.getUrl(article.coverStorageId)
     : null;
+  const sections = await Promise.all(
+    article.sections.map(async (section) => ({
+      ...section,
+      imageUrl: section.imageStorageId
+        ? await ctx.storage.getUrl(section.imageStorageId)
+        : null,
+    })),
+  );
   return {
     ...article,
     coverUrl,
+    sections,
     readMinutes: readMinutes(article),
-    topics: article.sections.map((section) => section.title).filter(Boolean),
+    topics: sections.map((section) => section.title).filter(Boolean),
   };
 }
 
@@ -119,8 +185,12 @@ function toPublicArticle(
   return {
     ...toPublicCard(article),
     intro: article.intro,
-    sections: article.sections,
-    authors: article.authors,
+    sections: article.sections.map((section) => ({
+      title: section.title,
+      paragraphs: section.paragraphs,
+      imageUrl: section.imageUrl,
+    })),
+    authors: toPublicAuthors(article.authors),
     teamLabel: article.teamLabel || "Equipo Creativo UMP",
     topics: article.topics,
   };
@@ -238,6 +308,9 @@ export const update = mutation({
       await ctx.storage.delete(existing.coverStorageId);
     }
 
+    const sections = cleanSections(args.sections);
+    await deleteUnusedImages(ctx, existing.sections, sections);
+
     await ctx.db.patch(args.id, {
       slug,
       title: args.title.trim(),
@@ -247,7 +320,7 @@ export const update = mutation({
       status: args.status,
       coverStorageId: args.coverStorageId,
       intro: cleanParagraphs(args.intro),
-      sections: cleanSections(args.sections),
+      sections,
       authors: cleanAuthors(args.authors),
       teamLabel: args.teamLabel?.trim() || undefined,
       updatedAt: new Date().toISOString(),
@@ -277,6 +350,9 @@ export const remove = mutation({
     if (!existing) return;
     if (existing.coverStorageId) {
       await ctx.storage.delete(existing.coverStorageId);
+    }
+    for (const id of sectionImageIds(existing.sections)) {
+      await ctx.storage.delete(id);
     }
     await ctx.db.delete(args.id);
   },

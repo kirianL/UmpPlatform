@@ -30,6 +30,7 @@ import type * as fixedExpenses from "../fixedExpenses.js";
 import type * as http from "../http.js";
 import type * as invoiceImages from "../invoiceImages.js";
 import type * as news from "../news.js";
+import type * as newsAuthors from "../newsAuthors.js";
 import type * as notes from "../notes.js";
 import type * as potentialCollaborators from "../potentialCollaborators.js";
 import type * as potentialContacts from "../potentialContacts.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   invoiceImages: typeof invoiceImages;
   news: typeof news;
+  newsAuthors: typeof newsAuthors;
   notes: typeof notes;
   potentialCollaborators: typeof potentialCollaborators;
   potentialContacts: typeof potentialContacts;
