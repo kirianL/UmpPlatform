@@ -65,4 +65,50 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/public/portfolio",
+  method: "GET",
+  handler: httpAction(async (ctx) => {
+    const projects = await ctx.runQuery(api.portfolio.listPublished);
+    return json(projects);
+  }),
+});
+
+http.route({
+  path: "/public/portfolio",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }),
+});
+
+http.route({
+  pathPrefix: "/public/portfolio/",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const slug = decodeURIComponent(
+      url.pathname.replace(/^\/public\/portfolio\//, "").replace(/\/$/, ""),
+    );
+    if (!slug) {
+      return json({ error: "Falta el slug del proyecto." }, 400);
+    }
+    const project = await ctx.runQuery(api.portfolio.getPublishedBySlug, {
+      slug,
+    });
+    if (!project) {
+      return json({ error: "Proyecto no encontrado." }, 404);
+    }
+    return json(project);
+  }),
+});
+
+http.route({
+  pathPrefix: "/public/portfolio/",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }),
+});
+
 export default http;

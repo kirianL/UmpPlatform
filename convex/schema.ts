@@ -604,6 +604,8 @@ export default defineSchema({
         title: v.string(),
         paragraphs: v.array(v.string()),
         imageStorageId: v.optional(v.id("_storage")),
+        linkUrl: v.optional(v.string()),
+        linkLabel: v.optional(v.string()),
       }),
     ),
     authors: v.array(
@@ -619,6 +621,38 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_publishedAt", ["publishedAt"]),
+  portfolioProjects: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    subtitle: v.string(),
+    excerpt: v.string(),
+    category: v.string(),
+    year: v.string(),
+    client: v.string(),
+    deliverables: v.string(),
+    status: v.union(v.literal("borrador"), v.literal("publicado")),
+    coverStorageId: v.optional(v.id("_storage")),
+    videoYoutubeId: v.optional(v.string()),
+    lead: v.string(),
+    story: v.array(v.string()),
+    credits: v.array(
+      v.object({
+        role: v.string(),
+        name: v.string(),
+      }),
+    ),
+    gallery: v.array(
+      v.object({
+        storageId: v.id("_storage"),
+        alt: v.optional(v.string()),
+      }),
+    ),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_year", ["year"]),
   allyBenefitRedemptions: defineTable({
     allyId: v.id("allies"),
     allyCode: v.string(),

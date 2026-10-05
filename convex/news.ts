@@ -8,6 +8,8 @@ const sectionValidator = v.object({
   title: v.string(),
   paragraphs: v.array(v.string()),
   imageStorageId: v.optional(v.id("_storage")),
+  linkUrl: v.optional(v.string()),
+  linkLabel: v.optional(v.string()),
 });
 
 const authorValidator = v.object({
@@ -43,24 +45,43 @@ function cleanParagraphs(paragraphs: string[]) {
   return paragraphs.map((item) => item.trim()).filter(Boolean);
 }
 
+function normalizeHttpUrl(value?: string) {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) return undefined;
+  if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed)) {
+    return undefined;
+  }
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 function cleanSections(
   sections: {
     title: string;
     paragraphs: string[];
     imageStorageId?: Id<"_storage">;
+    linkUrl?: string;
+    linkLabel?: string;
   }[],
 ) {
   return sections
-    .map((section) => ({
-      title: section.title.trim(),
-      paragraphs: cleanParagraphs(section.paragraphs),
-      imageStorageId: section.imageStorageId,
-    }))
+    .map((section) => {
+      const linkUrl = normalizeHttpUrl(section.linkUrl);
+      const linkLabel = section.linkLabel?.trim() || undefined;
+      return {
+        title: section.title.trim(),
+        paragraphs: cleanParagraphs(section.paragraphs),
+        imageStorageId: section.imageStorageId,
+        linkUrl,
+        linkLabel: linkUrl ? linkLabel || linkUrl : undefined,
+      };
+    })
     .filter(
       (section) =>
         section.title ||
         section.paragraphs.length > 0 ||
-        section.imageStorageId,
+        section.imageStorageId ||
+        section.linkUrl,
     );
 }
 
@@ -192,6 +213,8 @@ function toPublicArticle(
       title: section.title,
       paragraphs: section.paragraphs,
       imageUrl: section.imageUrl,
+      linkUrl: section.linkUrl,
+      linkLabel: section.linkLabel,
     })),
     authors: toPublicAuthors(article.authors),
     teamLabel: article.teamLabel || "Equipo Creativo UMP",
