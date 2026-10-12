@@ -132,11 +132,19 @@ export default function NotificationBell({
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleKeyDown);
+
+      // Lock mobile body scroll while open
+      const originalOverflow = document.body.style.overflow;
+      if (window.innerWidth < 640) {
+        document.body.style.overflow = "hidden";
+      }
+
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = originalOverflow;
+      };
     }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
   }, [isOpen]);
 
   const actorSchedules = useQuery(api.actorSchedules.get);
@@ -306,61 +314,71 @@ export default function NotificationBell({
         )}
       </button>
 
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop Overlay: solid dark overlay so background never bleeds */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/25 backdrop-blur-xs sm:hidden"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs sm:hidden transition-opacity duration-200"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Dropdown Panel - Responsive for Mobile & Desktop */}
+      {/* Notification Panel: Native Mobile Bottom Sheet / Desktop Popover */}
       {isOpen && (
         <div
           className={cn(
-            "z-50 flex flex-col overflow-hidden rounded-2xl border border-grayscale-3 bg-grayscale-1/95 p-0 shadow-2xl backdrop-blur-xl dark:border-grayscale-4 dark:bg-grayscale-2/95 transition-all animate-in fade-in-0 zoom-in-95 duration-150",
-            // Mobile: anchored nicely below header, centered with margins
-            "fixed inset-x-3 top-16 max-h-[calc(100dvh-5rem)] max-w-sm mx-auto sm:mx-0 sm:max-w-none sm:w-96 sm:max-h-[520px]",
-            // Desktop / Tablet: positioned relative to trigger
-            "sm:absolute sm:top-full sm:mt-2",
+            "z-50 flex flex-col overflow-hidden outline-none transition-all",
+            // Mobile: 100% OPAQUE Native Bottom Sheet hugging screen bottom
+            "fixed inset-x-0 bottom-0 max-h-[86dvh] rounded-t-[28px] border-t border-grayscale-3/80 bg-grayscale-1 shadow-2xl dark:border-grayscale-4 dark:bg-grayscale-1 animate-in slide-in-from-bottom duration-250 ease-out",
+            // Desktop: Anchored Sleek Popover
+            "sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-2 sm:w-96 sm:max-h-[520px] sm:rounded-2xl sm:border sm:border-grayscale-3 sm:shadow-2xl sm:dark:border-grayscale-4 sm:dark:bg-grayscale-2 sm:animate-in sm:fade-in-0 sm:zoom-in-95 sm:duration-150",
             align === "left"
               ? "sm:left-0 sm:right-auto sm:origin-top-left"
               : "sm:right-0 sm:left-auto sm:origin-top-right"
           )}
         >
+          {/* Native Drag Handle Pill (Mobile Only) */}
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="flex w-full cursor-grab active:cursor-grabbing justify-center pt-3 pb-1 sm:hidden shrink-0"
+            aria-label="Cerrar notificaciones"
+          >
+            <span className="h-1.5 w-12 rounded-full bg-grayscale-4 dark:bg-grayscale-5" />
+          </button>
+
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-grayscale-3/80 px-4 py-3 shrink-0 dark:border-grayscale-4/60">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between border-b border-grayscale-3/80 px-5 sm:px-4 py-3 shrink-0 dark:border-grayscale-4/60">
+            <div className="flex items-center gap-2.5">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
                 Notificaciones
               </span>
               {todayCount > 0 && (
-                <span className="rounded-full bg-red-2 px-2 py-0.5 font-mono text-[9px] font-bold uppercase text-red-11 dark:bg-red-9/20 dark:text-red-9">
+                <span className="rounded-full bg-red-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-red-11 dark:bg-red-9/20 dark:text-red-9">
                   {todayCount} hoy
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 sm:gap-1.5">
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] font-medium text-grayscale-9 hover:bg-grayscale-2 hover:text-grayscale-12 dark:hover:bg-grayscale-3 dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 rounded-lg sm:rounded-md px-2.5 py-1.5 sm:px-2 sm:py-1 font-mono text-[11px] sm:text-[10px] font-medium text-grayscale-9 hover:bg-grayscale-2 hover:text-grayscale-12 dark:hover:bg-grayscale-3 dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors cursor-pointer"
                   title="Marcar todas como leídas"
                 >
-                  <CheckCircleIcon size={12} weight="bold" />
+                  <CheckCircleIcon size={13} weight="bold" />
                   <span>Leídas</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="flex size-6 cursor-pointer items-center justify-center rounded-md text-grayscale-8 hover:bg-grayscale-2 hover:text-grayscale-12 dark:hover:bg-grayscale-3 dark:text-grayscale-9 dark:hover:text-grayscale-12 transition-colors"
+                className="flex size-7.5 sm:size-6 cursor-pointer items-center justify-center rounded-full sm:rounded-md bg-grayscale-2 sm:bg-transparent text-grayscale-9 hover:bg-grayscale-3 hover:text-grayscale-12 dark:bg-grayscale-3 dark:sm:bg-transparent dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors"
                 aria-label="Cerrar"
               >
-                <XIcon size={12} />
+                <XIcon size={14} weight="bold" />
               </button>
             </div>
           </div>
@@ -371,23 +389,23 @@ export default function NotificationBell({
             onValueChange={(val) => setActiveTab(val as "todas" | "hoy" | "proximas")}
             className="w-full shrink-0"
           >
-            <div className="border-b border-grayscale-3/70 px-3 py-1.5 bg-grayscale-2/30 dark:border-grayscale-4/60 dark:bg-grayscale-2/10">
-              <Tabs.List className="border-0 pb-0 gap-1">
+            <div className="border-b border-grayscale-3/70 px-4 sm:px-3 py-2 sm:py-1.5 bg-grayscale-2/30 dark:border-grayscale-4/60 dark:bg-grayscale-2/10">
+              <Tabs.List className="w-full border-0 pb-0 gap-1 flex">
                 <Tabs.Tab
                   value="todas"
-                  className="font-mono text-[10px] font-bold uppercase py-1 px-2.5 rounded-md text-grayscale-10 data-active:text-grayscale-12 transition-colors"
+                  className="flex-1 sm:flex-initial text-center font-mono text-[10px] sm:text-[10px] font-bold uppercase py-1.5 sm:py-1 px-3 sm:px-2.5 rounded-md text-grayscale-10 data-active:text-grayscale-12 transition-colors"
                 >
                   Todas ({notifications.length})
                 </Tabs.Tab>
                 <Tabs.Tab
                   value="hoy"
-                  className="font-mono text-[10px] font-bold uppercase py-1 px-2.5 rounded-md text-grayscale-10 data-active:text-grayscale-12 transition-colors"
+                  className="flex-1 sm:flex-initial text-center font-mono text-[10px] sm:text-[10px] font-bold uppercase py-1.5 sm:py-1 px-3 sm:px-2.5 rounded-md text-grayscale-10 data-active:text-grayscale-12 transition-colors"
                 >
                   Hoy ({todayCount})
                 </Tabs.Tab>
                 <Tabs.Tab
                   value="proximas"
-                  className="font-mono text-[10px] font-bold uppercase py-1 px-2.5 rounded-md text-grayscale-10 data-active:text-grayscale-12 transition-colors"
+                  className="flex-1 sm:flex-initial text-center font-mono text-[10px] sm:text-[10px] font-bold uppercase py-1.5 sm:py-1 px-3 sm:px-2.5 rounded-md text-grayscale-10 data-active:text-grayscale-12 transition-colors"
                 >
                   Próximas ({notifications.length - todayCount})
                 </Tabs.Tab>
@@ -397,11 +415,11 @@ export default function NotificationBell({
           </Tabs.Root>
 
           {/* Notifications List */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             {filteredNotifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <div className="flex size-9 items-center justify-center rounded-full bg-grayscale-3/60 text-grayscale-8 dark:bg-grayscale-4 dark:text-grayscale-9 mb-2">
-                  <CalendarDotsIcon size={18} />
+              <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
+                <div className="flex size-10 items-center justify-center rounded-full bg-grayscale-3/60 text-grayscale-8 dark:bg-grayscale-4 dark:text-grayscale-9 mb-2.5">
+                  <CalendarDotsIcon size={20} />
                 </div>
                 <p className="font-mono text-xs font-semibold text-grayscale-11">
                   {activeTab === "hoy"
@@ -422,7 +440,7 @@ export default function NotificationBell({
                     href={item.href}
                     onClick={() => handleNotificationClick(item)}
                     className={cn(
-                      "group flex items-start gap-3 px-4 py-3 transition-colors text-left border-b border-grayscale-3/40 dark:border-grayscale-4/30 last:border-b-0",
+                      "group flex items-start gap-3.5 px-5 sm:px-4 py-3.5 sm:py-3 transition-colors text-left border-b border-grayscale-3/40 dark:border-grayscale-4/30 last:border-b-0 active:bg-grayscale-2 dark:active:bg-grayscale-3",
                       isRead
                         ? "hover:bg-grayscale-2/60 dark:hover:bg-grayscale-3/40"
                         : "bg-grayscale-2/30 hover:bg-grayscale-2/70 dark:bg-grayscale-3/20 dark:hover:bg-grayscale-3/50"
@@ -431,18 +449,18 @@ export default function NotificationBell({
                     {/* Minimalist Icon */}
                     <div
                       className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105",
+                        "flex size-8.5 sm:size-8 shrink-0 items-center justify-center rounded-xl sm:rounded-lg transition-transform group-hover:scale-105",
                         item.isToday
                           ? "bg-red-2 text-red-11 dark:bg-red-9/20 dark:text-red-9"
                           : "bg-grayscale-3/70 text-grayscale-11 dark:bg-grayscale-4 dark:text-grayscale-10 group-hover:text-grayscale-12"
                       )}
                     >
                       {item.type === "rodaje_actor" ? (
-                        <UserCheckIcon size={16} weight={item.isToday ? "fill" : "regular"} />
+                        <UserCheckIcon size={17} weight={item.isToday ? "fill" : "regular"} />
                       ) : item.type === "rodaje_general" ? (
-                        <FilmSlateIcon size={16} weight={item.isToday ? "fill" : "regular"} />
+                        <FilmSlateIcon size={17} weight={item.isToday ? "fill" : "regular"} />
                       ) : (
-                        <CalendarDotsIcon size={16} weight={item.isToday ? "fill" : "regular"} />
+                        <CalendarDotsIcon size={17} weight={item.isToday ? "fill" : "regular"} />
                       )}
                     </div>
 
@@ -478,27 +496,27 @@ export default function NotificationBell({
                         )}
                       </div>
 
-                      <h4 className="text-xs font-medium text-grayscale-12 leading-snug line-clamp-2">
+                      <h4 className="text-[13px] sm:text-xs font-medium text-grayscale-12 leading-snug line-clamp-2">
                         {item.title}
                       </h4>
 
                       {item.subtitle && (
-                        <p className="mt-0.5 text-[11px] text-grayscale-9 dark:text-grayscale-10 line-clamp-1">
+                        <p className="mt-0.5 text-xs sm:text-[11px] text-grayscale-9 dark:text-grayscale-10 line-clamp-1">
                           {item.subtitle}
                         </p>
                       )}
 
                       {item.location && (
-                        <p className="mt-1 flex items-center gap-1 text-[10px] text-grayscale-8 line-clamp-1">
-                          <MapPinIcon size={11} className="shrink-0 text-grayscale-7" />
+                        <p className="mt-1 flex items-center gap-1 text-[11px] sm:text-[10px] text-grayscale-8 line-clamp-1">
+                          <MapPinIcon size={12} className="shrink-0 text-grayscale-7" />
                           <span>{item.location}</span>
                         </p>
                       )}
                     </div>
 
                     <ArrowRightIcon
-                      size={13}
-                      className="shrink-0 self-center text-grayscale-7 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-grayscale-11"
+                      size={14}
+                      className="shrink-0 self-center text-grayscale-7 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-grayscale-11 hidden sm:block"
                     />
                   </Link>
                 );
@@ -507,19 +525,19 @@ export default function NotificationBell({
           </div>
 
           {/* Quick Footer Links */}
-          <div className="flex items-center justify-between border-t border-grayscale-3/80 bg-grayscale-1/70 px-4 py-2.5 shrink-0 dark:border-grayscale-4/60 dark:bg-grayscale-1/90">
+          <div className="flex items-center justify-between border-t border-grayscale-3/80 bg-grayscale-1/90 px-5 sm:px-4 py-3 sm:py-2.5 shrink-0 dark:border-grayscale-4/60 dark:bg-grayscale-1 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-2.5">
             <Link
               href="/calendario-actores"
               onClick={() => setIsOpen(false)}
-              className="font-mono text-[10px] font-semibold uppercase text-grayscale-9 hover:text-grayscale-12 dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors"
+              className="font-mono text-[11px] sm:text-[10px] font-semibold uppercase text-grayscale-9 hover:text-grayscale-12 dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors active:text-grayscale-12 py-1"
             >
               Agenda de actores
             </Link>
-            <span className="text-grayscale-5 text-[10px] select-none">/</span>
+            <span className="text-grayscale-5 text-xs select-none">/</span>
             <Link
               href="/calendario"
               onClick={() => setIsOpen(false)}
-              className="font-mono text-[10px] font-semibold uppercase text-grayscale-9 hover:text-grayscale-12 dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors"
+              className="font-mono text-[11px] sm:text-[10px] font-semibold uppercase text-grayscale-9 hover:text-grayscale-12 dark:text-grayscale-10 dark:hover:text-grayscale-12 transition-colors active:text-grayscale-12 py-1"
             >
               Calendario general
             </Link>
