@@ -67,7 +67,8 @@ function SidebarNavContent({
       return (
         item.href === "/clientes" ||
         item.href === "/calendario" ||
-        item.href === "/calendario-actores"
+        item.href === "/calendario-actores" ||
+        item.href === "/noticias"
       );
     }
     if (userRole === "actores") {

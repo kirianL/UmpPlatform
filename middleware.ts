@@ -242,6 +242,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/clientes") ||
       pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/calendario") ||
+      pathname.startsWith("/noticias") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
