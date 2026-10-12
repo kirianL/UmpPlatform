@@ -144,14 +144,20 @@ export async function middleware(request: NextRequest) {
       console.log(
         `[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`,
       );
+      const isGingerUser =
+        userEmail.toLowerCase().includes("ginger") ||
+        userRole === "ventas" ||
+        userRole === "comercial";
       const redirectUrl =
-        userRole === "produccion"
-          ? "/inventario"
-          : userRole === "directorio"
-            ? "/clientes"
-            : userRole === "actores"
-              ? "/calendario-actores"
-              : "/";
+        isGingerUser
+          ? "/clientes"
+          : userRole === "produccion"
+            ? "/inventario"
+            : userRole === "directorio"
+              ? "/clientes"
+              : userRole === "actores"
+                ? "/calendario-actores"
+                : "/";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
@@ -221,6 +227,26 @@ export async function middleware(request: NextRequest) {
     if (!isAllowedPath) {
       console.warn(
         `[Proxy Auth Check] Rol "directorio" intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
+      );
+      return NextResponse.redirect(new URL("/clientes", request.url));
+    }
+  }
+
+  const isGinger =
+    userEmail.toLowerCase().includes("ginger") ||
+    userRole === "ventas" ||
+    userRole === "comercial";
+
+  if (isGinger) {
+    const isAllowedPath =
+      pathname.startsWith("/clientes") ||
+      pathname.startsWith("/calendario-actores") ||
+      pathname.startsWith("/calendario") ||
+      pathname.startsWith("/api/auth/logout");
+
+    if (!isAllowedPath) {
+      console.warn(
+        `[Proxy Auth Check] Rol "ventas" (Ginger) intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
       );
       return NextResponse.redirect(new URL("/clientes", request.url));
     }

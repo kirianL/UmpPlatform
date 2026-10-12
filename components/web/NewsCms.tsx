@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftIcon,
+  ArrowSquareOutIcon,
   ImageIcon,
   LinkSimpleIcon,
   NewspaperClippingIcon,
@@ -851,6 +852,18 @@ export default function NewsCms() {
                   >
                     {article.status === "publicado" ? "Ocultar" : "Publicar"}
                   </Button>
+                  {article.status === "publicado" && (
+                    <a
+                      href={`https://ultimatemediaproductions.com/news/${article.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-grayscale-8 hover:bg-grayscale-4 hover:text-grayscale-12"
+                      aria-label="Ver noticia en la web"
+                      title="Ver en la web"
+                    >
+                      <ArrowSquareOutIcon size={15} />
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDeleteId(article._id)}

@@ -26,6 +26,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/helpers/classname-helper";
 import { useAuth } from "@/components/AuthProvider";
@@ -58,8 +59,19 @@ export default function MobileHeader({
   const userRole = auth?.userRole || propUserRole || "produccion";
   const userEmail = auth?.userEmail || propUserEmail || "";
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const isGinger =
+    (userEmail || "").toLowerCase().includes("ginger") ||
+    userRole === "ventas" ||
+    userRole === "comercial";
 
   const visibleItems = NAV_ITEMS.filter((item) => {
+    if (isGinger) {
+      return (
+        item.href === "/clientes" ||
+        item.href === "/calendario" ||
+        item.href === "/calendario-actores"
+      );
+    }
     if (userRole === "actores") {
       return (
         item.href === "/calendario-actores" ||
@@ -107,13 +119,15 @@ export default function MobileHeader({
 
         <Link
           href={
-            userRole === "produccion"
-              ? "/inventario"
-              : userRole === "directorio"
-                ? "/clientes"
-                : userRole === "actores"
-                  ? "/calendario-actores"
-                  : "/"
+            isGinger
+              ? "/clientes"
+              : userRole === "produccion"
+                ? "/inventario"
+                : userRole === "directorio"
+                  ? "/clientes"
+                  : userRole === "actores"
+                    ? "/calendario-actores"
+                    : "/"
           }
           className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
         >
@@ -125,11 +139,12 @@ export default function MobileHeader({
         </Link>
 
         <div className="flex items-center gap-2 text-grayscale-10">
+          <NotificationBell align="right" />
           <MoonStarsIcon
             aria-hidden="true"
             size={17}
             weight="fill"
-            className="text-grayscale-10"
+            className="text-grayscale-10 hidden sm:inline-block"
           />
           <ThemeToggle size={16} />
         </div>

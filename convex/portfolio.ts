@@ -212,6 +212,60 @@ export const getPublishedBySlug = query({
   },
 });
 
+export const upsertBySlug = mutation({
+  args: projectFields,
+  handler: async (ctx, args) => {
+    const slug = normalizeSlug(args.slug || args.title);
+    if (!slug) throw new ConvexError("El slug es obligatorio.");
+    if (!args.title.trim()) throw new ConvexError("El título es obligatorio.");
+
+    const existing = await ctx.db
+      .query("portfolioProjects")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+
+    const now = new Date().toISOString();
+    const gallery = cleanGallery(args.gallery);
+    const payload = {
+      slug,
+      title: args.title.trim(),
+      subtitle: args.subtitle.trim(),
+      excerpt: args.excerpt.trim(),
+      category: args.category.trim() || "Producción",
+      year: args.year.trim() || String(new Date().getFullYear()),
+      client: args.client.trim(),
+      deliverables: args.deliverables.trim(),
+      status: args.status,
+      coverStorageId: args.coverStorageId,
+      videoYoutubeId: parseYoutubeId(args.videoYoutubeId),
+      lead: args.lead.trim(),
+      story: cleanParagraphs(args.story),
+      credits: cleanCredits(args.credits),
+      gallery,
+      updatedAt: now,
+    };
+
+    if (!existing) {
+      return await ctx.db.insert("portfolioProjects", {
+        ...payload,
+        createdAt: now,
+      });
+    }
+
+    const previousImages = [
+      ...(existing.coverStorageId ? [existing.coverStorageId] : []),
+      ...galleryIds(existing.gallery),
+    ];
+    const nextImages = [
+      ...(args.coverStorageId ? [args.coverStorageId] : []),
+      ...galleryIds(gallery),
+    ];
+    await deleteUnusedImages(ctx, previousImages, nextImages);
+    await ctx.db.patch(existing._id, payload);
+    return existing._id;
+  },
+});
+
 export const create = mutation({
   args: projectFields,
   handler: async (ctx, args) => {

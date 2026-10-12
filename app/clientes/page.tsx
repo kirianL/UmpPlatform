@@ -105,6 +105,10 @@ const EMPTY_PAYMENT = {
 export default function ClientesPage() {
   const { userRole, userEmail } = useAuth();
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const isGinger =
+    (userEmail || "").toLowerCase().includes("ginger") ||
+    userRole === "ventas" ||
+    userRole === "comercial";
   const hidePrices = userRole === "directorio" || isMichelle;
 
   const clients = useQuery(api.clients.get) ?? [];
@@ -209,6 +213,11 @@ export default function ClientesPage() {
       : clients.reduce((s: number, c: any) => s + (c.projectCount || 0), 0);
   }, [allServices, clients]);
 
+  const potentialServicesCount = useMemo(() => {
+    const potentialIds = new Set(potentialClients.map((c: any) => c._id));
+    return allServices.filter((s: any) => potentialIds.has(s.clientId)).length;
+  }, [allServices, potentialClients]);
+
   const totalPendingBalance = useMemo(() => {
     const activeIds = new Set(
       clients
@@ -239,7 +248,10 @@ export default function ClientesPage() {
   // Handlers for Client Modal
   function openCreate(defaultType: "activo" | "potencial" = "activo") {
     setEditingId(null);
-    setForm({ ...EMPTY_CLIENT, type: defaultType });
+    setForm({
+      ...EMPTY_CLIENT,
+      type: isGinger ? "potencial" : defaultType,
+    });
     setInitialService(EMPTY_INITIAL_SERVICE);
     setModalOpen(true);
   }
@@ -252,7 +264,7 @@ export default function ClientesPage() {
       address: c.address || "",
       phone: c.phone,
       email: c.email,
-      type: c.type || "activo",
+      type: isGinger ? "potencial" : c.type || "activo",
       lastInteraction:
         c.lastInteraction || new Date().toISOString().slice(0, 10),
       projectCount: c.projectCount || 0,
@@ -269,6 +281,7 @@ export default function ClientesPage() {
 
     const payload = {
       ...form,
+      type: isGinger ? "potencial" : form.type,
       name: clientName,
       company: clientCompany,
       address: form.address.trim() ? form.address.trim() : undefined,
@@ -586,18 +599,20 @@ export default function ClientesPage() {
           >
             <ReceiptIcon size={16} />
           </button>
-          <button
-            type="button"
-            title={
-              c.type === "potencial"
-                ? "Mover a cliente activo"
-                : "Mover a potencial"
-            }
-            onClick={() => handleToggleType(c)}
-            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-12"
-          >
-            <ArrowsLeftRightIcon size={15} />
-          </button>
+          {!isGinger && (
+            <button
+              type="button"
+              title={
+                c.type === "potencial"
+                  ? "Mover a cliente activo"
+                  : "Mover a potencial"
+              }
+              onClick={() => handleToggleType(c)}
+              className="flex size-7 cursor-pointer items-center justify-center rounded-md text-grayscale-9 transition-colors hover:bg-grayscale-3 hover:text-grayscale-12"
+            >
+              <ArrowsLeftRightIcon size={15} />
+            </button>
+          )}
           <button
             type="button"
             title="Editar cliente"
@@ -625,43 +640,51 @@ export default function ClientesPage() {
         {/* Header */}
         <div className="flex flex-col gap-1">
           <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-            Directorio de clientes
+            {isGinger ? "Clientes potenciales" : "Directorio de clientes"}
           </h1>
           <p className="text-sm text-grayscale-10">
-            {hidePrices
-              ? "Administra clientes activos, potenciales clientes y sus servicios contratados."
-              : "Administra clientes activos, potenciales clientes, sus servicios contratados y registro de pagos sincronizado con finanzas."}
+            {isGinger
+              ? "Gestión y seguimiento de clientes potenciales y cotizaciones."
+              : hidePrices
+                ? "Administra clientes activos, potenciales clientes y sus servicios contratados."
+                : "Administra clientes activos, potenciales clientes, sus servicios contratados y registro de pagos sincronizado con finanzas."}
           </p>
         </div>
 
         {/* Stats */}
         <div
           className={`grid grid-cols-1 gap-3 ${
-            hidePrices ? "sm:grid-cols-3" : "sm:grid-cols-2 xl:grid-cols-4"
+            isGinger
+              ? "sm:grid-cols-2"
+              : hidePrices
+                ? "sm:grid-cols-3"
+                : "sm:grid-cols-2 xl:grid-cols-4"
           }`}
         >
-          <StatCard
-            label="Clientes activos"
-            value={activeClients.length}
-            detail="Clientes confirmados"
-            icon={<AddressBookIcon size={18} weight="fill" />}
-            index={0}
-          />
+          {!isGinger && (
+            <StatCard
+              label="Clientes activos"
+              value={activeClients.length}
+              detail="Clientes confirmados"
+              icon={<AddressBookIcon size={18} weight="fill" />}
+              index={0}
+            />
+          )}
           <StatCard
             label="Potenciales clientes"
             value={potentialClients.length}
             detail="Oportunidades en prospección"
             icon={<UserPlusIcon size={18} weight="fill" />}
-            index={1}
+            index={isGinger ? 0 : 1}
           />
           <StatCard
-            label="Servicios contratados"
-            value={totalProjects}
-            detail="Total de proyectos / servicios"
+            label={isGinger ? "Propuestas / Servicios" : "Servicios contratados"}
+            value={isGinger ? potentialServicesCount : totalProjects}
+            detail={isGinger ? "Propuestas en clientes potenciales" : "Total de proyectos / servicios"}
             icon={<BriefcaseIcon size={18} weight="fill" />}
-            index={2}
+            index={isGinger ? 1 : 2}
           />
-          {!hidePrices && (
+          {!hidePrices && !isGinger && (
             <StatCard
               label="Por cobrar"
               value={formatCurrency(totalPendingBalance)}
@@ -680,29 +703,32 @@ export default function ClientesPage() {
 
         {/* Tabs System (Igual a la estructura de Personal) */}
         <Tabs.Root
-          defaultValue="activos"
+          defaultValue={isGinger ? "potenciales" : "activos"}
           className="w-full flex flex-col gap-6"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
-            <Tabs.List className="border-0 pb-0 gap-1.5">
-              <Tabs.Tab
-                value="activos"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Clientes ({activeClients.length})
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="potenciales"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Potenciales clientes ({potentialClients.length})
-              </Tabs.Tab>
-              <Tabs.Indicator />
-            </Tabs.List>
-          </div>
+          {!isGinger && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
+              <Tabs.List className="border-0 pb-0 gap-1.5">
+                <Tabs.Tab
+                  value="activos"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Clientes ({activeClients.length})
+                </Tabs.Tab>
+                <Tabs.Tab
+                  value="potenciales"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Potenciales clientes ({potentialClients.length})
+                </Tabs.Tab>
+                <Tabs.Indicator />
+              </Tabs.List>
+            </div>
+          )}
 
           {/* Tab 1: Clientes activos */}
-          <Tabs.Panel value="activos">
+          {!isGinger && (
+            <Tabs.Panel value="activos">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative">
@@ -758,6 +784,7 @@ export default function ClientesPage() {
               />
             </div>
           </Tabs.Panel>
+          )}
 
           {/* Tab 2: Potenciales clientes */}
           <Tabs.Panel value="potenciales">
@@ -947,21 +974,30 @@ export default function ClientesPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Select
-                label="Clasificación de cliente"
-                id="client-type"
-                value={form.type}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    type: e.target.value as "activo" | "potencial",
-                  }))
-                }
-                options={[
-                  { value: "activo", label: "Cliente activo" },
-                  { value: "potencial", label: "Cliente potencial" },
-                ]}
-              />
+              {!isGinger ? (
+                <Select
+                  label="Clasificación de cliente"
+                  id="client-type"
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      type: e.target.value as "activo" | "potencial",
+                    }))
+                  }
+                  options={[
+                    { value: "activo", label: "Cliente activo" },
+                    { value: "potencial", label: "Cliente potencial" },
+                  ]}
+                />
+              ) : (
+                <Input
+                  label="Clasificación de cliente"
+                  id="client-type"
+                  value="Cliente potencial"
+                  disabled
+                />
+              )}
 
               <Input
                 label="Primera interacción"

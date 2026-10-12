@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/helpers/classname-helper";
 import { useAuth } from "@/components/AuthProvider";
@@ -56,8 +57,19 @@ function SidebarNavContent({
   const userRole = auth?.userRole || propUserRole;
   const userEmail = auth?.userEmail || propUserEmail;
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const isGinger =
+    (userEmail || "").toLowerCase().includes("ginger") ||
+    userRole === "ventas" ||
+    userRole === "comercial";
 
   const visibleItems = NAV_ITEMS.filter((item) => {
+    if (isGinger) {
+      return (
+        item.href === "/clientes" ||
+        item.href === "/calendario" ||
+        item.href === "/calendario-actores"
+      );
+    }
     if (userRole === "actores") {
       return (
         item.href === "/calendario-actores" ||
@@ -94,18 +106,23 @@ function SidebarNavContent({
   return (
     <>
       {!hideLogo && (
-        <div className="flex items-center gap-1.5 px-2 py-1">
-          <Logo className="h-5 w-auto" />
-          <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
-            |
-          </span>
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
-            Platform
-          </span>
+        <div className="flex items-center justify-between px-1.5 py-1 mb-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Logo className="h-4.5 w-auto" />
+            <span className="text-grayscale-6 dark:text-grayscale-5 text-xs select-none">
+              |
+            </span>
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-grayscale-12">
+              Platform
+            </span>
+          </div>
+          <div className="flex items-center shrink-0">
+            <NotificationBell align="left" />
+          </div>
         </div>
       )}
 
-      <nav className={cn("flex flex-col gap-px", hideLogo ? "mt-2" : "mt-6")}>
+      <nav className={cn("flex flex-col gap-px", hideLogo ? "mt-2" : "mt-2")}>
         {visibleItems.map(({ href, label, Icon }) => {
           const isActive =
             href === "/"
