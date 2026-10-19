@@ -196,11 +196,10 @@ export default function DataTable<T>({
           </tr>
         </thead>
         <tbody className="divide-y divide-grayscale-3 dark:divide-grayscale-3">
-          {paginatedData.map((item, idx) => (
+          {paginatedData.map((item) => (
             <tr
               key={keyExtractor(item)}
-              style={{ animationDelay: `${idx * 40}ms` }}
-              className="transition-all duration-200 ease-out hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/50 animate-fade-in-up opacity-0"
+              className="transition-colors duration-150 hover:bg-grayscale-3/50 dark:hover:bg-grayscale-3/50"
             >
               {columns.map((col) => (
                 <td

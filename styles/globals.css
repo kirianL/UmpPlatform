@@ -256,6 +256,7 @@ textarea {
     animation: none !important;
     transform: none !important;
     backdrop-filter: none !important;
+    opacity: 1 !important;
     width: auto;
   }
 
