@@ -113,25 +113,22 @@ export default function FinancialReportModal({
     const monthName = MONTH_NAMES[selectedMonth - 1] || "Mes";
     const periodLabel = `${monthName} ${selectedYear}`;
 
-    // Filter transactions for this month
+    // Filter transactions for this month, strictly excluding cancelled, client receivables and pending client payments
     const monthTransactions = transactions
       .filter((t) => t.date && t.date.startsWith(prefix))
+      .filter(
+        (t) =>
+          t.status !== "cancelled" &&
+          t.source !== "client_receivable" &&
+          !(t.source === "client_payment" && t.status === "pending"),
+      )
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Incomes and Expenses strictly from this month's transactions, matching Finanzas filters
-    const activeTx = monthTransactions.filter((t) => t.status !== "cancelled");
-    const effectiveIncomes = activeTx.filter(
-      (t) =>
-        t.type === "income" &&
-        t.source !== "client_receivable" &&
-        !(t.source === "client_payment" && t.status === "pending"),
-    );
-    const totalIncome = effectiveIncomes.reduce(
-      (sum, t) => sum + (t.amount || 0),
-      0,
-    );
+    const totalIncome = monthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const totalExpenses = activeTx
+    const totalExpenses = monthTransactions
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
@@ -143,7 +140,7 @@ export default function FinancialReportModal({
 
     // Categories Breakdown strictly from expense transactions
     const catMap = new Map<string, number>();
-    for (const t of activeTx.filter((tx) => tx.type === "expense")) {
+    for (const t of monthTransactions.filter((tx) => tx.type === "expense")) {
       const cat = t.category || "Otro";
       catMap.set(cat, (catMap.get(cat) || 0) + t.amount);
     }
@@ -167,16 +164,11 @@ export default function FinancialReportModal({
       dailyMap.set(d, { income: 0, expense: 0 });
     }
 
-    for (const t of activeTx) {
+    for (const t of monthTransactions) {
       const day = parseInt(t.date.split("-")[2], 10);
       if (day >= 1 && day <= daysInMonth) {
         const item = dailyMap.get(day)!;
-        const isEffectiveIncome =
-          t.type === "income" &&
-          t.source !== "client_receivable" &&
-          !(t.source === "client_payment" && t.status === "pending");
-
-        if (isEffectiveIncome) item.income += t.amount;
+        if (t.type === "income") item.income += t.amount;
         else if (t.type === "expense") item.expense += t.amount;
       }
     }
@@ -210,8 +202,8 @@ export default function FinancialReportModal({
       netBalance,
       profitMargin,
       transactionsCount: monthTransactions.length,
-      incomeCount: effectiveIncomes.length,
-      expenseCount: activeTx.filter((t) => t.type === "expense").length,
+      incomeCount: monthTransactions.filter((t) => t.type === "income").length,
+      expenseCount: monthTransactions.filter((t) => t.type === "expense").length,
       categories,
       dailyTimeline,
       transactions: monthTransactions.map((t) => ({
