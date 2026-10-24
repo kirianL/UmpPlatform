@@ -375,9 +375,9 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 5.5,
+    paddingVertical: 5,
     paddingHorizontal: 8,
-    alignItems: "center",
+    alignItems: "flex-start",
     borderBottomWidth: 0.8,
     borderBottomColor: "#E2E8F0",
   },
@@ -1062,31 +1062,25 @@ export default function FinancialReportPdfDocument({
 
             <View style={styles.tableContainer}>
               <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableHeaderCell, { width: "15%" }]}>
-                  Fecha
-                </Text>
-                <Text style={[styles.tableHeaderCell, { width: "43%" }]}>
-                  Concepto / Cliente
-                </Text>
-                <Text style={[styles.tableHeaderCell, { width: "18%" }]}>
-                  Categoría
-                </Text>
-                <Text
-                  style={[
-                    styles.tableHeaderCell,
-                    { width: "10%", textAlign: "center" },
-                  ]}
-                >
-                  Tipo
-                </Text>
-                <Text
-                  style={[
-                    styles.tableHeaderCell,
-                    { width: "14%", textAlign: "right" },
-                  ]}
-                >
-                  Monto
-                </Text>
+                <View style={{ width: "13%" }}>
+                  <Text style={styles.tableHeaderCell}>Fecha</Text>
+                </View>
+                <View style={{ width: "43%", paddingRight: 8 }}>
+                  <Text style={styles.tableHeaderCell}>Concepto / Cliente</Text>
+                </View>
+                <View style={{ width: "19%", paddingRight: 6 }}>
+                  <Text style={styles.tableHeaderCell}>Categoría</Text>
+                </View>
+                <View style={{ width: "11%", alignItems: "center" }}>
+                  <Text style={[styles.tableHeaderCell, { textAlign: "center" }]}>
+                    Tipo
+                  </Text>
+                </View>
+                <View style={{ width: "14%", alignItems: "flex-end" }}>
+                  <Text style={[styles.tableHeaderCell, { textAlign: "right" }]}>
+                    Monto
+                  </Text>
+                </View>
               </View>
 
               {pageChunk.length === 0 ? (
@@ -1109,26 +1103,31 @@ export default function FinancialReportPdfDocument({
                       idx % 2 === 1 ? styles.tableRowZebra : undefined,
                     ]}
                   >
-                    <Text style={[styles.tableCell, { width: "15%" }]}>
-                      {formatDateDDMMAAAA(tx.date)}
-                    </Text>
-                    <View style={{ width: "43%" }}>
+                    <View style={{ width: "13%" }}>
+                      <Text style={styles.tableCell}>
+                        {formatDateDDMMAAAA(tx.date)}
+                      </Text>
+                    </View>
+
+                    <View style={{ width: "43%", paddingRight: 8 }}>
                       <Text style={styles.tableCellBold}>{tx.concept}</Text>
                       {tx.entity && (
                         <Text
                           style={[
                             styles.tableCell,
-                            { color: "#64748B", fontSize: 6.5 },
+                            { color: "#64748B", fontSize: 6.5, marginTop: 1 },
                           ]}
                         >
                           {tx.entity}
                         </Text>
                       )}
                     </View>
-                    <Text style={[styles.tableCell, { width: "18%" }]}>
-                      {tx.category}
-                    </Text>
-                    <View style={{ width: "10%", alignItems: "center" }}>
+
+                    <View style={{ width: "19%", paddingRight: 6 }}>
+                      <Text style={styles.tableCell}>{tx.category}</Text>
+                    </View>
+
+                    <View style={{ width: "11%", alignItems: "center" }}>
                       <Text
                         style={
                           tx.type === "income"
@@ -1139,19 +1138,21 @@ export default function FinancialReportPdfDocument({
                         {tx.type === "income" ? "Ingreso" : "Gasto"}
                       </Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.tableCellBold,
-                        {
-                          width: "14%",
-                          textAlign: "right",
-                          color: tx.type === "income" ? "#15803D" : "#B91C1C",
-                        },
-                      ]}
-                    >
-                      {tx.type === "income" ? "+ " : "- "}
-                      {formatCurrencyCRC(tx.amount)}
-                    </Text>
+
+                    <View style={{ width: "14%", alignItems: "flex-end" }}>
+                      <Text
+                        style={[
+                          styles.tableCellBold,
+                          {
+                            textAlign: "right",
+                            color: tx.type === "income" ? "#15803D" : "#B91C1C",
+                          },
+                        ]}
+                      >
+                        {tx.type === "income" ? "+ " : "- "}
+                        {formatCurrencyCRC(tx.amount)}
+                      </Text>
+                    </View>
                   </View>
                 ))
               )}
