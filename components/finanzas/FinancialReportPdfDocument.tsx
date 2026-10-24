@@ -1,6 +1,7 @@
 import {
   Circle,
   Document,
+  Font,
   G,
   Line,
   Page,
@@ -13,6 +14,18 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+
+// Prevent words from spilling or sticking hyphens into adjacent columns
+Font.registerHyphenationCallback((word) => {
+  if (word.length > 18) {
+    const parts: string[] = [];
+    for (let i = 0; i < word.length; i += 14) {
+      parts.push(word.slice(i, i + 14));
+    }
+    return parts;
+  }
+  return [word];
+});
 
 export interface FinancialReportData {
   periodLabel: string; // e.g. "Octubre 2026"
@@ -1062,21 +1075,21 @@ export default function FinancialReportPdfDocument({
 
             <View style={styles.tableContainer}>
               <View style={styles.tableHeaderRow}>
-                <View style={{ width: "13%" }}>
+                <View style={{ width: "11.5%" }}>
                   <Text style={styles.tableHeaderCell}>Fecha</Text>
                 </View>
-                <View style={{ width: "43%", paddingRight: 8 }}>
+                <View style={{ width: "50%", paddingRight: 16 }}>
                   <Text style={styles.tableHeaderCell}>Concepto / Cliente</Text>
                 </View>
-                <View style={{ width: "19%", paddingRight: 6 }}>
+                <View style={{ width: "16%", paddingLeft: 8, paddingRight: 6 }}>
                   <Text style={styles.tableHeaderCell}>Categoría</Text>
                 </View>
-                <View style={{ width: "11%", alignItems: "center" }}>
+                <View style={{ width: "9%", alignItems: "center" }}>
                   <Text style={[styles.tableHeaderCell, { textAlign: "center" }]}>
                     Tipo
                   </Text>
                 </View>
-                <View style={{ width: "14%", alignItems: "flex-end" }}>
+                <View style={{ width: "13.5%", alignItems: "flex-end" }}>
                   <Text style={[styles.tableHeaderCell, { textAlign: "right" }]}>
                     Monto
                   </Text>
@@ -1103,19 +1116,21 @@ export default function FinancialReportPdfDocument({
                       idx % 2 === 1 ? styles.tableRowZebra : undefined,
                     ]}
                   >
-                    <View style={{ width: "13%" }}>
+                    <View style={{ width: "11.5%" }}>
                       <Text style={styles.tableCell}>
                         {formatDateDDMMAAAA(tx.date)}
                       </Text>
                     </View>
 
-                    <View style={{ width: "43%", paddingRight: 8 }}>
-                      <Text style={styles.tableCellBold}>{tx.concept}</Text>
+                    <View style={{ width: "50%", paddingRight: 16, overflow: "hidden" }}>
+                      <Text style={[styles.tableCellBold, { lineHeight: 1.25 }]}>
+                        {tx.concept}
+                      </Text>
                       {tx.entity && (
                         <Text
                           style={[
                             styles.tableCell,
-                            { color: "#64748B", fontSize: 6.5, marginTop: 1 },
+                            { color: "#64748B", fontSize: 6.5, marginTop: 1.5, lineHeight: 1.2 },
                           ]}
                         >
                           {tx.entity}
@@ -1123,11 +1138,11 @@ export default function FinancialReportPdfDocument({
                       )}
                     </View>
 
-                    <View style={{ width: "19%", paddingRight: 6 }}>
+                    <View style={{ width: "16%", paddingLeft: 8, paddingRight: 6 }}>
                       <Text style={styles.tableCell}>{tx.category}</Text>
                     </View>
 
-                    <View style={{ width: "11%", alignItems: "center" }}>
+                    <View style={{ width: "9%", alignItems: "center" }}>
                       <Text
                         style={
                           tx.type === "income"
@@ -1139,7 +1154,7 @@ export default function FinancialReportPdfDocument({
                       </Text>
                     </View>
 
-                    <View style={{ width: "14%", alignItems: "flex-end" }}>
+                    <View style={{ width: "13.5%", alignItems: "flex-end" }}>
                       <Text
                         style={[
                           styles.tableCellBold,

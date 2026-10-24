@@ -118,11 +118,18 @@ export default function FinancialReportModal({
       .filter((t) => t.date && t.date.startsWith(prefix))
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Incomes and Expenses strictly from this month's transactions
+    // Incomes and Expenses strictly from this month's transactions, matching Finanzas filters
     const activeTx = monthTransactions.filter((t) => t.status !== "cancelled");
-    const totalIncome = activeTx
-      .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const effectiveIncomes = activeTx.filter(
+      (t) =>
+        t.type === "income" &&
+        t.source !== "client_receivable" &&
+        !(t.source === "client_payment" && t.status === "pending"),
+    );
+    const totalIncome = effectiveIncomes.reduce(
+      (sum, t) => sum + (t.amount || 0),
+      0,
+    );
 
     const totalExpenses = activeTx
       .filter((t) => t.type === "expense")
@@ -164,8 +171,13 @@ export default function FinancialReportModal({
       const day = parseInt(t.date.split("-")[2], 10);
       if (day >= 1 && day <= daysInMonth) {
         const item = dailyMap.get(day)!;
-        if (t.type === "income") item.income += t.amount;
-        else item.expense += t.amount;
+        const isEffectiveIncome =
+          t.type === "income" &&
+          t.source !== "client_receivable" &&
+          !(t.source === "client_payment" && t.status === "pending");
+
+        if (isEffectiveIncome) item.income += t.amount;
+        else if (t.type === "expense") item.expense += t.amount;
       }
     }
 
@@ -198,7 +210,7 @@ export default function FinancialReportModal({
       netBalance,
       profitMargin,
       transactionsCount: monthTransactions.length,
-      incomeCount: activeTx.filter((t) => t.type === "income").length,
+      incomeCount: effectiveIncomes.length,
       expenseCount: activeTx.filter((t) => t.type === "expense").length,
       categories,
       dailyTimeline,
