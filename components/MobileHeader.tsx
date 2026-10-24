@@ -19,7 +19,7 @@ import {
   UsersIcon,
   XIcon,
   HandshakeIcon,
-  NotePencilIcon,
+  FoldersIcon,
   GlobeSimpleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
@@ -34,7 +34,7 @@ import { useAuth } from "@/components/AuthProvider";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
   { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
-  { href: "/notas", label: "Notas", Icon: NotePencilIcon },
+  { href: "/notas", label: "Proyectos", Icon: FoldersIcon },
   { href: "/personal", label: "Personal", Icon: UsersIcon },
   { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
   { href: "/calendario-actores", label: "Agenda actores", Icon: UserCheckIcon },
@@ -63,6 +63,7 @@ export default function MobileHeader({
     (userEmail || "").toLowerCase().includes("ginger") ||
     userRole === "ventas" ||
     userRole === "comercial";
+  const isEymar = (userEmail || "").toLowerCase().includes("eymar");
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (isGinger) {
@@ -89,7 +90,8 @@ export default function MobileHeader({
         item.href === "/calendario-actores" ||
         item.href === "/tareas" ||
         item.href === "/notas" ||
-        item.href === "/brainstorm"
+        item.href === "/brainstorm" ||
+        (isEymar && item.href === "/noticias")
       );
     }
     if (userRole === "directorio" || isMichelle) {

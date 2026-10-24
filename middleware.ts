@@ -192,6 +192,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  const isEymar = userEmail.toLowerCase().includes("eymar");
+
   if (userRole === "produccion") {
     const isAllowedPath =
       pathname.startsWith("/inventario") ||
@@ -201,6 +203,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/tareas") ||
       pathname.startsWith("/notas") ||
       pathname.startsWith("/brainstorm") ||
+      (isEymar && pathname.startsWith("/noticias")) ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {

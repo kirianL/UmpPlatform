@@ -429,11 +429,53 @@ export default defineSchema({
         }),
       ),
     ),
+    description: v.optional(v.string()),
+    visibility: v.optional(
+      v.union(
+        v.literal("private"),
+        v.literal("all"),
+        v.literal("selected"),
+      ),
+    ),
+    sharedWith: v.optional(v.array(v.string())),
     ownerEmail: v.string(),
     ownerName: v.optional(v.string()),
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),
   }).index("by_ownerEmail", ["ownerEmail"]),
+  noteBlocks: defineTable({
+    noteId: v.id("notes"),
+    type: v.union(
+      v.literal("text"),
+      v.literal("heading"),
+      v.literal("checklist"),
+      v.literal("image"),
+      v.literal("link"),
+      v.literal("table"),
+    ),
+    content: v.optional(v.string()),
+    checklist: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          text: v.string(),
+          done: v.boolean(),
+        }),
+      ),
+    ),
+    tableData: v.optional(
+      v.object({
+        columns: v.array(v.string()),
+        rows: v.array(v.array(v.string())),
+      }),
+    ),
+    storageId: v.optional(v.id("_storage")),
+    url: v.optional(v.string()),
+    wide: v.optional(v.boolean()),
+    order: v.number(),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  }).index("by_noteId_order", ["noteId", "order"]),
   brainstormBoards: defineTable({
     title: v.string(),
     clientId: v.optional(v.id("clients")),
