@@ -26,10 +26,8 @@ export interface FinancialReportData {
   netBalance: number;
   profitMargin: number;
   transactionsCount: number;
-  fixedExpensesCount: number;
-  fixedExpensesTotal: number;
-  fixedExpensesPaid: number;
-  fixedExpensesPending: number;
+  incomeCount: number;
+  expenseCount: number;
   categories: {
     name: string;
     amount: number;
@@ -41,13 +39,6 @@ export interface FinancialReportData {
     income: number;
     expense: number;
     cumulative: number;
-  }[];
-  fixedExpenses: {
-    concept: string;
-    amount: number;
-    category: string;
-    dueDay: number;
-    isPaid: boolean;
   }[];
   transactions: {
     date: string;
@@ -88,6 +79,12 @@ function formatCurrencyCRC(num: number): string {
   return `${sign}\u00A2 ${res}`;
 }
 
+// Clean percentage formatter: strictly 1 decimal place (e.g. 50.0%)
+function formatPct(num: number): string {
+  if (isNaN(num)) return "0.0%";
+  return `${num.toFixed(1)}%`;
+}
+
 // Format date strictly in dd/mm/aaaa
 function formatDateDDMMAAAA(dateStr: string): string {
   if (!dateStr) return "-";
@@ -119,7 +116,6 @@ function calculatePieSlices(
   if (validCategories.length === 0) return [];
 
   return validCategories.map((cat, idx) => {
-    // If only one category with 100%, we handle full circle separately
     const sliceAngle = Math.min(Math.max((cat.percentage / 100) * 360, 2), 359.9);
     const startAngle = currentAngle;
     const endAngle = currentAngle + sliceAngle;
@@ -156,10 +152,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     flexDirection: "column",
   },
-  // Cover page
+  // Cover page - Vibrant Pantone Royal Blue matching reference image
   coverPage: {
     fontFamily: "Helvetica",
-    backgroundColor: "#1A56DB", // Pantone Royal Blue matching reference
+    backgroundColor: "#1A56DB",
     color: "#FFFFFF",
     padding: 48,
     flexDirection: "column",
@@ -178,24 +174,25 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   coverCenter: {
-    marginVertical: "auto",
+    marginTop: 110,
+    marginBottom: 110,
   },
   coverYear: {
     fontSize: 54,
     fontWeight: "bold",
     color: "#FFFFFF",
     letterSpacing: -1,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   coverTitle: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "bold",
     color: "#FFFFFF",
     lineHeight: 1.15,
     marginBottom: 4,
   },
   coverSubtitle: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: "bold",
     color: "#BFDBFE",
     lineHeight: 1.15,
@@ -214,7 +211,7 @@ const styles = StyleSheet.create({
   },
   coverFooterText: {
     fontSize: 7.5,
-    color: "rgba(255, 255, 255, 0.6)",
+    color: "rgba(255, 255, 255, 0.65)",
   },
 
   // Running Header
@@ -307,7 +304,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   heroMetricValue: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#1A56DB",
     letterSpacing: -0.5,
@@ -317,7 +314,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#059669",
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   heroMetricDescription: {
     fontSize: 7.5,
@@ -334,7 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // KPI Highlight card
+  // KPI Highlight box
   kpiHighlightBox: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -351,7 +348,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   kpiHighlightVal: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: "bold",
     color: "#0F172A",
   },
@@ -403,35 +400,25 @@ const styles = StyleSheet.create({
   },
 
   // Badges
-  badgePaid: {
+  badgeIncome: {
     backgroundColor: "#DCFCE7",
     color: "#15803D",
     fontSize: 6.5,
     fontWeight: "bold",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
     borderRadius: 3,
     textAlign: "center",
-  },
-  badgePending: {
-    backgroundColor: "#FEF3C7",
-    color: "#B45309",
-    fontSize: 6.5,
-    fontWeight: "bold",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    textAlign: "center",
-  },
-  badgeIncome: {
-    color: "#15803D",
-    fontSize: 7,
-    fontWeight: "bold",
   },
   badgeExpense: {
+    backgroundColor: "#FEE2E2",
     color: "#B91C1C",
-    fontSize: 7,
+    fontSize: 6.5,
     fontWeight: "bold",
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+    textAlign: "center",
   },
 
   // Category page styles
@@ -462,36 +449,39 @@ const styles = StyleSheet.create({
   },
   pieLegendContainer: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   pieLegendItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 5,
+    marginBottom: 6,
   },
   pieLegendLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    flex: 1,
+    marginRight: 6,
   },
   pieLegendDot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
+    flexShrink: 0,
   },
   pieLegendName: {
     fontSize: 7.5,
     color: "#334155",
-    maxWidth: 95,
   },
   pieLegendPct: {
     fontSize: 7.5,
     fontWeight: "bold",
     color: "#0F172A",
+    flexShrink: 0,
   },
 
-  // Category bar list
+  // Category progress bars
   categoryBarRow: {
     marginBottom: 8,
   },
@@ -521,31 +511,6 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 3,
   },
-
-  // Stat summary row (Page 4)
-  statSummaryRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 14,
-  },
-  statSummaryCard: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 6,
-    padding: 10,
-  },
-  statSummaryLabel: {
-    fontSize: 7.5,
-    color: "#64748B",
-    marginBottom: 3,
-  },
-  statSummaryAmount: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#0F172A",
-  },
 });
 
 interface FinancialReportPdfDocumentProps {
@@ -555,18 +520,6 @@ interface FinancialReportPdfDocumentProps {
 export default function FinancialReportPdfDocument({
   data,
 }: FinancialReportPdfDocumentProps) {
-  // Safe math for breakdown
-  const fixedTotal = data.fixedExpensesTotal || 0;
-  const variableTotal = Math.max(0, data.totalExpenses - fixedTotal);
-  const fixedPct =
-    data.totalExpenses > 0
-      ? ((fixedTotal / data.totalExpenses) * 100).toFixed(1)
-      : "0.0";
-  const variablePct =
-    data.totalExpenses > 0
-      ? ((variableTotal / data.totalExpenses) * 100).toFixed(1)
-      : "0.0";
-
   // Daily timeline 5 key points for the area chart
   const timeline = data.dailyTimeline || [];
   const daysCount = timeline.length;
@@ -596,7 +549,7 @@ export default function FinancialReportPdfDocument({
     };
   });
 
-  // Calculate coordinates with generous padding to prevent cutting off
+  // Calculate chart coordinates with generous padding
   const chartW = 340;
   const chartH = 120;
   const padLeft = 40;
@@ -619,13 +572,17 @@ export default function FinancialReportPdfDocument({
     return { ...p, x, y };
   });
 
-  const pointsPolyline = svgCoords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" ");
-  const polygonPoints = `${padLeft},${padTop + plotH} ${pointsPolyline} ${padLeft + plotW},${padTop + plotH}`;
+  const pointsPolyline = svgCoords
+    .map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`)
+    .join(" ");
+  const polygonPoints = `${padLeft},${padTop + plotH} ${pointsPolyline} ${
+    padLeft + plotW
+  },${padTop + plotH}`;
 
   // Pie chart calculation
   const pieSlices = calculatePieSlices(data.categories, 65, 65, 55);
 
-  // Pagination for transactions: 14 per page to prevent any collision or table overlap
+  // Pagination for transactions: 14 rows per page to prevent collisions and overlap
   const TX_PER_PAGE = 14;
   const txList = data.transactions || [];
   const txPages: (typeof data.transactions)[] = [];
@@ -637,8 +594,8 @@ export default function FinancialReportPdfDocument({
     }
   }
 
-  // Total pages = 1 (Cover) + 1 (Overview) + 1 (Categories) + 1 (Fixed) + txPages.length
-  const totalPagesCount = 4 + txPages.length;
+  // Total pages = 1 (Cover) + 1 (Overview) + 1 (Categories) + txPages.length
+  const totalPagesCount = 3 + txPages.length;
 
   return (
     <Document
@@ -648,7 +605,7 @@ export default function FinancialReportPdfDocument({
     >
       {/* =========================================================================
           PAGE 1: PORTADA EJECUTIVA
-          Fiel a la imagen: fondo azul real, logo, tipografía limpia, sin recuadro pesado
+          Fiel a la referencia: fondo azul real, logo, tipografía limpia y equilibrada
          ========================================================================= */}
       <Page size="A4" style={styles.coverPage}>
         <View style={styles.coverTop}>
@@ -663,13 +620,13 @@ export default function FinancialReportPdfDocument({
         <View style={styles.coverCenter}>
           <Text style={styles.coverYear}>{data.year}</Text>
           <Text style={styles.coverTitle}>Reporte financiero</Text>
-          <Text style={styles.coverSubtitle}>Mensual</Text>
+          <Text style={styles.coverSubtitle}>Mensual • {data.monthName}</Text>
         </View>
 
         <View style={styles.coverBottom}>
           <Text style={styles.coverDescription}>
-            Informe ejecutivo de resultados, facturación de servicios, compromisos
-            fijos y balance neto de operaciones correspondiente al periodo de{" "}
+            Informe ejecutivo de resultados, facturación de ingresos, egresos
+            operativos y balance neto correspondiente al periodo de{" "}
             {data.monthName} {data.year}.
           </Text>
           <Text style={styles.coverFooterText}>
@@ -681,7 +638,7 @@ export default function FinancialReportPdfDocument({
 
       {/* =========================================================================
           PAGE 2: RESUMEN EJECUTIVO Y EVOLUCIÓN ACUMULADA
-          Fiel a la imagen: Gráfico de área superior, hero metric y tabla de pilares
+          Fiel a la referencia: Gráfico de área superior, hero metric y tabla de pilares
          ========================================================================= */}
       <Page size="A4" style={styles.page}>
         <View style={styles.runningHeader}>
@@ -707,7 +664,6 @@ export default function FinancialReportPdfDocument({
           {/* Area Chart without edge clipping */}
           <View style={styles.chartContainer}>
             <Svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`}>
-              {/* Horizontal gridlines */}
               <Line
                 x1={padLeft}
                 y1={padTop}
@@ -733,10 +689,8 @@ export default function FinancialReportPdfDocument({
                 strokeWidth={1}
               />
 
-              {/* Area polygon */}
               <Polygon points={polygonPoints} fill="#DBEAFE" opacity={0.65} />
 
-              {/* Top line stroke */}
               <Polyline
                 points={pointsPolyline}
                 fill="none"
@@ -744,7 +698,6 @@ export default function FinancialReportPdfDocument({
                 strokeWidth={2.2}
               />
 
-              {/* Data points */}
               {svgCoords.map((c, i) => (
                 <Circle
                   key={i}
@@ -784,13 +737,12 @@ export default function FinancialReportPdfDocument({
                 {formatCurrencyCRC(data.totalIncome)}
               </Text>
               <Text style={styles.heroMetricBadge}>
-                {data.transactionsCount} movimientos registrados
+                {data.incomeCount} cobros facturados
               </Text>
             </View>
             <Text style={styles.heroMetricDescription}>
-              Durante el periodo se registraron cobros por servicios audiovisuales,
-              redes y producciones, manteniendo un margen operativo de{" "}
-              {data.profitMargin}%.
+              Cobros correspondientes a servicios de producción, manejo de redes y
+              clientes activos, con un margen neto de {formatPct(data.profitMargin)}.
             </Text>
           </View>
         </View>
@@ -801,18 +753,18 @@ export default function FinancialReportPdfDocument({
           <View style={styles.bottomColumn}>
             <Text style={styles.sectionTitle}>Pilares financieros</Text>
             <Text style={styles.sectionSubtitle}>
-              Estructura consolidada de ingresos y egresos
+              Estructura consolidada del periodo
             </Text>
 
             <View style={styles.tableContainer}>
               <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableHeaderCell, { width: "55%" }]}>
+                <Text style={[styles.tableHeaderCell, { width: "50%" }]}>
                   Concepto
                 </Text>
                 <Text
                   style={[
                     styles.tableHeaderCell,
-                    { width: "30%", textAlign: "right" },
+                    { width: "32%", textAlign: "right" },
                   ]}
                 >
                   Monto
@@ -820,7 +772,7 @@ export default function FinancialReportPdfDocument({
                 <Text
                   style={[
                     styles.tableHeaderCell,
-                    { width: "15%", textAlign: "right" },
+                    { width: "18%", textAlign: "right" },
                   ]}
                 >
                   Part.
@@ -828,13 +780,13 @@ export default function FinancialReportPdfDocument({
               </View>
 
               <View style={styles.tableRow}>
-                <Text style={[styles.tableCell, { width: "55%" }]}>
-                  Ingresos totales
+                <Text style={[styles.tableCell, { width: "50%" }]}>
+                  Total de ingresos
                 </Text>
                 <Text
                   style={[
                     styles.tableCellBold,
-                    { width: "30%", textAlign: "right", color: "#15803D" },
+                    { width: "32%", textAlign: "right", color: "#15803D" },
                   ]}
                 >
                   {formatCurrencyCRC(data.totalIncome)}
@@ -842,7 +794,7 @@ export default function FinancialReportPdfDocument({
                 <Text
                   style={[
                     styles.tableCell,
-                    { width: "15%", textAlign: "right" },
+                    { width: "18%", textAlign: "right" },
                   ]}
                 >
                   100%
@@ -850,57 +802,13 @@ export default function FinancialReportPdfDocument({
               </View>
 
               <View style={[styles.tableRow, styles.tableRowZebra]}>
-                <Text style={[styles.tableCell, { width: "55%" }]}>
-                  Gastos fijos recurrentes
-                </Text>
-                <Text
-                  style={[
-                    styles.tableCell,
-                    { width: "30%", textAlign: "right" },
-                  ]}
-                >
-                  {formatCurrencyCRC(fixedTotal)}
-                </Text>
-                <Text
-                  style={[
-                    styles.tableCell,
-                    { width: "15%", textAlign: "right" },
-                  ]}
-                >
-                  {fixedPct}%
-                </Text>
-              </View>
-
-              <View style={styles.tableRow}>
-                <Text style={[styles.tableCell, { width: "55%" }]}>
-                  Gastos variables y compras
-                </Text>
-                <Text
-                  style={[
-                    styles.tableCell,
-                    { width: "30%", textAlign: "right" },
-                  ]}
-                >
-                  {formatCurrencyCRC(variableTotal)}
-                </Text>
-                <Text
-                  style={[
-                    styles.tableCell,
-                    { width: "15%", textAlign: "right" },
-                  ]}
-                >
-                  {variablePct}%
-                </Text>
-              </View>
-
-              <View style={[styles.tableRow, styles.tableRowZebra]}>
-                <Text style={[styles.tableCellBold, { width: "55%" }]}>
+                <Text style={[styles.tableCell, { width: "50%" }]}>
                   Total de egresos
                 </Text>
                 <Text
                   style={[
                     styles.tableCellBold,
-                    { width: "30%", textAlign: "right", color: "#B91C1C" },
+                    { width: "32%", textAlign: "right", color: "#B91C1C" },
                   ]}
                 >
                   {formatCurrencyCRC(data.totalExpenses)}
@@ -908,10 +816,10 @@ export default function FinancialReportPdfDocument({
                 <Text
                   style={[
                     styles.tableCell,
-                    { width: "15%", textAlign: "right" },
+                    { width: "18%", textAlign: "right" },
                   ]}
                 >
-                  -
+                  100%
                 </Text>
               </View>
 
@@ -919,7 +827,7 @@ export default function FinancialReportPdfDocument({
                 <Text
                   style={[
                     styles.tableCellBold,
-                    { width: "55%", color: "#1A56DB" },
+                    { width: "50%", color: "#1A56DB" },
                   ]}
                 >
                   Balance operativo neto
@@ -928,7 +836,7 @@ export default function FinancialReportPdfDocument({
                   style={[
                     styles.tableCellBold,
                     {
-                      width: "30%",
+                      width: "32%",
                       textAlign: "right",
                       color: data.netBalance >= 0 ? "#15803D" : "#B91C1C",
                     },
@@ -939,10 +847,10 @@ export default function FinancialReportPdfDocument({
                 <Text
                   style={[
                     styles.tableCellBold,
-                    { width: "15%", textAlign: "right", color: "#1A56DB" },
+                    { width: "18%", textAlign: "right", color: "#1A56DB" },
                   ]}
                 >
-                  {data.profitMargin}%
+                  {formatPct(data.profitMargin)}
                 </Text>
               </View>
             </View>
@@ -963,22 +871,22 @@ export default function FinancialReportPdfDocument({
                   { color: data.profitMargin >= 0 ? "#15803D" : "#B91C1C" },
                 ]}
               >
-                {data.profitMargin}%
+                {formatPct(data.profitMargin)}
               </Text>
             </View>
 
             <View style={styles.kpiHighlightBox}>
               <Text style={styles.kpiHighlightLabel}>
-                Cumplimiento de compromisos fijos
+                Actividad de movimientos
               </Text>
               <Text style={styles.kpiHighlightVal}>
-                {data.fixedExpensesPaid} pagados / {data.fixedExpensesCount} total
+                {data.incomeCount} cobros / {data.expenseCount} egresos
               </Text>
             </View>
 
             <View style={styles.kpiHighlightBox}>
               <Text style={styles.kpiHighlightLabel}>
-                Gasto promedio diario del mes
+                Egreso promedio diario
               </Text>
               <Text style={styles.kpiHighlightVal}>
                 {formatCurrencyCRC(data.totalExpenses / 30)}
@@ -991,13 +899,15 @@ export default function FinancialReportPdfDocument({
           <Text style={styles.runningFooterText}>
             Ultimate Media Productions • Reporte financiero mensual
           </Text>
-          <Text style={styles.runningFooterText}>Página 2 de {totalPagesCount}</Text>
+          <Text style={styles.runningFooterText}>
+            Página 2 de {totalPagesCount}
+          </Text>
         </View>
       </Page>
 
       {/* =========================================================================
           PAGE 3: DISTRIBUCIÓN DE EGRESOS Y CATEGORÍAS
-          Fiel a la imagen: Hero stat de egresos, gráfico circular de sectores y barras
+          Fiel a la referencia: Hero stat de egresos, gráfico circular y barras
          ========================================================================= */}
       <Page size="A4" style={styles.page}>
         <View style={styles.runningHeader}>
@@ -1006,7 +916,7 @@ export default function FinancialReportPdfDocument({
               Reporte financiero UMP • {data.monthName} {data.year}
             </Text>
             <Text style={styles.runningHeaderSubtitle}>
-              Distribución de egresos y estructura de costos por categoría
+              Distribución y estructura de costos por categoría
             </Text>
           </View>
           <Text style={styles.runningHeaderPage}>
@@ -1034,8 +944,8 @@ export default function FinancialReportPdfDocument({
               </Text>
             </View>
             <Text style={styles.heroMetricDescription}>
-              Comprende compras operativas para filmaciones, pagos fijos de
-              alquiler, nómina del equipo y servicios públicos del mes.
+              Comprende compras operativas para filmaciones, pagos de servicios,
+              nómina del equipo y suministros del mes.
             </Text>
           </View>
 
@@ -1067,11 +977,11 @@ export default function FinancialReportPdfDocument({
                         { backgroundColor: cat.color },
                       ]}
                     />
-                    <Text style={styles.pieLegendName}>
-                      {cat.name}
-                    </Text>
+                    <Text style={styles.pieLegendName}>{cat.name}</Text>
                   </View>
-                  <Text style={styles.pieLegendPct}>{cat.percentage}%</Text>
+                  <Text style={styles.pieLegendPct}>
+                    {formatPct(cat.percentage)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -1092,7 +1002,7 @@ export default function FinancialReportPdfDocument({
               <View style={styles.categoryBarHeader}>
                 <Text style={styles.categoryBarName}>{cat.name}</Text>
                 <Text style={styles.categoryBarValue}>
-                  {formatCurrencyCRC(cat.amount)} ({cat.percentage}%)
+                  {formatCurrencyCRC(cat.amount)} ({formatPct(cat.percentage)})
                 </Text>
               </View>
               <View style={styles.categoryBarTrack}>
@@ -1114,162 +1024,18 @@ export default function FinancialReportPdfDocument({
           <Text style={styles.runningFooterText}>
             Ultimate Media Productions • Reporte financiero mensual
           </Text>
-          <Text style={styles.runningFooterText}>Página 3 de {totalPagesCount}</Text>
-        </View>
-      </Page>
-
-      {/* =========================================================================
-          PAGE 4: OBLIGACIONES Y GASTOS FIJOS
-          Página dedicada y limpia, evitando que se superponga con transacciones
-         ========================================================================= */}
-      <Page size="A4" style={styles.page}>
-        <View style={styles.runningHeader}>
-          <View style={styles.runningHeaderLeft}>
-            <Text style={styles.runningHeaderTitle}>
-              Reporte financiero UMP • {data.monthName} {data.year}
-            </Text>
-            <Text style={styles.runningHeaderSubtitle}>
-              Obligaciones mensuales y compromisos recurrentes
-            </Text>
-          </View>
-          <Text style={styles.runningHeaderPage}>
-            Página 4 de {totalPagesCount}
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Obligaciones y gastos fijos</Text>
-        <Text style={styles.sectionSubtitle}>
-          Compromisos estables del mes: alquiler, servicios básicos, nómina y suscripciones
-        </Text>
-
-        {/* Quick KPI stats for fixed expenses */}
-        <View style={styles.statSummaryRow}>
-          <View style={styles.statSummaryCard}>
-            <Text style={styles.statSummaryLabel}>Total compromisos fijos</Text>
-            <Text style={styles.statSummaryAmount}>
-              {formatCurrencyCRC(data.fixedExpensesTotal)}
-            </Text>
-          </View>
-          <View style={styles.statSummaryCard}>
-            <Text style={styles.statSummaryLabel}>Total cancelado</Text>
-            <Text style={[styles.statSummaryAmount, { color: "#15803D" }]}>
-              {formatCurrencyCRC(data.fixedExpensesPaid)}
-            </Text>
-          </View>
-          <View style={styles.statSummaryCard}>
-            <Text style={styles.statSummaryLabel}>Pendiente por pagar</Text>
-            <Text style={[styles.statSummaryAmount, { color: "#B45309" }]}>
-              {formatCurrencyCRC(data.fixedExpensesPending)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Dedicated Fixed Expenses Table */}
-        <View style={styles.tableContainer}>
-          <View style={styles.tableHeaderRow}>
-            <Text style={[styles.tableHeaderCell, { width: "12%" }]}>Día</Text>
-            <Text style={[styles.tableHeaderCell, { width: "38%" }]}>
-              Concepto
-            </Text>
-            <Text style={[styles.tableHeaderCell, { width: "22%" }]}>
-              Categoría
-            </Text>
-            <Text
-              style={[
-                styles.tableHeaderCell,
-                { width: "16%", textAlign: "right" },
-              ]}
-            >
-              Monto
-            </Text>
-            <Text
-              style={[
-                styles.tableHeaderCell,
-                { width: "12%", textAlign: "center" },
-              ]}
-            >
-              Estado
-            </Text>
-          </View>
-
-          {data.fixedExpenses.length === 0 ? (
-            <View style={styles.tableRow}>
-              <Text
-                style={[
-                  styles.tableCell,
-                  { width: "100%", textAlign: "center", color: "#94A3B8" },
-                ]}
-              >
-                No hay obligaciones fijas registradas para este periodo.
-              </Text>
-            </View>
-          ) : (
-            data.fixedExpenses.map((fx, idx) => (
-              <View
-                key={idx}
-                style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowZebra : undefined]}
-              >
-                <Text style={[styles.tableCell, { width: "12%" }]}>
-                  Día {fx.dueDay}
-                </Text>
-                <Text style={[styles.tableCellBold, { width: "38%" }]}>
-                  {fx.concept}
-                </Text>
-                <Text style={[styles.tableCell, { width: "22%" }]}>
-                  {fx.category}
-                </Text>
-                <Text
-                  style={[
-                    styles.tableCellBold,
-                    { width: "16%", textAlign: "right" },
-                  ]}
-                >
-                  {formatCurrencyCRC(fx.amount)}
-                </Text>
-                <View style={{ width: "12%", alignItems: "center" }}>
-                  <Text
-                    style={
-                      fx.isPaid ? styles.badgePaid : styles.badgePending
-                    }
-                  >
-                    {fx.isPaid ? "Pagado" : "Pendiente"}
-                  </Text>
-                </View>
-              </View>
-            ))
-          )}
-
-          {/* Table summary row */}
-          <View style={[styles.tableRow, styles.tableRowHighlight]}>
-            <Text style={[styles.tableCellBold, { width: "50%" }]}>
-              Total gastos fijos del mes
-            </Text>
-            <Text
-              style={[
-                styles.tableCellBold,
-                { width: "38%", textAlign: "right", color: "#1A56DB" },
-              ]}
-            >
-              {formatCurrencyCRC(data.fixedExpensesTotal)}
-            </Text>
-            <Text style={{ width: "12%" }} />
-          </View>
-        </View>
-
-        <View style={styles.runningFooter}>
           <Text style={styles.runningFooterText}>
-            Ultimate Media Productions • Reporte financiero mensual
+            Página 3 de {totalPagesCount}
           </Text>
-          <Text style={styles.runningFooterText}>Página 4 de {totalPagesCount}</Text>
         </View>
       </Page>
 
       {/* =========================================================================
-          PAGE 5+: REGISTRO DE TRANSACCIONES DEL MES
+          PAGE 4+: REGISTRO DE TRANSACCIONES DEL MES (INGRESOS Y EGRESOS)
           Páginas dedicadas con 14 transacciones por página, evitando desbordes o cortes
          ========================================================================= */}
       {txPages.map((pageChunk, pageIndex) => {
-        const currentPageNumber = 5 + pageIndex;
+        const currentPageNumber = 4 + pageIndex;
         return (
           <Page key={pageIndex} size="A4" style={styles.page}>
             <View style={styles.runningHeader}>
@@ -1347,12 +1113,13 @@ export default function FinancialReportPdfDocument({
                       {formatDateDDMMAAAA(tx.date)}
                     </Text>
                     <View style={{ width: "43%" }}>
-                      <Text style={styles.tableCellBold}>
-                        {tx.concept}
-                      </Text>
+                      <Text style={styles.tableCellBold}>{tx.concept}</Text>
                       {tx.entity && (
                         <Text
-                          style={[styles.tableCell, { color: "#64748B", fontSize: 6.5 }]}
+                          style={[
+                            styles.tableCell,
+                            { color: "#64748B", fontSize: 6.5 },
+                          ]}
                         >
                           {tx.entity}
                         </Text>
@@ -1361,16 +1128,17 @@ export default function FinancialReportPdfDocument({
                     <Text style={[styles.tableCell, { width: "18%" }]}>
                       {tx.category}
                     </Text>
-                    <Text
-                      style={[
-                        tx.type === "income"
-                          ? styles.badgeIncome
-                          : styles.badgeExpense,
-                        { width: "10%", textAlign: "center" },
-                      ]}
-                    >
-                      {tx.type === "income" ? "Ingreso" : "Gasto"}
-                    </Text>
+                    <View style={{ width: "10%", alignItems: "center" }}>
+                      <Text
+                        style={
+                          tx.type === "income"
+                            ? styles.badgeIncome
+                            : styles.badgeExpense
+                        }
+                      >
+                        {tx.type === "income" ? "Ingreso" : "Gasto"}
+                      </Text>
+                    </View>
                     <Text
                       style={[
                         styles.tableCellBold,

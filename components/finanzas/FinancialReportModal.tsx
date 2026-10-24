@@ -118,48 +118,37 @@ export default function FinancialReportModal({
       .filter((t) => t.date && t.date.startsWith(prefix))
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Incomes and Expenses
+    // Incomes and Expenses strictly from this month's transactions
     const activeTx = monthTransactions.filter((t) => t.status !== "cancelled");
     const totalIncome = activeTx
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const operativeExpenses = activeTx
+    const totalExpenses = activeTx
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    // Fixed expenses
-    const activeFixedExpenses = fixedExpenses.filter((fe) => fe.active !== false);
-    const fixedExpensesTotal = activeFixedExpenses.reduce(
-      (sum, fe) => sum + (fe.amount || 0),
-      0,
-    );
-    const fixedExpensesPaid = activeFixedExpenses
-      .filter((fe) => fe.isPaidThisMonth)
-      .reduce((sum, fe) => sum + (fe.amount || 0), 0);
-    const fixedExpensesPending = fixedExpensesTotal - fixedExpensesPaid;
-
-    const totalExpenses = operativeExpenses + fixedExpensesTotal;
     const netBalance = totalIncome - totalExpenses;
     const profitMargin =
-      totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
+      totalIncome > 0
+        ? Number(((netBalance / totalIncome) * 100).toFixed(1))
+        : 0;
 
-    // Categories Breakdown
+    // Categories Breakdown strictly from expense transactions
     const catMap = new Map<string, number>();
     for (const t of activeTx.filter((tx) => tx.type === "expense")) {
       const cat = t.category || "Otro";
       catMap.set(cat, (catMap.get(cat) || 0) + t.amount);
-    }
-    for (const fe of activeFixedExpenses) {
-      const cat = fe.category || "Fijo";
-      catMap.set(cat, (catMap.get(cat) || 0) + fe.amount);
     }
 
     const categories = Array.from(catMap.entries())
       .map(([name, amount], idx) => ({
         name,
         amount,
-        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
+        percentage:
+          totalExpenses > 0
+            ? Number(((amount / totalExpenses) * 100).toFixed(1))
+            : 0,
         color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
       }))
       .sort((a, b) => b.amount - a.amount);
@@ -209,19 +198,10 @@ export default function FinancialReportModal({
       netBalance,
       profitMargin,
       transactionsCount: monthTransactions.length,
-      fixedExpensesCount: activeFixedExpenses.length,
-      fixedExpensesTotal,
-      fixedExpensesPaid,
-      fixedExpensesPending,
+      incomeCount: activeTx.filter((t) => t.type === "income").length,
+      expenseCount: activeTx.filter((t) => t.type === "expense").length,
       categories,
       dailyTimeline,
-      fixedExpenses: activeFixedExpenses.map((fe) => ({
-        concept: fe.concept,
-        amount: fe.amount,
-        category: fe.category || "Fijo",
-        dueDay: fe.dueDay || 1,
-        isPaid: Boolean(fe.isPaidThisMonth),
-      })),
       transactions: monthTransactions.map((t) => ({
         date: t.date,
         concept: t.concept,
@@ -232,7 +212,7 @@ export default function FinancialReportModal({
         status: t.status,
       })),
     };
-  }, [open, selectedYear, selectedMonth, transactions, fixedExpenses]);
+  }, [open, selectedYear, selectedMonth, transactions]);
 
   const cleanMonthName = MONTH_NAMES[selectedMonth - 1] || "Mes";
   const fileName = `Reporte_Financiero_UMP_${cleanMonthName}_${selectedYear}.pdf`;
@@ -380,7 +360,7 @@ export default function FinancialReportModal({
             {reportData.transactionsCount === 0 && (
               <p className="rounded-lg border border-orange-6/40 bg-orange-2/40 p-2 text-center text-xs text-orange-11">
                 No hay movimientos registrados en este mes. El reporte se
-                generará con los gastos fijos activos y balance cero.
+                generará con balance en cero.
               </p>
             )}
           </div>
