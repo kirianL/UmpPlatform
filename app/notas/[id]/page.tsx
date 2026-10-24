@@ -365,15 +365,24 @@ export default function NoteBoardPage() {
             </Link>
 
             <div className="flex items-center gap-2">
-              {note && (isAdmin || note.ownerEmail === userEmail) && !note.coverUrl && (
+              {note && (isAdmin || note.ownerEmail === userEmail) && (
                 <button
                   type="button"
                   onClick={() => coverFileInputRef.current?.click()}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 py-1.5 font-mono text-xs font-medium text-grayscale-11 transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
-                  title="Agregar foto de portada al proyecto"
+                  disabled={uploadingCover}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 py-1.5 font-mono text-xs font-medium text-grayscale-11 transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8 disabled:opacity-50"
+                  title={
+                    note.coverUrl
+                      ? "Cambiar foto de portada"
+                      : "Asignar foto de portada"
+                  }
                 >
-                  <CameraIcon size={14} />
-                  <span>Agregar portada</span>
+                  {uploadingCover ? (
+                    <SpinnerGapIcon size={14} className="animate-spin" />
+                  ) : (
+                    <CameraIcon size={14} />
+                  )}
+                  <span>{note.coverUrl ? "Cambiar portada" : "Portada"}</span>
                 </button>
               )}
 
@@ -404,43 +413,6 @@ export default function NoteBoardPage() {
               )}
             </div>
           </div>
-
-          {note?.coverUrl && (
-            <div className="group/cover relative h-44 sm:h-60 w-full overflow-hidden rounded-xl border border-grayscale-4 bg-grayscale-2 dark:bg-grayscale-3 shadow-2xs">
-              {/* biome-ignore lint/performance/noImgElement: imagen de Convex storage con URL firmada */}
-              <img
-                src={note.coverUrl}
-                alt="Portada del proyecto"
-                className="size-full object-cover"
-              />
-              {(isAdmin || note.ownerEmail === userEmail) && (
-                <div className="absolute bottom-3 right-3 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover/cover:opacity-100 sm:group-focus-within/cover:opacity-100 transition-opacity z-10">
-                  <button
-                    type="button"
-                    onClick={() => coverFileInputRef.current?.click()}
-                    className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 font-mono text-xs font-semibold text-grayscale-12 backdrop-blur shadow-xs transition-colors hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3"
-                  >
-                    <CameraIcon size={14} weight="bold" />
-                    <span>Cambiar portada</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleRemoveCover()}
-                    className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-4 bg-grayscale-1/90 text-grayscale-10 backdrop-blur shadow-xs transition-colors hover:border-red-6 hover:text-red-11 hover:bg-grayscale-2 dark:bg-grayscale-2/90"
-                    title="Quitar foto de portada"
-                    aria-label="Quitar portada"
-                  >
-                    <TrashIcon size={14} />
-                  </button>
-                </div>
-              )}
-              {uploadingCover && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-xs">
-                  <SpinnerGapIcon size={24} className="animate-spin text-white" />
-                </div>
-              )}
-            </div>
-          )}
 
           {note ? (
             <div className="flex flex-col gap-1.5">
