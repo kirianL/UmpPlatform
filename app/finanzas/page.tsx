@@ -9,6 +9,7 @@ import {
   CurrencyDollarIcon,
   EyeIcon,
   FileIcon,
+  FilePdfIcon,
   HourglassIcon,
   ImageIcon,
   MagnifyingGlassIcon,
@@ -21,6 +22,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
+import FinancialReportModal from "@/components/finanzas/FinancialReportModal";
 import InvoiceScanner, {
   type ScannedInvoicePayload,
 } from "@/components/InvoiceScanner";
@@ -239,6 +241,7 @@ export default function FinanzasPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDateRange, setFilterDateRange] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [editingBudgetId, setEditingBudgetId] =
@@ -1194,13 +1197,26 @@ export default function FinanzasPage() {
     <PageContainer size="wide">
       <div className="flex flex-col gap-8">
         {/* Header */}
-        <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
-            Finanzas
-          </h1>
-          <p className="text-sm text-grayscale-10">
-            Control de ingresos, gastos, facturación y presupuesto
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <h1 className="font-mono text-xl font-bold uppercase text-grayscale-12">
+              Finanzas
+            </h1>
+            <p className="text-sm text-grayscale-10">
+              Control de ingresos, gastos, facturación y presupuesto
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="secondary"
+              className="text-xs cursor-pointer flex items-center gap-1.5"
+              onClick={() => setReportModalOpen(true)}
+            >
+              <FilePdfIcon size={16} weight="bold" className="text-red-11" />
+              <span>Descargar reporte</span>
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -2369,6 +2385,14 @@ export default function FinanzasPage() {
             </div>
           )}
         </Modal>
+
+        <FinancialReportModal
+          open={reportModalOpen}
+          onOpenChange={setReportModalOpen}
+          transactions={transactions}
+          fixedExpenses={fixedExpenses}
+          budgetItems={budgetItems}
+        />
       </div>
     </PageContainer>
   );
