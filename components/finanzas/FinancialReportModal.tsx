@@ -43,16 +43,16 @@ const MONTH_NAMES = [
 ];
 
 const CATEGORY_COLORS = [
+  "#1A56DB",
   "#2563EB",
-  "#10B981",
+  "#3B82F6",
+  "#60A5FA",
+  "#93C5FD",
+  "#0284C7",
+  "#0D9488",
   "#F59E0B",
-  "#8B5CF6",
-  "#EC4899",
-  "#06B6D4",
   "#64748B",
-  "#14B8A6",
-  "#F97316",
-  "#6366F1",
+  "#475569",
 ];
 
 function formatCurrency(n: number): string {
