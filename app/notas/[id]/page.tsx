@@ -5,6 +5,7 @@ import {
   ArrowSquareOutIcon,
   ArrowsInLineHorizontalIcon,
   ArrowsOutLineHorizontalIcon,
+  CameraIcon,
   CaretLeftIcon,
   CaretRightIcon,
   CheckIcon,
@@ -136,6 +137,7 @@ export default function NoteBoardPage() {
   const removeBlock = useMutation(api.notes.removeBlock);
   const generateUploadUrl = useMutation(api.notes.generateUploadUrl);
   const migrateLegacy = useMutation(api.notes.migrateLegacy);
+  const updateCover = useMutation(api.notes.updateCover);
 
   const [localOrder, setLocalOrder] = useState<Id<"noteBlocks">[] | null>(null);
   const [dragId, setDragId] = useState<Id<"noteBlocks"> | null>(null);
@@ -145,9 +147,45 @@ export default function NoteBoardPage() {
   const [focusId, setFocusId] = useState<Id<"noteBlocks"> | null>(null);
   const [deleteId, setDeleteId] = useState<Id<"noteBlocks"> | null>(null);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
   const migratedRef = useRef(false);
+
+  async function handleCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploadingCover(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error();
+      const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
+      await updateCover({
+        id: noteId,
+        storageId,
+        ...authArgs,
+      });
+    } catch {
+      setError("No se pudo subir la foto de portada. Probá de nuevo.");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
+  async function handleRemoveCover() {
+    await updateCover({
+      id: noteId,
+      storageId: undefined,
+      ...authArgs,
+    });
+  }
 
   const blocks = useMemo(() => {
     const list = (board?.blocks ?? []) as Block[];
@@ -326,32 +364,83 @@ export default function NoteBoardPage() {
               Proyectos
             </Link>
 
-            {note && (isAdmin || note.ownerEmail === userEmail) && (
-              <button
-                type="button"
-                onClick={() => setAccessModalOpen(true)}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 py-1.5 font-mono text-xs font-medium text-grayscale-11 transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
-                title="Configurar permisos de visibilidad"
-              >
-                {note.visibility === "all" ? (
-                  <>
-                    <GlobeSimpleIcon size={14} className="text-grayscale-11" aria-hidden />
-                    <span>Equipo</span>
-                  </>
-                ) : note.visibility === "selected" ? (
-                  <>
-                    <UsersIcon size={14} className="text-accent-11" aria-hidden />
-                    <span>Compartido ({note.sharedWith?.length ?? 0})</span>
-                  </>
-                ) : (
-                  <>
-                    <LockKeyIcon size={14} className="text-grayscale-10" aria-hidden />
-                    <span>Privado</span>
-                  </>
-                )}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {note && (isAdmin || note.ownerEmail === userEmail) && !note.coverUrl && (
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 py-1.5 font-mono text-xs font-medium text-grayscale-11 transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
+                  title="Agregar foto de portada al proyecto"
+                >
+                  <CameraIcon size={14} />
+                  <span>Agregar portada</span>
+                </button>
+              )}
+
+              {note && (isAdmin || note.ownerEmail === userEmail) && (
+                <button
+                  type="button"
+                  onClick={() => setAccessModalOpen(true)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 py-1.5 font-mono text-xs font-medium text-grayscale-11 transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
+                  title="Configurar permisos de visibilidad"
+                >
+                  {note.visibility === "all" ? (
+                    <>
+                      <GlobeSimpleIcon size={14} className="text-grayscale-11" aria-hidden />
+                      <span>Equipo</span>
+                    </>
+                  ) : note.visibility === "selected" ? (
+                    <>
+                      <UsersIcon size={14} className="text-accent-11" aria-hidden />
+                      <span>Compartido ({note.sharedWith?.length ?? 0})</span>
+                    </>
+                  ) : (
+                    <>
+                      <LockKeyIcon size={14} className="text-grayscale-10" aria-hidden />
+                      <span>Privado</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
+
+          {note?.coverUrl && (
+            <div className="group/cover relative h-44 sm:h-60 w-full overflow-hidden rounded-xl border border-grayscale-4 bg-grayscale-2 dark:bg-grayscale-3 shadow-2xs">
+              {/* biome-ignore lint/performance/noImgElement: imagen de Convex storage con URL firmada */}
+              <img
+                src={note.coverUrl}
+                alt="Portada del proyecto"
+                className="size-full object-cover"
+              />
+              {(isAdmin || note.ownerEmail === userEmail) && (
+                <div className="absolute bottom-3 right-3 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover/cover:opacity-100 sm:group-focus-within/cover:opacity-100 transition-opacity z-10">
+                  <button
+                    type="button"
+                    onClick={() => coverFileInputRef.current?.click()}
+                    className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-grayscale-4 bg-grayscale-1/90 px-3 font-mono text-xs font-semibold text-grayscale-12 backdrop-blur shadow-xs transition-colors hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3"
+                  >
+                    <CameraIcon size={14} weight="bold" />
+                    <span>Cambiar portada</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleRemoveCover()}
+                    className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-4 bg-grayscale-1/90 text-grayscale-10 backdrop-blur shadow-xs transition-colors hover:border-red-6 hover:text-red-11 hover:bg-grayscale-2 dark:bg-grayscale-2/90"
+                    title="Quitar foto de portada"
+                    aria-label="Quitar portada"
+                  >
+                    <TrashIcon size={14} />
+                  </button>
+                </div>
+              )}
+              {uploadingCover && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-xs">
+                  <SpinnerGapIcon size={24} className="animate-spin text-white" />
+                </div>
+              )}
+            </div>
+          )}
 
           {note ? (
             <div className="flex flex-col gap-1.5">
@@ -585,6 +674,14 @@ export default function NoteBoardPage() {
             isAdmin={isAdmin}
           />
         )}
+
+        <input
+          ref={coverFileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCoverFileChange}
+        />
       </div>
     </PageContainer>
   );

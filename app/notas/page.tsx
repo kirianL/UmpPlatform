@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  CameraIcon,
   GlobeSimpleIcon,
   ImageIcon,
   LockKeyIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   PushPinIcon,
+  SpinnerGapIcon,
   SquaresFourIcon,
   TrashIcon,
   UsersIcon,
@@ -14,7 +16,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
   formatShortDate,
@@ -41,6 +43,8 @@ export default function NotasPage() {
   const createProject = useMutation(api.notes.create);
   const togglePinned = useMutation(api.notes.togglePinned);
   const removeProject = useMutation(api.notes.remove);
+  const updateCover = useMutation(api.notes.updateCover);
+  const generateUploadUrl = useMutation(api.notes.generateUploadUrl);
 
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -53,6 +57,52 @@ export default function NotasPage() {
     visibility?: "private" | "all" | "selected";
     sharedWith?: string[];
   } | null>(null);
+
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  const [targetCoverProjectId, setTargetCoverProjectId] =
+    useState<Id<"notes"> | null>(null);
+  const [uploadingCoverId, setUploadingCoverId] =
+    useState<Id<"notes"> | null>(null);
+
+  function triggerCoverUpload(id: Id<"notes">) {
+    setTargetCoverProjectId(id);
+    coverFileInputRef.current?.click();
+  }
+
+  async function handleCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !targetCoverProjectId) return;
+    e.target.value = "";
+    setUploadingCoverId(targetCoverProjectId);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error();
+      const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
+      await updateCover({
+        id: targetCoverProjectId,
+        storageId,
+        ...authArgs,
+      });
+    } catch {
+      // upload error
+    } finally {
+      setUploadingCoverId(null);
+      setTargetCoverProjectId(null);
+    }
+  }
+
+  async function handleRemoveCover(id: Id<"notes">) {
+    await updateCover({
+      id,
+      storageId: undefined,
+      ...authArgs,
+    });
+  }
 
   const owners = useMemo(() => {
     const map = new Map<string, string>();
@@ -227,7 +277,7 @@ export default function NotasPage() {
                       : "border-grayscale-4 hover:border-grayscale-6 dark:border-grayscale-4",
                   )}
                 >
-                  <div className="relative m-1.5 mb-0 aspect-[16/9] overflow-hidden rounded-lg bg-grayscale-2 dark:bg-grayscale-3">
+                  <div className="group/cover relative m-1.5 mb-0 aspect-[16/9] overflow-hidden rounded-lg bg-grayscale-2 dark:bg-grayscale-3">
                     {project.coverUrl ? (
                       // biome-ignore lint/performance/noImgElement: imagen de Convex storage con URL firmada
                       <img
@@ -243,6 +293,50 @@ export default function NotasPage() {
                     ) : (
                       <div className="flex size-full items-center justify-center text-grayscale-8">
                         <SquaresFourIcon size={28} aria-hidden />
+                      </div>
+                    )}
+
+                    {(isAdmin || project.ownerEmail === userEmail) && (
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/cover:opacity-100 sm:group-focus-within/cover:opacity-100 transition-opacity z-10">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            triggerCoverUpload(project._id);
+                          }}
+                          title={
+                            project.coverUrl
+                              ? "Cambiar foto de portada"
+                              : "Subir foto de portada"
+                          }
+                          aria-label="Cambiar foto de portada"
+                          className="flex h-7 cursor-pointer items-center gap-1 rounded-md border border-grayscale-4 bg-grayscale-1/90 px-2 font-mono text-[11px] font-medium text-grayscale-12 backdrop-blur shadow-xs transition-colors hover:border-grayscale-6 hover:bg-grayscale-2 dark:bg-grayscale-2/90 dark:hover:bg-grayscale-3"
+                        >
+                          <CameraIcon size={13} weight="bold" />
+                          <span>Portada</span>
+                        </button>
+                        {project.coverUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void handleRemoveCover(project._id);
+                            }}
+                            title="Quitar foto de portada"
+                            aria-label="Quitar portada"
+                            className="flex size-7 cursor-pointer items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1/90 text-grayscale-10 backdrop-blur shadow-xs transition-colors hover:border-red-6 hover:text-red-11 hover:bg-grayscale-2 dark:bg-grayscale-2/90"
+                          >
+                            <TrashIcon size={13} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {uploadingCoverId === project._id && (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-xs">
+                        <SpinnerGapIcon size={24} className="animate-spin text-white" />
                       </div>
                     )}
                   </div>
@@ -391,6 +485,14 @@ export default function NotasPage() {
             isAdmin={isAdmin}
           />
         )}
+
+        <input
+          ref={coverFileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCoverFileChange}
+        />
       </div>
     </PageContainer>
   );

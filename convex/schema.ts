@@ -438,6 +438,7 @@ export default defineSchema({
       ),
     ),
     sharedWith: v.optional(v.array(v.string())),
+    coverStorageId: v.optional(v.id("_storage")),
     ownerEmail: v.string(),
     ownerName: v.optional(v.string()),
     createdAt: v.string(),

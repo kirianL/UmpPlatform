@@ -138,7 +138,8 @@ export const get = query({
           .query("noteBlocks")
           .withIndex("by_noteId_order", (q) => q.eq("noteId", note._id))
           .collect();
-        const cover = blocks.find((b) => b.type === "image" && b.storageId);
+        const fallbackCover = blocks.find((b) => b.type === "image" && b.storageId);
+        const coverStorageId = note.coverStorageId ?? fallbackCover?.storageId;
         const firstText = blocks.find(
           (b) => (b.type === "text" || b.type === "heading") && b.content,
         );
@@ -151,9 +152,10 @@ export const get = query({
           blockCount: blocks.length + legacyCount,
           imageCount: blocks.filter((b) => b.type === "image").length,
           preview: firstText?.content ?? note.content ?? "",
-          coverUrl: cover?.storageId
-            ? await ctx.storage.getUrl(cover.storageId)
+          coverUrl: coverStorageId
+            ? await ctx.storage.getUrl(coverStorageId)
             : null,
+          hasCustomCover: Boolean(note.coverStorageId),
         };
       }),
     );
@@ -184,7 +186,20 @@ export const getBoard = query({
           : null,
       })),
     );
-    return { note, blocks: withUrls };
+    const fallbackCover = blocks.find((b) => b.type === "image" && b.storageId);
+    const coverStorageId = note.coverStorageId ?? fallbackCover?.storageId;
+    const coverUrl = coverStorageId
+      ? await ctx.storage.getUrl(coverStorageId)
+      : null;
+
+    return {
+      note: {
+        ...note,
+        coverUrl,
+        hasCustomCover: Boolean(note.coverStorageId),
+      },
+      blocks: withUrls,
+    };
   },
 });
 
@@ -263,6 +278,21 @@ export const updateAccess = mutation({
     await ctx.db.patch(args.id, {
       visibility: args.visibility,
       sharedWith: args.sharedWith?.map(normalizeEmail) ?? [],
+      updatedAt: new Date().toISOString(),
+    });
+  },
+});
+
+export const updateCover = mutation({
+  args: {
+    id: v.id("notes"),
+    storageId: v.optional(v.id("_storage")),
+    ...authArgs,
+  },
+  handler: async (ctx, args) => {
+    await requireNote(ctx, args.id, args.actorEmail, args.isAdmin);
+    await ctx.db.patch(args.id, {
+      coverStorageId: args.storageId,
       updatedAt: new Date().toISOString(),
     });
   },
