@@ -25,6 +25,7 @@ const projectFields = {
   status: v.union(v.literal("borrador"), v.literal("publicado")),
   coverStorageId: v.optional(v.id("_storage")),
   videoYoutubeId: v.optional(v.string()),
+  videoUrl: v.optional(v.string()),
   lead: v.string(),
   story: v.array(v.string()),
   credits: v.array(creditValidator),
@@ -65,15 +66,50 @@ function cleanGallery(
   });
 }
 
-function parseYoutubeId(value?: string) {
+function parseVideoSource(value?: string): {
+  videoYoutubeId?: string;
+  videoUrl?: string;
+} {
   const trimmed = value?.trim() || "";
-  if (!trimmed) return undefined;
-  const match = trimmed.match(
+  if (!trimmed) return {};
+
+  if (
+    /^(https?:\/\/)?(www\.|web\.|m\.)?(facebook\.com|fb\.watch)\/.+/i.test(
+      trimmed,
+    )
+  ) {
+    const fullUrl = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    return {
+      videoUrl: fullUrl,
+      videoYoutubeId: undefined,
+    };
+  }
+
+  const ytMatch = trimmed.match(
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/,
   );
-  if (match) return match[1];
-  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
-  return trimmed;
+  if (ytMatch) {
+    return {
+      videoYoutubeId: ytMatch[1],
+      videoUrl: `https://www.youtube.com/watch?v=${ytMatch[1]}`,
+    };
+  }
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) {
+    return {
+      videoYoutubeId: trimmed,
+      videoUrl: `https://www.youtube.com/watch?v=${trimmed}`,
+    };
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return {
+      videoUrl: trimmed,
+    };
+  }
+
+  return {};
 }
 
 function galleryIds(gallery: { storageId: Id<"_storage"> }[]) {
@@ -134,6 +170,7 @@ function toPublicProject(project: Awaited<ReturnType<typeof withMedia>>) {
     client: project.client,
     deliverables: project.deliverables,
     videoYoutubeId: project.videoYoutubeId,
+    videoUrl: project.videoUrl,
     lead: project.lead,
     story: project.story,
     credits: project.credits,
@@ -226,6 +263,7 @@ export const upsertBySlug = mutation({
 
     const now = new Date().toISOString();
     const gallery = cleanGallery(args.gallery);
+    const videoInfo = parseVideoSource(args.videoUrl || args.videoYoutubeId);
     const payload = {
       slug,
       title: args.title.trim(),
@@ -237,7 +275,8 @@ export const upsertBySlug = mutation({
       deliverables: args.deliverables.trim(),
       status: args.status,
       coverStorageId: args.coverStorageId,
-      videoYoutubeId: parseYoutubeId(args.videoYoutubeId),
+      videoYoutubeId: videoInfo.videoYoutubeId,
+      videoUrl: videoInfo.videoUrl,
       lead: args.lead.trim(),
       story: cleanParagraphs(args.story),
       credits: cleanCredits(args.credits),
@@ -275,6 +314,7 @@ export const create = mutation({
     await assertUniqueSlug(ctx, slug);
 
     const now = new Date().toISOString();
+    const videoInfo = parseVideoSource(args.videoUrl || args.videoYoutubeId);
     return await ctx.db.insert("portfolioProjects", {
       slug,
       title: args.title.trim(),
@@ -286,7 +326,8 @@ export const create = mutation({
       deliverables: args.deliverables.trim(),
       status: args.status,
       coverStorageId: args.coverStorageId,
-      videoYoutubeId: parseYoutubeId(args.videoYoutubeId),
+      videoYoutubeId: videoInfo.videoYoutubeId,
+      videoUrl: videoInfo.videoUrl,
       lead: args.lead.trim(),
       story: cleanParagraphs(args.story),
       credits: cleanCredits(args.credits),
@@ -322,6 +363,7 @@ export const update = mutation({
     ];
     await deleteUnusedImages(ctx, previousImages, nextImages);
 
+    const videoInfo = parseVideoSource(args.videoUrl || args.videoYoutubeId);
     await ctx.db.patch(args.id, {
       slug,
       title: args.title.trim(),
@@ -333,7 +375,8 @@ export const update = mutation({
       deliverables: args.deliverables.trim(),
       status: args.status,
       coverStorageId: args.coverStorageId,
-      videoYoutubeId: parseYoutubeId(args.videoYoutubeId),
+      videoYoutubeId: videoInfo.videoYoutubeId,
+      videoUrl: videoInfo.videoUrl,
       lead: args.lead.trim(),
       story: cleanParagraphs(args.story),
       credits: cleanCredits(args.credits),

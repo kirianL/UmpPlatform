@@ -676,6 +676,7 @@ export default defineSchema({
     status: v.union(v.literal("borrador"), v.literal("publicado")),
     coverStorageId: v.optional(v.id("_storage")),
     videoYoutubeId: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
     lead: v.string(),
     story: v.array(v.string()),
     credits: v.array(

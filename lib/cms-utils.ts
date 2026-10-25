@@ -122,3 +122,55 @@ export function parseYoutubeId(value: string) {
   if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
   return trimmed;
 }
+
+export type VideoSourceInfo = {
+  provider: "youtube" | "facebook" | null;
+  youtubeId?: string;
+  url?: string;
+};
+
+export function parseVideoSource(value?: string): VideoSourceInfo {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) return { provider: null };
+
+  if (
+    /^(https?:\/\/)?(www\.|web\.|m\.)?(facebook\.com|fb\.watch)\/.+/i.test(
+      trimmed,
+    )
+  ) {
+    const fullUrl = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    return {
+      provider: "facebook",
+      url: fullUrl,
+    };
+  }
+
+  const ytMatch = trimmed.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/,
+  );
+  if (ytMatch) {
+    return {
+      provider: "youtube",
+      youtubeId: ytMatch[1],
+      url: `https://www.youtube.com/watch?v=${ytMatch[1]}`,
+    };
+  }
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) {
+    return {
+      provider: "youtube",
+      youtubeId: trimmed,
+      url: `https://www.youtube.com/watch?v=${trimmed}`,
+    };
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return {
+      provider: null,
+      url: trimmed,
+    };
+  }
+
+  return { provider: null };
+}

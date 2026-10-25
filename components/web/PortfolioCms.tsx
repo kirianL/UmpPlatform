@@ -23,6 +23,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/helpers/classname-helper";
 import {
   cmsErrorMessage,
+  parseVideoSource,
   parseYoutubeId,
   splitParagraphs,
   toSlug,
@@ -47,7 +48,7 @@ type FormState = {
   client: string;
   deliverables: string;
   status: ProjectStatus;
-  videoYoutubeId: string;
+  videoInput: string;
   lead: string;
   storyText: string;
   credits: { role: string; name: string }[];
@@ -73,7 +74,7 @@ function emptyForm(): FormState {
     client: "Ultimate Media Productions",
     deliverables: "",
     status: "borrador",
-    videoYoutubeId: "",
+    videoInput: "",
     lead: "",
     storyText: "",
     credits: [{ role: "", name: "" }],
@@ -128,7 +129,11 @@ export default function PortfolioCms() {
       client: project.client,
       deliverables: project.deliverables,
       status: project.status,
-      videoYoutubeId: project.videoYoutubeId || "",
+      videoInput:
+        project.videoUrl ||
+        (project.videoYoutubeId
+          ? `https://www.youtube.com/watch?v=${project.videoYoutubeId}`
+          : ""),
       lead: project.lead,
       storyText: project.story.join("\n\n"),
       credits:
@@ -217,7 +222,8 @@ export default function PortfolioCms() {
       deliverables: form.deliverables,
       status: form.status,
       coverStorageId: form.coverStorageId,
-      videoYoutubeId: parseYoutubeId(form.videoYoutubeId) || undefined,
+      videoYoutubeId: parseVideoSource(form.videoInput).youtubeId || undefined,
+      videoUrl: parseVideoSource(form.videoInput).url || undefined,
       lead: form.lead,
       story: splitParagraphs(form.storyText),
       credits: form.credits,
@@ -517,15 +523,42 @@ export default function PortfolioCms() {
               }
               placeholder="Dirección · Montaje · Color"
             />
-            <Input
-              id="portfolio-youtube"
-              label="YouTube (id o URL)"
-              value={form.videoYoutubeId}
-              onChange={(event) =>
-                patchForm({ videoYoutubeId: event.target.value })
-              }
-              placeholder="https://youtu.be/..."
-            />
+            <div className="flex flex-col gap-1.5">
+              <Input
+                id="portfolio-video"
+                label="Video (YouTube o Facebook)"
+                value={form.videoInput}
+                onChange={(event) =>
+                  patchForm({ videoInput: event.target.value })
+                }
+                placeholder="https://youtu.be/... o https://facebook.com/..."
+              />
+              {(() => {
+                const info = parseVideoSource(form.videoInput);
+                if (info.provider === "facebook") {
+                  return (
+                    <span className="text-[11px] font-mono font-medium text-blue-11 dark:text-blue-10">
+                      Facebook Video / Reel detectado
+                    </span>
+                  );
+                }
+                if (info.provider === "youtube") {
+                  return (
+                    <span className="text-[11px] font-mono font-medium text-red-11 dark:text-red-10">
+                      YouTube detectado ({info.youtubeId})
+                    </span>
+                  );
+                }
+                if (form.videoInput.trim()) {
+                  return (
+                    <span className="text-[11px] font-mono text-orange-11">
+                      URL de video web
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+            </div>
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
