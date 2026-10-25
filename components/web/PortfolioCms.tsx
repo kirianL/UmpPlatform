@@ -46,7 +46,7 @@ type FormState = {
   category: string;
   year: string;
   client: string;
-  deliverables: string;
+  deliverablesList: string[];
   status: ProjectStatus;
   videoInput: string;
   lead: string;
@@ -58,6 +58,18 @@ type FormState = {
 };
 
 const CATEGORIES = ["Producción", "Fotografía", "Branding", "Contenido"];
+
+const COMMON_SERVICES = [
+  "Dirección",
+  "Producción",
+  "Post producción",
+  "Montaje",
+  "Colorización",
+  "Dron",
+  "Fotografía",
+  "Guion",
+  "Diseño de sonido",
+];
 
 function currentYear() {
   return String(new Date().getFullYear());
@@ -72,7 +84,7 @@ function emptyForm(): FormState {
     category: "Producción",
     year: currentYear(),
     client: "Ultimate Media Productions",
-    deliverables: "",
+    deliverablesList: [],
     status: "borrador",
     videoInput: "",
     lead: "",
@@ -96,6 +108,7 @@ export default function PortfolioCms() {
     null,
   );
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [newService, setNewService] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -103,6 +116,25 @@ export default function PortfolioCms() {
   const [deleteId, setDeleteId] = useState<Id<"portfolioProjects"> | null>(
     null,
   );
+
+  function addService(serviceName: string) {
+    const trimmed = serviceName.trim().replace(/^[-–—·•,]+|[-–—·•,]+$/g, "");
+    if (!trimmed) return;
+    if (
+      !form.deliverablesList.some(
+        (s) => s.toLowerCase() === trimmed.toLowerCase(),
+      )
+    ) {
+      patchForm({ deliverablesList: [...form.deliverablesList, trimmed] });
+    }
+    setNewService("");
+  }
+
+  function removeService(index: number) {
+    patchForm({
+      deliverablesList: form.deliverablesList.filter((_, idx) => idx !== index),
+    });
+  }
 
   const publishedCount = useMemo(
     () => projects?.filter((item) => item.status === "publicado").length ?? 0,
@@ -112,6 +144,7 @@ export default function PortfolioCms() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setNewService("");
     setSlugTouched(false);
     setFormError("");
     setEditorOpen(true);
@@ -119,6 +152,7 @@ export default function PortfolioCms() {
 
   function openEdit(project: NonNullable<typeof projects>[number]) {
     setEditingId(project._id);
+    setNewService("");
     setForm({
       title: project.title,
       slug: project.slug,
@@ -127,7 +161,12 @@ export default function PortfolioCms() {
       category: project.category,
       year: project.year,
       client: project.client,
-      deliverables: project.deliverables,
+      deliverablesList: project.deliverables
+        ? project.deliverables
+            .split(/\s*[-–—·•,]\s*/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [],
       status: project.status,
       videoInput:
         project.videoUrl ||
@@ -219,7 +258,7 @@ export default function PortfolioCms() {
       category: form.category,
       year: form.year,
       client: form.client,
-      deliverables: form.deliverables,
+      deliverables: form.deliverablesList.join(" · "),
       status: form.status,
       coverStorageId: form.coverStorageId,
       videoYoutubeId: parseVideoSource(form.videoInput).youtubeId || undefined,
@@ -514,15 +553,94 @@ export default function PortfolioCms() {
               value={form.client}
               onChange={(event) => patchForm({ client: event.target.value })}
             />
-            <Input
-              id="portfolio-deliverables"
-              label="Servicios"
-              value={form.deliverables}
-              onChange={(event) =>
-                patchForm({ deliverables: event.target.value })
-              }
-              placeholder="Dirección · Montaje · Color"
-            />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="portfolio-new-service"
+                  className="text-xs font-medium font-mono uppercase text-grayscale-10"
+                >
+                  Servicios
+                </label>
+                <span className="text-[11px] font-mono text-grayscale-8">
+                  {form.deliverablesList.length}{" "}
+                  {form.deliverablesList.length === 1
+                    ? "servicio"
+                    : "servicios"}
+                </span>
+              </div>
+
+              {/* Active Services Chips */}
+              {form.deliverablesList.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border border-grayscale-3 bg-grayscale-1 dark:border-grayscale-4 dark:bg-grayscale-2">
+                  {form.deliverablesList.map((service, index) => (
+                    <span
+                      key={`${service}-${index}`}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-grayscale-4 bg-grayscale-2 px-2.5 py-1 text-xs font-medium text-grayscale-12 shadow-2xs dark:border-grayscale-5 dark:bg-grayscale-3"
+                    >
+                      <span>{service}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeService(index)}
+                        className="flex size-3.5 cursor-pointer items-center justify-center rounded-full text-grayscale-8 hover:bg-red-3 hover:text-red-11"
+                        aria-label={`Eliminar ${service}`}
+                      >
+                        <XIcon size={10} weight="bold" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Input to add a new service */}
+              <div className="flex gap-2">
+                <input
+                  id="portfolio-new-service"
+                  type="text"
+                  value={newService}
+                  onChange={(e) => setNewService(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addService(newService);
+                    }
+                  }}
+                  placeholder="Ej: Dron, Dirección, Colorización..."
+                  className="w-full rounded-lg border border-grayscale-4 bg-grayscale-1 px-3 py-2 text-sm text-grayscale-12 outline-none transition-all duration-200 focus:border-accent-8 focus:ring-2 focus:ring-accent-8/30 dark:border-grayscale-5 dark:bg-grayscale-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => addService(newService)}
+                  disabled={!newService.trim()}
+                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-grayscale-4 bg-grayscale-2 px-3 py-2 text-xs font-mono font-bold uppercase text-grayscale-12 transition-colors hover:bg-grayscale-3 disabled:cursor-not-allowed disabled:opacity-50 dark:border-grayscale-5 dark:bg-grayscale-3"
+                >
+                  <PlusIcon size={14} weight="bold" />
+                  Agregar
+                </button>
+              </div>
+
+              {/* Quick suggestions */}
+              <div className="flex flex-wrap items-center gap-1 pt-1">
+                <span className="text-[10px] font-mono uppercase text-grayscale-8 mr-1">
+                  Sugerencias:
+                </span>
+                {COMMON_SERVICES.map((sug) => {
+                  const isAdded = form.deliverablesList.some(
+                    (s) => s.toLowerCase() === sug.toLowerCase(),
+                  );
+                  if (isAdded) return null;
+                  return (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => addService(sug)}
+                      className="cursor-pointer rounded-full border border-dashed border-grayscale-4 px-2 py-0.5 text-[10px] font-mono text-grayscale-9 transition-colors hover:border-grayscale-6 hover:bg-grayscale-2 hover:text-grayscale-12"
+                    >
+                      + {sug}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="flex flex-col gap-1.5">
               <Input
                 id="portfolio-video"
