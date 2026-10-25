@@ -95,16 +95,28 @@ export default function FinancialReportModal({
     const monthName = MONTH_NAMES[selectedMonth - 1] || "Mes";
     const periodLabel = `${monthName} ${selectedYear}`;
 
-    // Filter transactions for this month, strictly excluding cancelled, client receivables and pending client payments
-    const monthTransactions = transactions
+    const monthAllTx = transactions
       .filter((t) => t.date && t.date.startsWith(prefix))
-      .filter(
-        (t) =>
-          t.status !== "cancelled" &&
-          t.source !== "client_receivable" &&
-          !(t.source === "client_payment" && t.status === "pending"),
-      )
+      .filter((t) => t.status !== "cancelled");
+
+    // Any receivable or pending income from clients (strictly excluded from totals and balance)
+    const isReceivable = (t: Doc<"transactions">) =>
+      t.source === "client_receivable" ||
+      (t.source === "client_payment" && t.status === "pending") ||
+      (t.type === "income" && t.status === "pending") ||
+      (t.type === "income" &&
+        t.status !== "paid" &&
+        /saldo pendiente|por cobrar|cobro pendiente/i.test(t.concept || ""));
+
+    // Strictly effective transactions (real collected incomes and operative expenses)
+    const monthTransactions = monthAllTx
+      .filter((t) => !isReceivable(t))
       .sort((a, b) => b.date.localeCompare(a.date));
+
+    // Por cobrar (strictly informative, never added to income or balance)
+    const pendingIncome = monthAllTx
+      .filter((t) => isReceivable(t))
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
 
     const totalIncome = monthTransactions
       .filter((t) => t.type === "income")
@@ -180,6 +192,7 @@ export default function FinancialReportModal({
       generatedAt: formattedDate,
       currency: "CRC",
       totalIncome,
+      pendingIncome,
       totalExpenses,
       netBalance,
       profitMargin,
@@ -365,6 +378,17 @@ export default function FinancialReportModal({
               </span>
             </div>
           </div>
+
+          {Boolean(reportData.pendingIncome && reportData.pendingIncome > 0) && (
+            <div className="flex items-center justify-between rounded-lg border border-orange-6/30 bg-orange-2/30 px-3 py-1.5 text-xs text-orange-11">
+              <span className="font-mono text-[10px] font-bold uppercase">
+                Por cobrar: {formatCurrency(reportData.pendingIncome ?? 0)}
+              </span>
+              <span className="text-[10px] text-orange-10">
+                Saldos de clientes, no se suman al balance
+              </span>
+            </div>
+          )}
 
           {reportData.transactionsCount === 0 && (
             <p className="rounded-lg border border-orange-6/40 bg-orange-2/40 p-2 text-center text-xs text-orange-11">

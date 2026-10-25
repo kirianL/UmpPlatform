@@ -35,6 +35,7 @@ export interface FinancialReportData {
   generatedAt: string;
   currency: string;
   totalIncome: number;
+  pendingIncome?: number;
   totalExpenses: number;
   netBalance: number;
   profitMargin: number;
@@ -905,6 +906,17 @@ export default function FinancialReportPdfDocument({
                 {formatCurrencyCRC(data.totalExpenses / 30)}
               </Text>
             </View>
+
+            {data.pendingIncome && data.pendingIncome > 0 ? (
+              <View style={styles.kpiHighlightBox}>
+                <Text style={styles.kpiHighlightLabel}>
+                  Por cobrar (no suma al balance)
+                </Text>
+                <Text style={[styles.kpiHighlightVal, { color: "#D97706" }]}>
+                  {formatCurrencyCRC(data.pendingIncome)}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
