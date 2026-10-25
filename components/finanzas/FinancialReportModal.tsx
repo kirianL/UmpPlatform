@@ -2,17 +2,11 @@
 
 import {
   CalendarDotsIcon,
-  CheckCircleIcon,
   DownloadSimpleIcon,
   FilePdfIcon,
   SpinnerGapIcon,
-  TrendDownIcon,
-  TrendUpIcon,
-  WalletIcon,
-  XIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Button from "@/components/public/Button";
 import Modal from "@/components/public/Modal";
@@ -21,11 +15,6 @@ import { cn } from "@/helpers/classname-helper";
 import FinancialReportPdfDocument, {
   type FinancialReportData,
 } from "./FinancialReportPdfDocument";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false },
-);
 
 const MONTH_NAMES = [
   "Enero",
@@ -75,19 +64,13 @@ export default function FinancialReportModal({
   open,
   onOpenChange,
   transactions,
-  fixedExpenses = [],
-  budgetItems = [],
 }: FinancialReportModalProps) {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(
     now.getMonth() + 1,
   );
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const years = useMemo(() => {
     const list: number[] = [];
@@ -105,9 +88,8 @@ export default function FinancialReportModal({
     setSelectedMonth(target.getMonth() + 1);
   }
 
-  const reportData = useMemo<FinancialReportData | null>(() => {
-    if (!open) return null;
-
+  // Precomputed synchronously without layout delays so modal never jumps on open
+  const reportData = useMemo<FinancialReportData>(() => {
     const monthStr = String(selectedMonth).padStart(2, "0");
     const prefix = `${selectedYear}-${monthStr}`;
     const monthName = MONTH_NAMES[selectedMonth - 1] || "Mes";
@@ -216,10 +198,34 @@ export default function FinancialReportModal({
         status: t.status,
       })),
     };
-  }, [open, selectedYear, selectedMonth, transactions]);
+  }, [selectedYear, selectedMonth, transactions]);
 
   const cleanMonthName = MONTH_NAMES[selectedMonth - 1] || "Mes";
   const fileName = `Reporte_Financiero_UMP_${cleanMonthName}_${selectedYear}.pdf`;
+
+  // On-demand PDF download without background compilation blocking the UI
+  async function handleDownloadPdf() {
+    if (isGenerating || !reportData) return;
+    setIsGenerating(true);
+    try {
+      const { pdf } = await import("@react-pdf/renderer");
+      const blob = await pdf(
+        <FinancialReportPdfDocument data={reportData} />,
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error al generar el reporte PDF:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
     <Modal
@@ -232,8 +238,8 @@ export default function FinancialReportModal({
         <div>
           <p className="text-xs text-grayscale-11">
             Genera un informe financiero ejecutivo en formato PDF con gráficos
-            de flujo de caja, distribución de gastos, compromisos fijos y
-            balance del mes seleccionado.
+            de flujo de caja, distribución de gastos y balance del mes
+            seleccionado.
           </p>
         </div>
 
@@ -310,65 +316,63 @@ export default function FinancialReportModal({
           </div>
         </div>
 
-        {/* Live Period Preview */}
-        {reportData && (
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-10">
-                Resumen del periodo ({reportData.periodLabel})
-              </span>
-              <span className="font-mono text-[11px] text-grayscale-11 font-medium">
-                {reportData.transactionsCount}{" "}
-                {reportData.transactionsCount === 1
-                  ? "transacción"
-                  : "transacciones"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 dark:bg-grayscale-2">
-                <span className="font-mono text-[10px] text-green-11 font-bold uppercase block">
-                  Ingresos
-                </span>
-                <span className="text-sm font-bold text-grayscale-12 truncate block">
-                  {formatCurrency(reportData.totalIncome)}
-                </span>
-              </div>
-
-              <div className="rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 dark:bg-grayscale-2">
-                <span className="font-mono text-[10px] text-red-11 font-bold uppercase block">
-                  Gastos Totales
-                </span>
-                <span className="text-sm font-bold text-grayscale-12 truncate block">
-                  {formatCurrency(reportData.totalExpenses)}
-                </span>
-              </div>
-
-              <div className="rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 dark:bg-grayscale-2">
-                <span className="font-mono text-[10px] text-accent-11 font-bold uppercase block">
-                  Balance Neto
-                </span>
-                <span
-                  className={cn(
-                    "text-sm font-bold truncate block",
-                    reportData.netBalance >= 0
-                      ? "text-grayscale-12"
-                      : "text-red-11",
-                  )}
-                >
-                  {formatCurrency(reportData.netBalance)}
-                </span>
-              </div>
-            </div>
-
-            {reportData.transactionsCount === 0 && (
-              <p className="rounded-lg border border-orange-6/40 bg-orange-2/40 p-2 text-center text-xs text-orange-11">
-                No hay movimientos registrados en este mes. El reporte se
-                generará con balance en cero.
-              </p>
-            )}
+        {/* Live Period Preview - Always rendered to guarantee zero height jump */}
+        <div className="flex flex-col gap-2.5 min-h-[96px]">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-grayscale-10">
+              Resumen del periodo ({reportData.periodLabel})
+            </span>
+            <span className="font-mono text-[11px] text-grayscale-11 font-medium">
+              {reportData.transactionsCount}{" "}
+              {reportData.transactionsCount === 1
+                ? "transacción"
+                : "transacciones"}
+            </span>
           </div>
-        )}
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 dark:bg-grayscale-2">
+              <span className="font-mono text-[10px] text-green-11 font-bold uppercase block">
+                Ingresos
+              </span>
+              <span className="text-sm font-bold text-grayscale-12 truncate block">
+                {formatCurrency(reportData.totalIncome)}
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 dark:bg-grayscale-2">
+              <span className="font-mono text-[10px] text-red-11 font-bold uppercase block">
+                Gastos Totales
+              </span>
+              <span className="text-sm font-bold text-grayscale-12 truncate block">
+                {formatCurrency(reportData.totalExpenses)}
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-grayscale-4 bg-grayscale-1 p-2.5 dark:bg-grayscale-2">
+              <span className="font-mono text-[10px] text-accent-11 font-bold uppercase block">
+                Balance Neto
+              </span>
+              <span
+                className={cn(
+                  "text-sm font-bold truncate block",
+                  reportData.netBalance >= 0
+                    ? "text-grayscale-12"
+                    : "text-red-11",
+                )}
+              >
+                {formatCurrency(reportData.netBalance)}
+              </span>
+            </div>
+          </div>
+
+          {reportData.transactionsCount === 0 && (
+            <p className="rounded-lg border border-orange-6/40 bg-orange-2/40 p-2 text-center text-xs text-orange-11">
+              No hay movimientos registrados en este mes. El reporte se
+              generará con balance en cero.
+            </p>
+          )}
+        </div>
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-grayscale-3 dark:border-grayscale-4">
@@ -386,30 +390,18 @@ export default function FinancialReportModal({
               Cancelar
             </button>
 
-            {isMounted && reportData ? (
-              <PDFDownloadLink
-                document={<FinancialReportPdfDocument data={reportData} />}
-                fileName={fileName}
-              >
-                {({ loading }) => (
-                  <Button
-                    disabled={loading}
-                    className="flex h-9 items-center gap-1.5 px-4 text-xs font-semibold cursor-pointer"
-                  >
-                    {loading ? (
-                      <SpinnerGapIcon size={14} className="animate-spin" />
-                    ) : (
-                      <DownloadSimpleIcon size={14} weight="bold" />
-                    )}
-                    <span>{loading ? "Generando..." : "Descargar PDF"}</span>
-                  </Button>
-                )}
-              </PDFDownloadLink>
-            ) : (
-              <Button disabled className="h-9 px-4 text-xs">
-                Cargando...
-              </Button>
-            )}
+            <Button
+              onClick={handleDownloadPdf}
+              disabled={isGenerating}
+              className="flex h-9 items-center gap-1.5 px-4 text-xs font-semibold cursor-pointer"
+            >
+              {isGenerating ? (
+                <SpinnerGapIcon size={14} className="animate-spin" />
+              ) : (
+                <DownloadSimpleIcon size={14} weight="bold" />
+              )}
+              <span>{isGenerating ? "Generando..." : "Descargar PDF"}</span>
+            </Button>
           </div>
         </div>
       </div>
