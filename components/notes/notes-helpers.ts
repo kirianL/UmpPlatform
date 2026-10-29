@@ -51,10 +51,10 @@ export function pluralize(count: number, singular: string, plural: string) {
 
 export function formatFileSize(bytes?: number): string {
   if (!bytes || bytes <= 0) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  if (bytes < 1024) return `${bytes}\u00A0B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}\u00A0KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}\u00A0MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}\u00A0GB`;
 }
 
 export async function downloadFile(url: string, filename?: string) {

@@ -1615,33 +1615,53 @@ function FileBlockCard({
   const sizeText = formatFileSize(block.fileSize);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 rounded-lg border border-grayscale-4 bg-grayscale-2/60 p-3 transition-colors hover:border-grayscale-6 dark:bg-grayscale-3/40">
-        <div
+    <div className="flex flex-col gap-2">
+      <div className="group/file relative flex items-center gap-2.5 rounded-lg border border-grayscale-4 bg-grayscale-2/50 p-2.5 transition-colors hover:border-grayscale-6 dark:bg-grayscale-3/40">
+        <a
+          href={url || "#"}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => {
+            if (!url) e.preventDefault();
+          }}
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-lg border",
+            "flex size-10 shrink-0 items-center justify-center rounded-lg border transition-transform group-hover/file:scale-105",
             badgeColor,
           )}
+          title={`Abrir ${displayName}`}
         >
-          <Icon size={24} weight="duotone" aria-hidden />
-        </div>
+          <Icon size={22} weight="duotone" aria-hidden />
+        </a>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p
-            className="truncate text-sm font-semibold text-grayscale-12"
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+          <a
+            href={url || "#"}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => {
+              if (!url) e.preventDefault();
+            }}
+            className="line-clamp-2 text-xs sm:text-sm font-semibold leading-snug text-grayscale-12 hover:text-accent-11 hover:underline underline-offset-2 break-words"
             title={displayName}
           >
             {displayName}
-          </p>
-          <p className="flex items-center gap-2 font-mono text-[11px] text-grayscale-10">
-            <span className="font-bold uppercase tracking-wider">{label}</span>
+          </a>
+
+          <div className="flex items-center gap-1.5 font-mono text-[10px] text-grayscale-10 whitespace-nowrap overflow-hidden">
+            <span className="font-bold uppercase tracking-wider shrink-0">
+              {label}
+            </span>
             {sizeText && (
               <>
-                <span aria-hidden>·</span>
-                <span className="tabular-nums">{sizeText}</span>
+                <span className="text-grayscale-8 shrink-0" aria-hidden>
+                  ·
+                </span>
+                <span className="whitespace-nowrap shrink-0 tabular-nums font-medium text-grayscale-11">
+                  {sizeText}
+                </span>
               </>
             )}
-          </p>
+          </div>
         </div>
 
         {url && (
@@ -1651,7 +1671,7 @@ function FileBlockCard({
               onClick={() => void downloadFile(url, displayName)}
               title="Descargar archivo"
               aria-label={`Descargar ${displayName}`}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-xs transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
+              className="flex size-7.5 cursor-pointer items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-2xs transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
             >
               <DownloadSimpleIcon size={14} weight="bold" />
             </button>
@@ -1661,7 +1681,7 @@ function FileBlockCard({
               rel="noreferrer"
               title="Abrir en pestaña nueva"
               aria-label={`Abrir ${displayName} en pestaña nueva`}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-xs transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
+              className="flex size-7.5 cursor-pointer items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-2xs transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
             >
               <ArrowSquareOutIcon size={14} />
             </a>
@@ -1669,7 +1689,7 @@ function FileBlockCard({
         )}
       </div>
 
-      <div className="px-1 flex items-center justify-between gap-2">
+      <div className="px-1">
         <input
           aria-label="Nota o descripción del archivo"
           key={`${block._id}-${block.updatedAt}`}
@@ -1680,19 +1700,8 @@ function FileBlockCard({
               onUpdate({ content: e.target.value });
             }
           }}
-          className="w-full bg-transparent text-xs text-grayscale-11 placeholder:text-grayscale-9 outline-none"
+          className="w-full bg-transparent py-0.5 text-xs text-grayscale-11 placeholder:text-grayscale-9 outline-none focus:placeholder:text-grayscale-10"
         />
-        {url && (
-          <button
-            type="button"
-            onClick={() => void downloadFile(url, displayName)}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-mono text-grayscale-10 transition-colors hover:text-grayscale-12"
-            title="Descargar archivo"
-          >
-            <DownloadSimpleIcon size={12} weight="bold" />
-            <span>Descargar</span>
-          </button>
-        )}
       </div>
     </div>
   );
