@@ -10,6 +10,16 @@ import {
   CaretRightIcon,
   CheckIcon,
   DownloadSimpleIcon,
+  FileArchiveIcon,
+  FileArrowUpIcon,
+  FileAudioIcon,
+  FileCodeIcon,
+  FileDocIcon,
+  FileIcon,
+  FilePdfIcon,
+  FileTextIcon,
+  FileVideoIcon,
+  FileXlsIcon,
   GlobeSimpleIcon,
   ImageIcon,
   LinkSimpleIcon,
@@ -31,6 +41,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   downloadFile,
+  formatFileSize,
   formatShortDate,
   pluralize,
   useNotesAuth,
@@ -51,6 +62,7 @@ type TableData = {
 type BlockType = Doc<"noteBlocks">["type"];
 type Block = Doc<"noteBlocks"> & {
   imageUrl: string | null;
+  fileUrl?: string | null;
   tableData?: TableData;
 };
 type ChecklistItem = NonNullable<Doc<"noteBlocks">["checklist"]>[number];
@@ -65,6 +77,7 @@ const BLOCK_TYPES: {
   { type: "checklist", label: "Lista", icon: ListChecksIcon },
   { type: "table", label: "Tabla", icon: TableIcon },
   { type: "image", label: "Imagen", icon: ImageIcon },
+  { type: "file", label: "Archivo", icon: FileArrowUpIcon },
   { type: "link", label: "Enlace", icon: LinkSimpleIcon },
 ];
 
@@ -74,6 +87,7 @@ const TYPE_LABEL: Record<BlockType, string> = {
   checklist: "Lista",
   table: "Tabla",
   image: "Imagen",
+  file: "Archivo",
   link: "Enlace",
 };
 
@@ -150,6 +164,7 @@ export default function NoteBoardPage() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const genericFileInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const migratedRef = useRef(false);
 
@@ -216,6 +231,10 @@ export default function NoteBoardPage() {
       fileInputRef.current?.click();
       return;
     }
+    if (type === "file") {
+      genericFileInputRef.current?.click();
+      return;
+    }
     if (type === "table") {
       const id = await addBlock({
         noteId,
@@ -244,27 +263,36 @@ export default function NoteBoardPage() {
     setFocusId(id);
   }
 
-  async function uploadImages(files: File[]) {
-    const images = files.filter((f) => f.type.startsWith("image/"));
-    if (images.length === 0) {
-      if (files.length > 0) setError("Solo se pueden subir imágenes.");
-      return;
-    }
+  async function uploadFiles(files: File[], forceType?: "image" | "file") {
+    if (files.length === 0) return;
     setError(null);
-    setUploads((n) => n + images.length);
-    for (const file of images) {
+    setUploads((n) => n + files.length);
+
+    for (const file of files) {
       try {
+        const isImage = file.type.startsWith("image/");
+        const targetType: BlockType =
+          forceType ?? (isImage ? "image" : "file");
+
         const uploadUrl = await generateUploadUrl();
         const res = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": file.type },
+          headers: { "Content-Type": file.type || "application/octet-stream" },
           body: file,
         });
         if (!res.ok) throw new Error();
         const { storageId } = (await res.json()) as {
           storageId: Id<"_storage">;
         };
-        await addBlock({ noteId, type: "image", storageId, ...authArgs });
+        await addBlock({
+          noteId,
+          type: targetType,
+          storageId,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          ...authArgs,
+        });
       } catch {
         setError(`No se pudo subir "${file.name}". Probá de nuevo.`);
       } finally {
@@ -273,7 +301,7 @@ export default function NoteBoardPage() {
     }
   }
 
-  // Pegar imagenes desde el portapapeles en cualquier parte del tablero.
+  // Pegar archivos o imagenes desde el portapapeles en cualquier parte del tablero.
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       const target = e.target as HTMLElement | null;
@@ -281,7 +309,7 @@ export default function NoteBoardPage() {
       const files = [...(e.clipboardData?.files ?? [])];
       if (files.length > 0) {
         e.preventDefault();
-        void uploadImages(files);
+        void uploadFiles(files);
       }
     }
     window.addEventListener("paste", onPaste);
@@ -351,7 +379,7 @@ export default function NoteBoardPage() {
           if (!e.dataTransfer.types.includes("Files")) return;
           e.preventDefault();
           setFileDragging(false);
-          void uploadImages([...e.dataTransfer.files]);
+          void uploadFiles([...e.dataTransfer.files]);
         }}
       >
         <header className="flex flex-col gap-3">
@@ -508,7 +536,17 @@ export default function NoteBoardPage() {
             multiple
             className="hidden"
             onChange={(e) => {
-              void uploadImages([...(e.target.files ?? [])]);
+              void uploadFiles([...(e.target.files ?? [])], "image");
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={genericFileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              void uploadFiles([...(e.target.files ?? [])], "file");
               e.target.value = "";
             }}
           />
@@ -538,11 +576,11 @@ export default function NoteBoardPage() {
                 El tablero está vacío
               </p>
               <p className="text-xs text-grayscale-11 text-pretty">
-                Empezá con una celda de texto, o arrastrá y pegá imágenes acá.
+                Empezá con una celda de texto, o arrastrá y pegá archivos o imágenes acá.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
-              {BLOCK_TYPES.slice(0, 4).map(({ type, label, icon: Icon }) => (
+              {BLOCK_TYPES.map(({ type, label, icon: Icon }) => (
                 <button
                   key={type}
                   type="button"
@@ -592,7 +630,7 @@ export default function NoteBoardPage() {
                 className="flex aspect-[4/3] items-center justify-center rounded-xl border border-dashed border-grayscale-5 bg-grayscale-2 text-grayscale-8"
               >
                 <SpinnerGapIcon size={20} className="animate-spin" aria-hidden />
-                <span className="sr-only">Subiendo imagen</span>
+                <span className="sr-only">Subiendo archivo</span>
               </li>
             ))}
             {note && (
@@ -613,8 +651,8 @@ export default function NoteBoardPage() {
         {fileDragging && (
           <div className="pointer-events-none fixed inset-3 z-50 flex items-center justify-center rounded-2xl border-2 border-dashed border-accent-8 bg-accent-2/70 backdrop-blur-sm animate-backdrop">
             <p className="flex items-center gap-2 font-mono text-sm font-bold uppercase text-accent-11">
-              <ImageIcon size={18} aria-hidden />
-              Soltá para agregar imágenes
+              <FileArrowUpIcon size={18} aria-hidden />
+              Soltá para agregar archivos o imágenes
             </p>
           </div>
         )}
@@ -663,6 +701,7 @@ export default function NoteBoardPage() {
 
 type BlockPatch = {
   content?: string;
+  fileName?: string;
   url?: string;
   checklist?: ChecklistItem[];
   tableData?: TableData;
@@ -775,12 +814,30 @@ function BoardBlock({
           {block.type === "image" && block.imageUrl && (
             <IconAction
               label="Descargar imagen"
-              onClick={() =>
-                void downloadFile(
-                  block.imageUrl!,
-                  block.content || "imagen-proyecto",
-                )
-              }
+              onClick={() => {
+                if (block.imageUrl) {
+                  void downloadFile(
+                    block.imageUrl,
+                    block.content || block.fileName || "imagen-proyecto",
+                  );
+                }
+              }}
+            >
+              <DownloadSimpleIcon size={14} weight="bold" />
+            </IconAction>
+          )}
+          {block.type === "file" && (block.fileUrl || block.imageUrl) && (
+            <IconAction
+              label="Descargar archivo"
+              onClick={() => {
+                const targetUrl = block.fileUrl || block.imageUrl;
+                if (targetUrl) {
+                  void downloadFile(
+                    targetUrl,
+                    block.fileName || block.content || "archivo",
+                  );
+                }
+              }}
             >
               <DownloadSimpleIcon size={14} weight="bold" />
             </IconAction>
@@ -936,6 +993,13 @@ function BoardBlock({
               )}
             </figcaption>
           </figure>
+        )}
+
+        {block.type === "file" && (
+          <FileBlockCard
+            block={block}
+            onUpdate={(patch) => onUpdate(patch)}
+          />
         )}
 
         {block.type === "link" && (
@@ -1424,6 +1488,212 @@ function LinkEditor({
       >
         <ArrowSquareOutIcon size={15} />
       </a>
+    </div>
+  );
+}
+
+function getFileMeta(fileName?: string, fileType?: string) {
+  const name = fileName || "";
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  const type = (fileType || "").toLowerCase();
+
+  if (ext === "pdf" || type.includes("pdf")) {
+    return {
+      Icon: FilePdfIcon,
+      label: "PDF",
+      badgeColor: "bg-red-3 text-red-11 border-red-5 dark:bg-red-3/30",
+    };
+  }
+  if (
+    ["doc", "docx", "odt", "rtf"].includes(ext) ||
+    type.includes("word") ||
+    type.includes("document")
+  ) {
+    return {
+      Icon: FileDocIcon,
+      label: ext ? ext.toUpperCase() : "DOC",
+      badgeColor: "bg-blue-3 text-blue-11 border-blue-5 dark:bg-blue-3/30",
+    };
+  }
+  if (
+    ["xls", "xlsx", "csv", "tsv", "ods"].includes(ext) ||
+    type.includes("sheet") ||
+    type.includes("excel") ||
+    type.includes("csv")
+  ) {
+    return {
+      Icon: FileXlsIcon,
+      label: ext ? ext.toUpperCase() : "TABLA",
+      badgeColor: "bg-green-3 text-green-11 border-green-5 dark:bg-green-3/30",
+    };
+  }
+  if (
+    ["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext) ||
+    type.includes("zip") ||
+    type.includes("compressed") ||
+    type.includes("archive")
+  ) {
+    return {
+      Icon: FileArchiveIcon,
+      label: ext ? ext.toUpperCase() : "ZIP",
+      badgeColor: "bg-amber-3 text-amber-11 border-amber-5 dark:bg-amber-3/30",
+    };
+  }
+  if (
+    ["mp4", "mov", "avi", "mkv", "webm", "m4v"].includes(ext) ||
+    type.startsWith("video/")
+  ) {
+    return {
+      Icon: FileVideoIcon,
+      label: ext ? ext.toUpperCase() : "VIDEO",
+      badgeColor: "bg-purple-3 text-purple-11 border-purple-5 dark:bg-purple-3/30",
+    };
+  }
+  if (
+    ["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(ext) ||
+    type.startsWith("audio/")
+  ) {
+    return {
+      Icon: FileAudioIcon,
+      label: ext ? ext.toUpperCase() : "AUDIO",
+      badgeColor: "bg-indigo-3 text-indigo-11 border-indigo-5 dark:bg-indigo-3/30",
+    };
+  }
+  if (
+    [
+      "js",
+      "ts",
+      "jsx",
+      "tsx",
+      "json",
+      "html",
+      "css",
+      "py",
+      "sql",
+      "sh",
+      "yml",
+      "yaml",
+    ].includes(ext) ||
+    type.includes("json") ||
+    type.includes("javascript")
+  ) {
+    return {
+      Icon: FileCodeIcon,
+      label: ext ? ext.toUpperCase() : "CÓDIGO",
+      badgeColor: "bg-cyan-3 text-cyan-11 border-cyan-5 dark:bg-cyan-3/30",
+    };
+  }
+  if (["txt", "md"].includes(ext) || type.startsWith("text/")) {
+    return {
+      Icon: FileTextIcon,
+      label: ext ? ext.toUpperCase() : "TEXTO",
+      badgeColor:
+        "bg-grayscale-3 text-grayscale-11 border-grayscale-5 dark:bg-grayscale-3/30",
+    };
+  }
+  return {
+    Icon: FileIcon,
+    label: ext ? ext.toUpperCase() : "ARCHIVO",
+    badgeColor:
+      "bg-grayscale-3 text-grayscale-11 border-grayscale-5 dark:bg-grayscale-3/30",
+  };
+}
+
+function FileBlockCard({
+  block,
+  onUpdate,
+}: {
+  block: Block;
+  onUpdate: (patch: BlockPatch) => void;
+}) {
+  const url = block.fileUrl || block.imageUrl;
+  const displayName = block.fileName || block.content || "Archivo adjunto";
+  const { Icon, label, badgeColor } = getFileMeta(
+    block.fileName,
+    block.fileType,
+  );
+  const sizeText = formatFileSize(block.fileSize);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 rounded-lg border border-grayscale-4 bg-grayscale-2/60 p-3 transition-colors hover:border-grayscale-6 dark:bg-grayscale-3/40">
+        <div
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-lg border",
+            badgeColor,
+          )}
+        >
+          <Icon size={24} weight="duotone" aria-hidden />
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <p
+            className="truncate text-sm font-semibold text-grayscale-12"
+            title={displayName}
+          >
+            {displayName}
+          </p>
+          <p className="flex items-center gap-2 font-mono text-[11px] text-grayscale-10">
+            <span className="font-bold uppercase tracking-wider">{label}</span>
+            {sizeText && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="tabular-nums">{sizeText}</span>
+              </>
+            )}
+          </p>
+        </div>
+
+        {url && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => void downloadFile(url, displayName)}
+              title="Descargar archivo"
+              aria-label={`Descargar ${displayName}`}
+              className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-xs transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
+            >
+              <DownloadSimpleIcon size={14} weight="bold" />
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              title="Abrir en pestaña nueva"
+              aria-label={`Abrir ${displayName} en pestaña nueva`}
+              className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-xs transition-colors hover:border-grayscale-6 hover:text-grayscale-12 hover:bg-grayscale-2 dark:bg-grayscale-2 dark:hover:bg-grayscale-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-8"
+            >
+              <ArrowSquareOutIcon size={14} />
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div className="px-1 flex items-center justify-between gap-2">
+        <input
+          aria-label="Nota o descripción del archivo"
+          key={`${block._id}-${block.updatedAt}`}
+          defaultValue={block.content ?? ""}
+          placeholder="Agregar nota o descripción..."
+          onBlur={(e) => {
+            if (e.target.value !== (block.content ?? "")) {
+              onUpdate({ content: e.target.value });
+            }
+          }}
+          className="w-full bg-transparent text-xs text-grayscale-11 placeholder:text-grayscale-9 outline-none"
+        />
+        {url && (
+          <button
+            type="button"
+            onClick={() => void downloadFile(url, displayName)}
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-mono text-grayscale-10 transition-colors hover:text-grayscale-12"
+            title="Descargar archivo"
+          >
+            <DownloadSimpleIcon size={12} weight="bold" />
+            <span>Descargar</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

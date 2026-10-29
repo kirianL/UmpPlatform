@@ -17,6 +17,7 @@ const blockTypeValidator = v.union(
   v.literal("heading"),
   v.literal("checklist"),
   v.literal("image"),
+  v.literal("file"),
   v.literal("link"),
   v.literal("table"),
 );
@@ -151,6 +152,7 @@ export const get = query({
           ...note,
           blockCount: blocks.length + legacyCount,
           imageCount: blocks.filter((b) => b.type === "image").length,
+          fileCount: blocks.filter((b) => b.type === "file").length,
           preview: firstText?.content ?? note.content ?? "",
           coverUrl: coverStorageId
             ? await ctx.storage.getUrl(coverStorageId)
@@ -181,7 +183,11 @@ export const getBoard = query({
     const withUrls = await Promise.all(
       blocks.map(async (block) => ({
         ...block,
-        imageUrl: block.storageId
+        imageUrl:
+          (block.type === "image" || !block.type) && block.storageId
+            ? await ctx.storage.getUrl(block.storageId)
+            : null,
+        fileUrl: block.storageId
           ? await ctx.storage.getUrl(block.storageId)
           : null,
       })),
@@ -432,6 +438,9 @@ export const addBlock = mutation({
     content: v.optional(v.string()),
     url: v.optional(v.string()),
     storageId: v.optional(v.id("_storage")),
+    fileName: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    fileType: v.optional(v.string()),
     checklist: checklistValidator,
     tableData: tableDataValidator,
     wide: v.optional(v.boolean()),
@@ -451,6 +460,9 @@ export const addBlock = mutation({
       content: args.content,
       url: args.url,
       storageId: args.storageId,
+      fileName: args.fileName,
+      fileSize: args.fileSize,
+      fileType: args.fileType,
       checklist: args.checklist,
       tableData: args.tableData,
       wide: args.wide,
@@ -467,6 +479,7 @@ export const updateBlock = mutation({
   args: {
     id: v.id("noteBlocks"),
     content: v.optional(v.string()),
+    fileName: v.optional(v.string()),
     url: v.optional(v.string()),
     checklist: checklistValidator,
     tableData: tableDataValidator,
@@ -484,6 +497,7 @@ export const updateBlock = mutation({
       updatedAt: new Date().toISOString(),
     };
     if (args.content !== undefined) patch.content = args.content;
+    if (args.fileName !== undefined) patch.fileName = args.fileName.trim();
     if (args.url !== undefined) patch.url = args.url.trim();
     if (args.checklist !== undefined) patch.checklist = args.checklist;
     if (args.tableData !== undefined) patch.tableData = args.tableData;

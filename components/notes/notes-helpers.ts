@@ -49,20 +49,29 @@ export function pluralize(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+export function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 export async function downloadFile(url: string, filename?: string) {
   try {
-    const safeName = (filename || "imagen-proyecto")
-      .replace(/[^a-zA-Z0-9_\-\.]/g, "_")
-      .toLowerCase();
+    const rawName = filename || "archivo";
+    const safeName = rawName.replace(/[^a-zA-Z0-9_.\- ]/g, "_");
 
     if (url.startsWith("data:")) {
       const mimeMatch = url.match(/^data:([^;]+);/);
-      let ext = "png";
-      if (mimeMatch && mimeMatch[1]) {
+      let ext = "bin";
+      if (mimeMatch?.[1]) {
         const mime = mimeMatch[1];
         if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
+        else if (mime.includes("png")) ext = "png";
         else if (mime.includes("webp")) ext = "webp";
         else if (mime.includes("gif")) ext = "gif";
+        else if (mime.includes("pdf")) ext = "pdf";
       }
       const finalName = safeName.includes(".") ? safeName : `${safeName}.${ext}`;
       const link = document.createElement("a");
@@ -79,7 +88,7 @@ export async function downloadFile(url: string, filename?: string) {
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = blobUrl;
-    link.download = safeName.includes(".") ? safeName : `${safeName}.png`;
+    link.download = safeName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -87,7 +96,7 @@ export async function downloadFile(url: string, filename?: string) {
   } catch {
     const link = document.createElement("a");
     link.href = url;
-    link.download = filename || "imagen-proyecto";
+    link.download = filename || "archivo";
     link.target = "_blank";
     document.body.appendChild(link);
     link.click();

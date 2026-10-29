@@ -2,6 +2,7 @@
 
 import {
   CameraIcon,
+  FileArrowDownIcon,
   GlobeSimpleIcon,
   ImageIcon,
   LockKeyIcon,
@@ -154,7 +155,7 @@ export default function NotasPage() {
             Proyectos
           </h1>
           <p className="hidden sm:block text-sm text-grayscale-11 text-pretty">
-            Tableros por proyecto para reunir ideas, notas, referencias, imágenes y tablas.
+            Tableros por proyecto para reunir ideas, notas, referencias, imágenes, archivos y tablas.
           </p>
         </header>
 
@@ -359,6 +360,13 @@ export default function NotasPage() {
                           <ImageIcon size={12} aria-hidden />
                           {project.imageCount}
                           <span className="sr-only">imágenes</span>
+                        </span>
+                      )}
+                      {Boolean(project.fileCount && project.fileCount > 0) && (
+                        <span className="inline-flex items-center gap-1 font-semibold">
+                          <FileArrowDownIcon size={12} aria-hidden />
+                          {project.fileCount}
+                          <span className="sr-only">archivos</span>
                         </span>
                       )}
                       {project.visibility === "all" ? (
