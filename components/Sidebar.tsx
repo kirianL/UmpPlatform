@@ -17,28 +17,72 @@ import {
   HandshakeIcon,
   FoldersIcon,
   GlobeSimpleIcon,
+  KeyIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/helpers/classname-helper";
 import { useAuth } from "@/components/AuthProvider";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
-  { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
-  { href: "/notas", label: "Proyectos", Icon: FoldersIcon },
-  { href: "/personal", label: "Personal", Icon: UsersIcon },
-  { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
-  { href: "/calendario-actores", label: "Agenda Actores", Icon: UserCheckIcon },
-  { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
-  { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
-  { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
-  { href: "/aliados", label: "Aliados", Icon: HandshakeIcon },
-  { href: "/noticias", label: "Página web", Icon: GlobeSimpleIcon },
-  { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
+  { href: "/", key: "dashboard", label: "Dashboard", Icon: SquaresFourIcon },
+  {
+    href: "/tareas",
+    key: "tareas",
+    label: "Tareas",
+    Icon: CheckSquareOffsetIcon,
+  },
+  { href: "/notas", key: "proyectos", label: "Proyectos", Icon: FoldersIcon },
+  { href: "/personal", key: "personal", label: "Personal", Icon: UsersIcon },
+  { href: "/guiones", key: "guiones", label: "Guiones", Icon: ScrollIcon },
+  {
+    href: "/calendario-actores",
+    key: "agendaActores",
+    label: "Agenda Actores",
+    Icon: UserCheckIcon,
+  },
+  {
+    href: "/calendario",
+    key: "calendario",
+    label: "Calendario",
+    Icon: CalendarDotsIcon,
+  },
+  {
+    href: "/finanzas",
+    key: "finanzas",
+    label: "Finanzas",
+    Icon: CurrencyDollarIcon,
+  },
+  {
+    href: "/clientes",
+    key: "clientes",
+    label: "Clientes",
+    Icon: AddressBookIcon,
+  },
+  { href: "/aliados", key: "aliados", label: "Aliados", Icon: HandshakeIcon },
+  {
+    href: "/noticias",
+    key: "noticias",
+    label: "Página web",
+    Icon: GlobeSimpleIcon,
+  },
+  {
+    href: "/inventario",
+    key: "inventario",
+    label: "Inventario",
+    Icon: FilmSlateIcon,
+  },
+  {
+    href: "/permisos",
+    key: "permisos",
+    label: "Permisos",
+    Icon: KeyIcon,
+  },
 ];
 
 function SidebarNavContent({
@@ -54,9 +98,12 @@ function SidebarNavContent({
 }) {
   const pathname = usePathname();
   const auth = useAuth();
+  const { t } = useLanguage();
   const userRole = auth?.userRole || propUserRole;
   const userEmail = auth?.userEmail || propUserEmail;
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const isBryan =
+    (userEmail || "").toLowerCase().includes("bryan") || userRole === "bryan";
   const isGinger =
     (userEmail || "").toLowerCase().includes("ginger") ||
     userRole === "ventas" ||
@@ -64,6 +111,17 @@ function SidebarNavContent({
   const isEymar = (userEmail || "").toLowerCase().includes("eymar");
 
   const visibleItems = NAV_ITEMS.filter((item) => {
+    if (auth?.canAccess) {
+      return auth.canAccess(item.href);
+    }
+    if (isBryan) {
+      return (
+        item.href === "/calendario" ||
+        item.href === "/notas" ||
+        item.href === "/inventario" ||
+        item.href === "/tareas"
+      );
+    }
     if (isGinger) {
       return (
         item.href === "/clientes" ||
@@ -98,7 +156,6 @@ function SidebarNavContent({
         item.href === "/personal" ||
         item.href === "/calendario-actores" ||
         item.href === "/inventario" ||
-        item.href === "/calendario" ||
         item.href === "/tareas" ||
         item.href === "/notas"
       );
@@ -126,11 +183,13 @@ function SidebarNavContent({
       )}
 
       <nav className={cn("flex flex-col gap-px", hideLogo ? "mt-2" : "mt-2")}>
-        {visibleItems.map(({ href, label, Icon }) => {
+        {visibleItems.map(({ href, key, label, Icon }) => {
           const isActive =
             href === "/"
               ? pathname === "/"
               : pathname === href || pathname.startsWith(href + "/");
+
+          const displayLabel = t(`navigation.${key}`) || label;
 
           return (
             <Link
@@ -164,7 +223,7 @@ function SidebarNavContent({
                 )}
               />
               <span className="transition-transform duration-200 group-hover:translate-x-0.5">
-                {label}
+                {displayLabel}
               </span>
             </Link>
           );
@@ -173,15 +232,23 @@ function SidebarNavContent({
 
       <div className="mt-auto flex flex-col gap-3 px-2 pt-6">
         <div className="border-t border-grayscale-3 pt-4 dark:border-grayscale-4/60">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             <div className="flex flex-row items-center justify-between px-1">
               <span className="text-[10px] font-mono text-grayscale-9 font-bold uppercase tracking-wider">
-                Tema Oscuro
+                {t("sidebar.language")}
+              </span>
+              <LanguageToggle />
+            </div>
+
+            <div className="flex flex-row items-center justify-between px-1">
+              <span className="text-[10px] font-mono text-grayscale-9 font-bold uppercase tracking-wider">
+                {t("sidebar.darkMode")}
               </span>
               <ThemeToggle />
             </div>
 
             <button
+              type="button"
               onClick={async () => {
                 try {
                   const res = await fetch("/api/auth/logout", {
@@ -197,7 +264,7 @@ function SidebarNavContent({
               className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 font-mono text-[10px] font-bold uppercase text-red-9 hover:bg-red-2/30 hover:text-red-11 dark:hover:bg-red-9/10 transition-colors mt-1"
             >
               <SignOutIcon size={14} weight="bold" />
-              <span>Cerrar Sesión</span>
+              <span>{t("sidebar.logout")}</span>
             </button>
           </div>
         </div>

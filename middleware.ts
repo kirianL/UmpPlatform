@@ -148,16 +148,20 @@ export async function middleware(request: NextRequest) {
         userEmail.toLowerCase().includes("ginger") ||
         userRole === "ventas" ||
         userRole === "comercial";
+      const isBryanUser =
+        userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
       const redirectUrl =
         isGingerUser
           ? "/clientes"
-          : userRole === "produccion"
-            ? "/inventario"
-            : userRole === "directorio"
-              ? "/clientes"
-              : userRole === "actores"
-                ? "/calendario-actores"
-                : "/";
+          : isBryanUser
+            ? "/calendario"
+            : userRole === "produccion"
+              ? "/inventario"
+              : userRole === "directorio"
+                ? "/clientes"
+                : userRole === "actores"
+                  ? "/calendario-actores"
+                  : "/";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
@@ -173,6 +177,21 @@ export async function middleware(request: NextRequest) {
   if (!isSessionValid) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Permisos route protection: only admin or programador
+  if (pathname.startsWith("/permisos")) {
+    const isAdmin =
+      userRole === "admin" ||
+      userRole === "programador" ||
+      userEmail.toLowerCase() === "admin@ultimate.cr" ||
+      userEmail.toLowerCase() === "kirian@ultimate.cr";
+    if (!isAdmin) {
+      console.warn(
+        `[Proxy Auth Check] Usuario no autorizado intentó acceder a "/permisos". Redirigiendo a /.`,
+      );
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   // Role-based route protection
@@ -215,6 +234,31 @@ export async function middleware(request: NextRequest) {
   }
 
   const isMichelle = userEmail.toLowerCase().includes("michelle");
+
+  if (isMichelle && pathname.startsWith("/calendario") && !pathname.startsWith("/calendario-actores")) {
+    console.warn(
+      `[Proxy Auth Check] Michelle intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
+    );
+    return NextResponse.redirect(new URL("/clientes", request.url));
+  }
+
+  const isBryan = userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
+
+  if (isBryan) {
+    const isAllowedPath =
+      pathname.startsWith("/calendario") ||
+      pathname.startsWith("/notas") ||
+      pathname.startsWith("/inventario") ||
+      pathname.startsWith("/tareas") ||
+      pathname.startsWith("/api/auth/logout");
+
+    if (!isAllowedPath) {
+      console.warn(
+        `[Proxy Auth Check] Rol "bryan" intentó acceder a "${pathname}". Redirigiendo a /calendario.`,
+      );
+      return NextResponse.redirect(new URL("/calendario", request.url));
+    }
+  }
 
   if (userRole === "directorio") {
     const isAllowedPath =

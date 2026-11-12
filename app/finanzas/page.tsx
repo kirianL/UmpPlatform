@@ -242,6 +242,9 @@ export default function FinanzasPage() {
   const [filterDateRange, setFilterDateRange] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(
+    null
+  );
 
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [editingBudgetId, setEditingBudgetId] =
@@ -441,7 +444,13 @@ export default function FinanzasPage() {
   }
 
   function handleDelete(id: string) {
-    removeTransaction({ id: id as any });
+    setDeleteTransactionId(id);
+  }
+
+  async function handleConfirmDeleteTransaction() {
+    if (!deleteTransactionId) return;
+    await removeTransaction({ id: deleteTransactionId as any });
+    setDeleteTransactionId(null);
   }
 
   const filteredBudgetItems = useMemo(() => {
@@ -2167,6 +2176,17 @@ export default function FinanzasPage() {
             </div>
           </form>
         </Modal>
+
+        <ConfirmModal
+          open={deleteTransactionId !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTransactionId(null);
+          }}
+          title="Eliminar transacción"
+          description="Esta transacción se eliminará de las finanzas. Esta acción no se puede deshacer."
+          confirmText="Eliminar"
+          onConfirm={handleConfirmDeleteTransaction}
+        />
 
         <ConfirmModal
           open={deleteBudgetId !== null}

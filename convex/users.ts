@@ -10,6 +10,7 @@ export const list = query({
       email: u.email,
       name: u.name || u.email,
       role: u.role || "produccion",
+      allowedRoutes: u.allowedRoutes,
     }));
   },
 });
@@ -31,6 +32,7 @@ export const create = mutation({
     passwordHash: v.string(),
     name: v.optional(v.string()),
     role: v.optional(v.string()),
+    allowedRoutes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();
@@ -56,6 +58,7 @@ export const upsert = mutation({
     passwordHash: v.string(),
     name: v.optional(v.string()),
     role: v.optional(v.string()),
+    allowedRoutes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();
@@ -69,6 +72,9 @@ export const upsert = mutation({
         passwordHash: args.passwordHash,
         name: args.name ?? existing.name,
         role: args.role ?? existing.role,
+        ...(args.allowedRoutes !== undefined
+          ? { allowedRoutes: args.allowedRoutes }
+          : {}),
       });
       return existing._id;
     }
@@ -77,5 +83,51 @@ export const upsert = mutation({
       ...args,
       email,
     });
+  },
+});
+
+export const updatePermissions = mutation({
+  args: {
+    userId: v.id("users"),
+    allowedRoutes: v.array(v.string()),
+    role: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updateData: any = { allowedRoutes: args.allowedRoutes };
+    if (args.role) updateData.role = args.role;
+    await ctx.db.patch(args.userId, updateData);
+    return true;
+  },
+});
+
+export const updatePassword = mutation({
+  args: {
+    userId: v.id("users"),
+    passwordHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { passwordHash: args.passwordHash });
+    return true;
+  },
+});
+
+export const updateRole = mutation({
+  args: {
+    userId: v.id("users"),
+    role: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { role: args.role });
+    return true;
+  },
+});
+
+export const remove = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.userId);
+    return true;
   },
 });

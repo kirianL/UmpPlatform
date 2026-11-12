@@ -130,6 +130,27 @@ export const run = mutation({
       });
     }
 
+    const bryanUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "bryan@ultimate.cr"))
+      .first();
+    if (bryanUser) {
+      await ctx.db.patch(bryanUser._id, {
+        name: "Bryan",
+        passwordHash:
+          "9ad449f40c3d15897cc4d521be0252b7c98d5a15c481906b27bf4e0d72cb0307",
+        role: "bryan",
+      });
+    } else {
+      await ctx.db.insert("users", {
+        email: "bryan@ultimate.cr",
+        name: "Bryan",
+        passwordHash:
+          "9ad449f40c3d15897cc4d521be0252b7c98d5a15c481906b27bf4e0d72cb0307",
+        role: "bryan",
+      });
+    }
+
     return "Users synced successfully";
   },
 });

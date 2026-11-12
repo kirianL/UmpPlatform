@@ -1,0 +1,40 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tareas": "Tasks",
+    "proyectos": "Projects",
+    "personal": "Staff",
+    "guiones": "Scripts",
+    "agendaActores": "Actor Schedule",
+    "calendario": "Calendar",
+    "finanzas": "Finances",
+    "clientes": "Clients",
+    "aliados": "Allies",
+    "noticias": "Website",
+    "inventario": "Inventory",
+    "permisos": "Permissions"
+  },
+  "sidebar": {
+    "darkMode": "Dark Mode",
+    "logout": "Log Out",
+    "language": "Language"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search...",
+    "loading": "Loading...",
+    "confirm": "Confirm",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "all": "All",
+    "filters": "Filters",
+    "close": "Close",
+    "view": "View",
+    "back": "Back"
+  }
+}
+

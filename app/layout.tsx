@@ -6,6 +6,7 @@ import "../styles/globals.css";
 import MobileHeader from "@/components/MobileHeader";
 import Sidebar from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import PwaRegister from "@/components/PwaRegister";
@@ -106,24 +107,26 @@ export default async function RootLayout({
     >
       <body className="min-h-full bg-grayscale-1 text-grayscale-12">
         <ThemeProvider>
-          <PwaRegister />
-          <ConvexClientProvider>
-            <AuthProvider userRole={userRole} userEmail={userEmail}>
-              {isPublicPage ? (
-                children
-              ) : (
-                <div className="root min-h-screen flex flex-col xl:block">
-                  <MobileHeader userRole={userRole} userEmail={userEmail} />
-                  <Sidebar userRole={userRole} userEmail={userEmail} />
-                  <main className="min-h-screen flex-1 xl:pl-56">
-                    <ViewTransition enter="page-enter" exit="page-exit">
-                      {children}
-                    </ViewTransition>
-                  </main>
-                </div>
-              )}
-            </AuthProvider>
-          </ConvexClientProvider>
+          <LanguageProvider>
+            <PwaRegister />
+            <ConvexClientProvider>
+              <AuthProvider userRole={userRole} userEmail={userEmail}>
+                {isPublicPage ? (
+                  children
+                ) : (
+                  <div className="root min-h-screen flex flex-col xl:block">
+                    <MobileHeader userRole={userRole} userEmail={userEmail} />
+                    <Sidebar userRole={userRole} userEmail={userEmail} />
+                    <main className="min-h-screen flex-1 xl:pl-56">
+                      <ViewTransition enter="page-enter" exit="page-exit">
+                        {children}
+                      </ViewTransition>
+                    </main>
+                  </div>
+                )}
+              </AuthProvider>
+            </ConvexClientProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

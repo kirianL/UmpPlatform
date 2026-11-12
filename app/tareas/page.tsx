@@ -78,6 +78,7 @@ const SYSTEM_ACCOUNTS = [
   { email: "tatiana@ultimate.cr", name: "Tatiana", role: "actores" },
   { email: "eymar@ultimate.cr", name: "Eymar", role: "produccion" },
   { email: "kirian@ultimate.cr", name: "Kirian", role: "programador" },
+  { email: "bryan@ultimate.cr", name: "Bryan", role: "bryan" },
 ];
 
 function compressImage(

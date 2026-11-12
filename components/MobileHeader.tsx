@@ -21,6 +21,7 @@ import {
   HandshakeIcon,
   FoldersIcon,
   GlobeSimpleIcon,
+  KeyIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,22 +29,65 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import NotificationBell from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/helpers/classname-helper";
 import { useAuth } from "@/components/AuthProvider";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", Icon: SquaresFourIcon },
-  { href: "/tareas", label: "Tareas", Icon: CheckSquareOffsetIcon },
-  { href: "/notas", label: "Proyectos", Icon: FoldersIcon },
-  { href: "/personal", label: "Personal", Icon: UsersIcon },
-  { href: "/guiones", label: "Guiones", Icon: ScrollIcon },
-  { href: "/calendario-actores", label: "Agenda actores", Icon: UserCheckIcon },
-  { href: "/calendario", label: "Calendario", Icon: CalendarDotsIcon },
-  { href: "/finanzas", label: "Finanzas", Icon: CurrencyDollarIcon },
-  { href: "/clientes", label: "Clientes", Icon: AddressBookIcon },
-  { href: "/aliados", label: "Aliados", Icon: HandshakeIcon },
-  { href: "/noticias", label: "Página web", Icon: GlobeSimpleIcon },
-  { href: "/inventario", label: "Inventario", Icon: FilmSlateIcon },
+  { href: "/", key: "dashboard", label: "Dashboard", Icon: SquaresFourIcon },
+  {
+    href: "/tareas",
+    key: "tareas",
+    label: "Tareas",
+    Icon: CheckSquareOffsetIcon,
+  },
+  { href: "/notas", key: "proyectos", label: "Proyectos", Icon: FoldersIcon },
+  { href: "/personal", key: "personal", label: "Personal", Icon: UsersIcon },
+  { href: "/guiones", key: "guiones", label: "Guiones", Icon: ScrollIcon },
+  {
+    href: "/calendario-actores",
+    key: "agendaActores",
+    label: "Agenda actores",
+    Icon: UserCheckIcon,
+  },
+  {
+    href: "/calendario",
+    key: "calendario",
+    label: "Calendario",
+    Icon: CalendarDotsIcon,
+  },
+  {
+    href: "/finanzas",
+    key: "finanzas",
+    label: "Finanzas",
+    Icon: CurrencyDollarIcon,
+  },
+  {
+    href: "/clientes",
+    key: "clientes",
+    label: "Clientes",
+    Icon: AddressBookIcon,
+  },
+  { href: "/aliados", key: "aliados", label: "Aliados", Icon: HandshakeIcon },
+  {
+    href: "/noticias",
+    key: "noticias",
+    label: "Página web",
+    Icon: GlobeSimpleIcon,
+  },
+  {
+    href: "/inventario",
+    key: "inventario",
+    label: "Inventario",
+    Icon: FilmSlateIcon,
+  },
+  {
+    href: "/permisos",
+    key: "permisos",
+    label: "Permisos",
+    Icon: KeyIcon,
+  },
 ];
 
 export default function MobileHeader({
@@ -56,9 +100,12 @@ export default function MobileHeader({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const auth = useAuth();
+  const { t } = useLanguage();
   const userRole = auth?.userRole || propUserRole || "produccion";
   const userEmail = auth?.userEmail || propUserEmail || "";
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+  const isBryan =
+    (userEmail || "").toLowerCase().includes("bryan") || userRole === "bryan";
   const isGinger =
     (userEmail || "").toLowerCase().includes("ginger") ||
     userRole === "ventas" ||
@@ -66,6 +113,17 @@ export default function MobileHeader({
   const isEymar = (userEmail || "").toLowerCase().includes("eymar");
 
   const visibleItems = NAV_ITEMS.filter((item) => {
+    if (auth?.canAccess) {
+      return auth.canAccess(item.href);
+    }
+    if (isBryan) {
+      return (
+        item.href === "/calendario" ||
+        item.href === "/notas" ||
+        item.href === "/inventario" ||
+        item.href === "/tareas"
+      );
+    }
     if (isGinger) {
       return (
         item.href === "/clientes" ||
@@ -100,7 +158,6 @@ export default function MobileHeader({
         item.href === "/personal" ||
         item.href === "/calendario-actores" ||
         item.href === "/inventario" ||
-        item.href === "/calendario" ||
         item.href === "/tareas" ||
         item.href === "/notas"
       );
@@ -180,11 +237,13 @@ export default function MobileHeader({
 
           {/* Centered nav links */}
           <nav className="flex flex-1 flex-col items-center justify-center gap-0.5 px-8">
-            {visibleItems.map(({ href, label, Icon }, index) => {
+            {visibleItems.map(({ href, key, label, Icon }, index) => {
               const isActive =
                 href === "/"
                   ? pathname === "/"
                   : pathname === href || pathname.startsWith(href + "/");
+
+              const displayLabel = t(`navigation.${key}`) || label;
 
               return (
                 <Link
@@ -208,23 +267,31 @@ export default function MobileHeader({
                       isActive ? "text-accent-9" : "text-grayscale-9",
                     )}
                   />
-                  {label}
+                  {displayLabel}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Bottom — theme toggle + logout */}
+          {/* Bottom — language + theme toggle + logout */}
           <div className="shrink-0 px-6 pb-8 pt-4">
             <div className="border-t border-grayscale-3 pt-5 dark:border-grayscale-3 space-y-3">
               <div className="flex items-center justify-between px-2">
                 <span className="text-[10px] font-mono text-grayscale-9 font-bold uppercase tracking-wider">
-                  Tema oscuro
+                  {t("sidebar.language")}
+                </span>
+                <LanguageToggle />
+              </div>
+
+              <div className="flex items-center justify-between px-2">
+                <span className="text-[10px] font-mono text-grayscale-9 font-bold uppercase tracking-wider">
+                  {t("sidebar.darkMode")}
                 </span>
                 <ThemeToggle />
               </div>
 
               <button
+                type="button"
                 onClick={async () => {
                   try {
                     document.cookie =
@@ -239,7 +306,7 @@ export default function MobileHeader({
                 className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 font-mono text-xs font-bold uppercase text-red-9 active:bg-red-2/30 dark:active:bg-red-9/10 transition-colors"
               >
                 <SignOutIcon size={16} weight="bold" />
-                <span>Cerrar sesión</span>
+                <span>{t("sidebar.logout")}</span>
               </button>
             </div>
           </div>

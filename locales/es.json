@@ -1,0 +1,40 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tareas": "Tareas",
+    "proyectos": "Proyectos",
+    "personal": "Personal",
+    "guiones": "Guiones",
+    "agendaActores": "Agenda Actores",
+    "calendario": "Calendario",
+    "finanzas": "Finanzas",
+    "clientes": "Clientes",
+    "aliados": "Aliados",
+    "noticias": "Página web",
+    "inventario": "Inventario",
+    "permisos": "Permisos"
+  },
+  "sidebar": {
+    "darkMode": "Tema Oscuro",
+    "logout": "Cerrar Sesión",
+    "language": "Idioma"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar...",
+    "loading": "Cargando...",
+    "confirm": "Confirmar",
+    "actions": "Acciones",
+    "status": "Estado",
+    "date": "Fecha",
+    "all": "Todos",
+    "filters": "Filtros",
+    "close": "Cerrar",
+    "view": "Ver",
+    "back": "Volver"
+  }
+}
+
