@@ -80,6 +80,104 @@ async function verifySession(token: string): Promise<{
   return { valid: true, role, username };
 }
 
+const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+
+interface UserPermissions {
+  role?: string;
+  allowedRoutes?: string[];
+}
+
+async function fetchUserPermissions(
+  email: string,
+): Promise<UserPermissions | null> {
+  if (!CONVEX_URL || !email) return null;
+  try {
+    const res = await fetch(`${CONVEX_URL}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: "users:getByEmail",
+        args: { email: email.trim().toLowerCase() },
+        format: "json",
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.status === "success" && data.value) {
+      return {
+        role: data.value.role,
+        allowedRoutes: Array.isArray(data.value.allowedRoutes)
+          ? data.value.allowedRoutes
+          : undefined,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function isAdminUser(role: string, email: string): boolean {
+  const lowerEmail = email.toLowerCase();
+  return (
+    role === "admin" ||
+    role === "programador" ||
+    lowerEmail === "admin@ultimate.cr" ||
+    lowerEmail === "kirian@ultimate.cr"
+  );
+}
+
+function getDefaultRoute(
+  allowedRoutes: string[] | null,
+  role: string,
+  email: string,
+): string {
+  if (isAdminUser(role, email)) return "/";
+
+  const lowerEmail = email.toLowerCase();
+
+  if (allowedRoutes) {
+    if (allowedRoutes.length === 0) return "/";
+    if (lowerEmail.includes("ginger") && allowedRoutes.includes("/clientes")) {
+      return "/clientes";
+    }
+    if (lowerEmail.includes("michelle") && allowedRoutes.includes("/notas")) {
+      return "/notas";
+    }
+    if (
+      (lowerEmail.includes("bryan") || role === "bryan") &&
+      allowedRoutes.includes("/calendario")
+    ) {
+      return "/calendario";
+    }
+    if (role === "produccion" && allowedRoutes.includes("/inventario")) {
+      return "/inventario";
+    }
+    if (role === "actores" && allowedRoutes.includes("/calendario-actores")) {
+      return "/calendario-actores";
+    }
+    return allowedRoutes[0];
+  }
+
+  if (lowerEmail.includes("ginger")) return "/clientes";
+  if (lowerEmail.includes("bryan") || role === "bryan") return "/calendario";
+  if (lowerEmail.includes("michelle")) return "/notas";
+  if (role === "produccion") return "/inventario";
+  if (role === "directorio") return "/notas";
+  if (role === "actores") return "/calendario-actores";
+  return "/";
+}
+
+function isRouteInAllowedList(pathname: string, allowedRoutes: string[]): boolean {
+  if (pathname.startsWith("/api/")) return true;
+  return allowedRoutes.some((route) => {
+    if (route === "/") return pathname === "/";
+    return pathname === route || pathname.startsWith(`${route}/`);
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -138,30 +236,25 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // Resolve dynamic permissions from Convex when session is valid
+  let allowedRoutes: string[] | null = null;
+  if (isSessionValid && userEmail) {
+    const userPerms = await fetchUserPermissions(userEmail);
+    if (userPerms) {
+      if (userPerms.role) userRole = userPerms.role;
+      if (userPerms.allowedRoutes !== undefined) {
+        allowedRoutes = userPerms.allowedRoutes;
+      }
+    }
+  }
+
   // If path is /login and session is valid, redirect to appropriate start page
   if (pathname === "/login") {
     if (isSessionValid) {
       console.log(
         `[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`,
       );
-      const isGingerUser = userEmail.toLowerCase().includes("ginger");
-      const isBryanUser =
-        userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
-      const isMichelleUser = userEmail.toLowerCase().includes("michelle");
-      const redirectUrl =
-        isGingerUser
-          ? "/clientes"
-          : isBryanUser
-            ? "/calendario"
-            : isMichelleUser
-              ? "/notas"
-              : userRole === "produccion"
-                ? "/inventario"
-                : userRole === "directorio"
-                  ? "/notas"
-                  : userRole === "actores"
-                    ? "/calendario-actores"
-                    : "/";
+      const redirectUrl = getDefaultRoute(allowedRoutes, userRole, userEmail);
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
@@ -179,140 +272,119 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Permisos route protection: only admin or programador
-  if (pathname.startsWith("/permisos")) {
-    const isAdmin =
-      userRole === "admin" ||
-      userRole === "programador" ||
-      userEmail.toLowerCase() === "admin@ultimate.cr" ||
-      userEmail.toLowerCase() === "kirian@ultimate.cr";
+  const isAdmin = isAdminUser(userRole, userEmail);
+
+  // Permisos route & user management API protection: only admin or programador
+  if (pathname.startsWith("/permisos") || pathname.startsWith("/api/users")) {
     if (!isAdmin) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+      }
       console.warn(
-        `[Proxy Auth Check] Usuario no autorizado intentó acceder a "/permisos". Redirigiendo a /.`,
+        `[Proxy Auth Check] Usuario no autorizado intentó acceder a "${pathname}". Redirigiendo.`,
       );
-      return NextResponse.redirect(new URL("/", request.url));
+      const fallbackUrl = getDefaultRoute(allowedRoutes, userRole, userEmail);
+      return NextResponse.redirect(new URL(fallbackUrl, request.url));
     }
   }
 
-  // Role-based route protection
-  if (userRole === "actores") {
-    const isAllowedPath =
-      pathname.startsWith("/calendario-actores") ||
-      pathname.startsWith("/personal") ||
-      pathname.startsWith("/tareas") ||
-      pathname.startsWith("/notas") ||
-      pathname.startsWith("/api/auth/logout");
-
-    if (!isAllowedPath) {
-      console.warn(
-        `[Proxy Auth Check] Rol "actores" intentó acceder a "${pathname}". Redirigiendo a /calendario-actores.`,
-      );
-      return NextResponse.redirect(new URL("/calendario-actores", request.url));
+  // Dynamic route protection based on Convex allowedRoutes
+  if (!isAdmin && allowedRoutes !== null) {
+    if (allowedRoutes.length === 0) {
+      if (pathname !== "/" && !pathname.startsWith("/api/")) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    } else if (!isRouteInAllowedList(pathname, allowedRoutes)) {
+      const fallbackUrl = getDefaultRoute(allowedRoutes, userRole, userEmail);
+      if (pathname !== fallbackUrl) {
+        console.warn(
+          `[Proxy Auth Check] Usuario "${userEmail}" intentó acceder a "${pathname}" sin permiso. Redirigiendo a ${fallbackUrl}.`,
+        );
+        return NextResponse.redirect(new URL(fallbackUrl, request.url));
+      }
     }
-  }
+  } else if (!isAdmin && allowedRoutes === null) {
+    // Fallback role-based route protection when allowedRoutes is not set in DB
+    if (userRole === "actores") {
+      const isAllowedPath =
+        pathname.startsWith("/calendario-actores") ||
+        pathname.startsWith("/personal") ||
+        pathname.startsWith("/tareas") ||
+        pathname.startsWith("/notas") ||
+        pathname.startsWith("/api/");
 
-  const isEymar = userEmail.toLowerCase().includes("eymar");
-
-  if (userRole === "produccion") {
-    const isAllowedPath =
-      pathname.startsWith("/inventario") ||
-      pathname.startsWith("/calendario") ||
-      pathname.startsWith("/guiones") ||
-      pathname.startsWith("/calendario-actores") ||
-      pathname.startsWith("/tareas") ||
-      pathname.startsWith("/notas") ||
-      pathname.startsWith("/brainstorm") ||
-      (isEymar && pathname.startsWith("/noticias")) ||
-      pathname.startsWith("/api/auth/logout");
-
-    if (!isAllowedPath) {
-      console.warn(
-        `[Proxy Auth Check] Rol "produccion" intentó acceder a "${pathname}". Redirigiendo a /inventario.`,
-      );
-      return NextResponse.redirect(new URL("/inventario", request.url));
+      if (!isAllowedPath) {
+        return NextResponse.redirect(new URL("/calendario-actores", request.url));
+      }
     }
-  }
 
-  const isMichelle = userEmail.toLowerCase().includes("michelle");
+    const isEymar = userEmail.toLowerCase().includes("eymar");
 
-  if (isMichelle && pathname.startsWith("/calendario") && !pathname.startsWith("/calendario-actores")) {
-    console.warn(
-      `[Proxy Auth Check] Michelle intentó acceder a "${pathname}". Redirigiendo a /notas.`,
-    );
-    return NextResponse.redirect(new URL("/notas", request.url));
-  }
+    if (userRole === "produccion") {
+      const isAllowedPath =
+        pathname.startsWith("/inventario") ||
+        pathname.startsWith("/calendario") ||
+        pathname.startsWith("/guiones") ||
+        pathname.startsWith("/calendario-actores") ||
+        pathname.startsWith("/tareas") ||
+        pathname.startsWith("/notas") ||
+        pathname.startsWith("/brainstorm") ||
+        (isEymar && pathname.startsWith("/noticias")) ||
+        pathname.startsWith("/api/");
 
-  const isBryan = userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
-
-  if (isBryan) {
-    const isAllowedPath =
-      pathname.startsWith("/calendario") ||
-      pathname.startsWith("/notas") ||
-      pathname.startsWith("/inventario") ||
-      pathname.startsWith("/tareas") ||
-      pathname.startsWith("/api/auth/logout");
-
-    if (!isAllowedPath) {
-      console.warn(
-        `[Proxy Auth Check] Rol "bryan" intentó acceder a "${pathname}". Redirigiendo a /calendario.`,
-      );
-      return NextResponse.redirect(new URL("/calendario", request.url));
+      if (!isAllowedPath) {
+        return NextResponse.redirect(new URL("/inventario", request.url));
+      }
     }
-  }
 
-  if (userRole === "directorio" || isMichelle) {
-    const isAllowedPath =
-      pathname === "/" ||
-      pathname.startsWith("/notas") ||
-      pathname.startsWith("/tareas") ||
-      pathname.startsWith("/inventario") ||
-      pathname.startsWith("/personal") ||
-      pathname.startsWith("/calendario-actores") ||
-      pathname.startsWith("/calendario") ||
-      pathname.startsWith("/clientes") ||
-      pathname.startsWith("/guiones") ||
-      pathname.startsWith("/noticias") ||
-      pathname.startsWith("/api/auth/logout");
+    const isMichelle = userEmail.toLowerCase().includes("michelle");
+    const isBryan = userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
 
-    if (!isAllowedPath) {
-      console.warn(
-        `[Proxy Auth Check] Rol "directorio" intentó acceder a "${pathname}". Redirigiendo a /notas.`,
-      );
-      return NextResponse.redirect(new URL("/notas", request.url));
+    if (isBryan) {
+      const isAllowedPath =
+        pathname.startsWith("/calendario") ||
+        pathname.startsWith("/notas") ||
+        pathname.startsWith("/inventario") ||
+        pathname.startsWith("/tareas") ||
+        pathname.startsWith("/api/");
+
+      if (!isAllowedPath) {
+        return NextResponse.redirect(new URL("/calendario", request.url));
+      }
     }
-  }
 
-  const isGinger = userEmail.toLowerCase().includes("ginger");
+    if (userRole === "directorio" || isMichelle) {
+      const isAllowedPath =
+        pathname.startsWith("/notas") ||
+        pathname.startsWith("/tareas") ||
+        pathname.startsWith("/inventario") ||
+        pathname.startsWith("/personal") ||
+        pathname.startsWith("/calendario-actores") ||
+        pathname.startsWith("/calendario") ||
+        pathname.startsWith("/clientes") ||
+        pathname.startsWith("/api/");
 
-  if (isGinger || userRole === "ventas" || userRole === "comercial") {
-    const isAllowedPath =
-      pathname.startsWith("/clientes") ||
-      pathname.startsWith("/notas") ||
-      pathname.startsWith("/calendario-actores") ||
-      pathname.startsWith("/calendario") ||
-      pathname.startsWith("/noticias") ||
-      pathname.startsWith("/tareas") ||
-      pathname.startsWith("/api/auth/logout");
-
-    if (!isAllowedPath) {
-      console.warn(
-        `[Proxy Auth Check] Rol "ventas" intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
-      );
-      return NextResponse.redirect(new URL("/clientes", request.url));
+      if (!isAllowedPath) {
+        return NextResponse.redirect(new URL("/notas", request.url));
+      }
     }
-  }
 
-  // Ensure Michelle always has access to agenda de actores
-  if (isMichelle && pathname.startsWith("/calendario-actores")) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-pathname", pathname);
-    requestHeaders.set("x-user-role", userRole);
-    requestHeaders.set("x-user-email", userEmail);
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    const isGinger = userEmail.toLowerCase().includes("ginger");
+
+    if (isGinger || userRole === "ventas" || userRole === "comercial") {
+      const isAllowedPath =
+        pathname.startsWith("/clientes") ||
+        pathname.startsWith("/notas") ||
+        pathname.startsWith("/calendario-actores") ||
+        pathname.startsWith("/calendario") ||
+        pathname.startsWith("/noticias") ||
+        pathname.startsWith("/tareas") ||
+        pathname.startsWith("/api/");
+
+      if (!isAllowedPath) {
+        return NextResponse.redirect(new URL("/clientes", request.url));
+      }
+    }
   }
 
   // Inject current pathname and user info into headers for Server Component layouts to read
@@ -320,6 +392,9 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
   requestHeaders.set("x-user-role", userRole);
   requestHeaders.set("x-user-email", userEmail);
+  if (allowedRoutes !== null) {
+    requestHeaders.set("x-allowed-routes", JSON.stringify(allowedRoutes));
+  }
 
   return NextResponse.next({
     request: {

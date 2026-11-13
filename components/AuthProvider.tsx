@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -10,6 +11,7 @@ interface AuthContextValue {
   userName: string;
   allowedRoutes?: string[];
   isAdmin: boolean;
+  isLoading: boolean;
   canAccess: (route: string) => boolean;
 }
 
@@ -18,18 +20,37 @@ const AuthContext = createContext<AuthContextValue>({
   userEmail: "",
   userName: "",
   isAdmin: false,
+  isLoading: false,
   canAccess: () => true,
 });
+
+function isPublicRoute(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname.includes("/public") ||
+    pathname.startsWith("/aliados/verificar") ||
+    pathname.startsWith("/v/")
+  );
+}
+
+function matchRoutePrefix(pathname: string, route: string): boolean {
+  if (route === "/") return pathname === "/";
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
 
 export function AuthProvider({
   children,
   userRole = "produccion",
   userEmail = "",
+  initialAllowedRoutes,
 }: {
   children: React.ReactNode;
   userRole?: string;
   userEmail?: string;
+  initialAllowedRoutes?: string[];
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const userDoc = useQuery(
     api.users.getByEmail,
     userEmail ? { email: userEmail } : "skip"
@@ -42,7 +63,38 @@ export function AuthProvider({
     userEmail.toLowerCase() === "admin@ultimate.cr" ||
     userEmail.toLowerCase() === "kirian@ultimate.cr";
 
-  const allowedRoutes = userDoc?.allowedRoutes;
+  const allowedRoutes =
+    userDoc !== undefined ? userDoc?.allowedRoutes : initialAllowedRoutes;
+  const isLoading =
+    Boolean(userEmail) &&
+    userDoc === undefined &&
+    initialAllowedRoutes === undefined;
+
+  useEffect(() => {
+    if (isLoading || isAdmin || !pathname || isPublicRoute(pathname)) return;
+    if (!allowedRoutes || !Array.isArray(allowedRoutes)) return;
+
+    if (allowedRoutes.length === 0) {
+      if (pathname !== "/") {
+        router.replace("/");
+      }
+      return;
+    }
+
+    const isAllowed = allowedRoutes.some((route) =>
+      matchRoutePrefix(pathname, route)
+    );
+    if (!isAllowed) {
+      const lowerEmail = userEmail.toLowerCase();
+      const target =
+        lowerEmail.includes("michelle") && allowedRoutes.includes("/notas")
+          ? "/notas"
+          : lowerEmail.includes("ginger") && allowedRoutes.includes("/clientes")
+            ? "/clientes"
+            : allowedRoutes[0];
+      router.replace(target);
+    }
+  }, [isLoading, isAdmin, pathname, allowedRoutes, userEmail, router]);
 
   const value = useMemo<AuthContextValue>(() => {
     return {
@@ -51,12 +103,14 @@ export function AuthProvider({
       userName: userDoc?.name || "",
       allowedRoutes,
       isAdmin,
+      isLoading,
       canAccess: (route: string) => {
         if (isAdmin) return true;
+        if (isLoading) return false;
         if (allowedRoutes && Array.isArray(allowedRoutes)) {
           return allowedRoutes.includes(route);
         }
-        // Fallback default rules if allowedRoutes is not explicitly set yet
+        // Fallback default rules if allowedRoutes is not explicitly set in DB
         const isBryan =
           userEmail.toLowerCase().includes("bryan") || effectiveRole === "bryan";
         if (isBryan) {
@@ -83,7 +137,7 @@ export function AuthProvider({
         return true;
       },
     };
-  }, [effectiveRole, userEmail, userDoc?.name, allowedRoutes, isAdmin]);
+  }, [effectiveRole, userEmail, userDoc?.name, allowedRoutes, isAdmin, isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

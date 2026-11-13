@@ -85,6 +85,18 @@ export default async function RootLayout({
   const pathname = headersList.get("x-pathname") || "";
   const userRole = headersList.get("x-user-role") || "produccion";
   const userEmail = headersList.get("x-user-email") || "";
+  const allowedRoutesHeader = headersList.get("x-allowed-routes");
+  let initialAllowedRoutes: string[] | undefined;
+  if (allowedRoutesHeader) {
+    try {
+      const parsed = JSON.parse(allowedRoutesHeader);
+      if (Array.isArray(parsed)) {
+        initialAllowedRoutes = parsed;
+      }
+    } catch {
+      // ignore invalid header JSON
+    }
+  }
   const isPublicPage =
     pathname === "/login" ||
     pathname.includes("/public") ||
@@ -110,7 +122,11 @@ export default async function RootLayout({
           <LanguageProvider>
             <PwaRegister />
             <ConvexClientProvider>
-              <AuthProvider userRole={userRole} userEmail={userEmail}>
+              <AuthProvider
+                userRole={userRole}
+                userEmail={userEmail}
+                initialAllowedRoutes={initialAllowedRoutes}
+              >
                 {isPublicPage ? (
                   children
                 ) : (
