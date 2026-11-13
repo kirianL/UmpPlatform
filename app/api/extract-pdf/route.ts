@@ -1,91 +1,58 @@
 import { NextResponse } from "next/server";
-import zlib from "zlib";
-
-function extractTextFromPdfBuffer(buffer: Buffer): string {
-  const rawStr = buffer.toString("latin1");
-  const extractedLines: string[] = [];
-
-  // Find all PDF streams
-  const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
-  let match;
-
-  while ((match = streamRegex.exec(rawStr)) !== null) {
-    const streamStart = match.index + match[0].indexOf("stream") + 6;
-    const streamEnd = match.index + match[0].lastIndexOf("endstream");
-    const streamData = buffer.subarray(
-      streamStart > match.index ? streamStart : match.index,
-      streamEnd > streamStart ? streamEnd : buffer.length,
-    );
-
-    let decompressed: string = "";
-
-    try {
-      const decomp = zlib.inflateSync(streamData);
-      decompressed = decomp.toString("utf-8");
-    } catch {
-      try {
-        const decomp = zlib.unzipSync(streamData);
-        decompressed = decomp.toString("utf-8");
-      } catch {
-        decompressed = streamData.toString("latin1");
-      }
-    }
-
-    // Extract text in parentheses (text) Tj or TJ
-    const tjMatches =
-      decompressed.match(/\(([^()]+)\)\s*(?:Tj|TJ|\'|\")/g) || [];
-    for (const m of tjMatches) {
-      const clean = m
-        .replace(/^\(/, "")
-        .replace(/\)\s*(?:Tj|TJ|\'|\")$/, "")
-        .trim();
-      if (
-        clean.length > 0 &&
-        !clean.startsWith("/") &&
-        !clean.startsWith("Font") &&
-        !clean.startsWith("MediaBox") &&
-        !clean.startsWith("ProcSet")
-      ) {
-        extractedLines.push(clean);
-      }
-    }
-  }
-
-  // Fallback: search raw string if stream extraction yielded no text
-  if (extractedLines.length === 0) {
-    const rawMatches = rawStr.match(/\(([^()]{2,})\)\s*(?:Tj|TJ|\'|\")/g) || [];
-    for (const m of rawMatches) {
-      const clean = m
-        .replace(/^\(/, "")
-        .replace(/\)\s*(?:Tj|TJ|\'|\")$/, "")
-        .trim();
-      if (
-        clean.length > 1 &&
-        !clean.startsWith("/") &&
-        !clean.startsWith("Font") &&
-        !clean.startsWith("MediaBox")
-      ) {
-        extractedLines.push(clean);
-      }
-    }
-  }
-
-  return extractedLines.join("\n");
-}
+import mammoth from "mammoth";
 
 export async function POST(request: Request) {
   try {
-    const { pdfBase64 } = await request.json();
+    const { pdfBase64, fileName } = await request.json();
     if (!pdfBase64) {
-      return NextResponse.json({ error: "Sin datos de PDF" }, { status: 400 });
+      return NextResponse.json({ error: "Sin datos de archivo" }, { status: 400 });
     }
 
-    const base64Data = pdfBase64.replace(/^data:application\/pdf;base64,/, "");
+    const base64Data = pdfBase64.replace(/^data:[^;]+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
-    const extractedText = extractTextFromPdfBuffer(buffer);
+    const name = (fileName || "").toLowerCase();
 
+    // Si es DOCX / DOC
+    if (name.endsWith(".docx") || name.endsWith(".doc")) {
+      try {
+        const { value } = await mammoth.extractRawText({ buffer });
+        return NextResponse.json({ text: value.trim() });
+      } catch (docErr: any) {
+        console.warn("Could not extract DOCX text:", docErr);
+      }
+    }
+
+    // Por defecto o si es PDF: extraer con pdfjs-dist
+    const uint8Array = new Uint8Array(buffer);
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const loadingTask = pdfjs.getDocument({
+      data: uint8Array,
+      useSystemFonts: true,
+      disableFontFace: true,
+    });
+
+    const pdfDoc = await loadingTask.promise;
+    const pageTexts: string[] = [];
+
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+      const page = await pdfDoc.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageStrings = textContent.items
+        .map((item: any) => ("str" in item ? item.str : ""))
+        .filter((str: string) => str.length > 0);
+
+      if (pageStrings.length > 0) {
+        pageTexts.push(pageStrings.join(" "));
+      }
+    }
+
+    const extractedText = pageTexts.join("\n\n");
     return NextResponse.json({ text: extractedText });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Error extracting document text:", err);
+    return NextResponse.json(
+      { error: err.message || "Error al procesar archivo" },
+      { status: 500 }
+    );
   }
 }

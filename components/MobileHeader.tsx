@@ -181,13 +181,15 @@ export default function MobileHeader({
           href={
             isGinger
               ? "/clientes"
-              : userRole === "produccion"
-                ? "/inventario"
-                : userRole === "directorio"
-                  ? "/clientes"
-                  : userRole === "actores"
-                    ? "/calendario-actores"
-                    : "/"
+              : isMichelle
+                ? "/notas"
+                : userRole === "produccion"
+                  ? "/inventario"
+                  : userRole === "directorio"
+                    ? "/notas"
+                    : userRole === "actores"
+                      ? "/calendario-actores"
+                      : "/"
           }
           className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-grayscale-12"
         >

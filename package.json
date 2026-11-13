@@ -38,6 +38,7 @@
     "convex": "^1.42.1",
     "d3-array": "^3.2.4",
     "lucide-react": "^1.22.0",
+    "mammoth": "^1.13.0",
     "motion": "^12.42.2",
     "next": "16.2.6",
     "next-themes": "^0.4.6",

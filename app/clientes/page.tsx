@@ -106,9 +106,10 @@ export default function ClientesPage() {
   const { userRole, userEmail } = useAuth();
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
   const isGinger =
-    (userEmail || "").toLowerCase().includes("ginger") ||
-    userRole === "ventas" ||
-    userRole === "comercial";
+    !isMichelle &&
+    ((userEmail || "").toLowerCase().includes("ginger") ||
+      userRole === "ventas" ||
+      userRole === "comercial");
   const hidePrices = userRole === "directorio" || isMichelle;
 
   const clients = useQuery(api.clients.get) ?? [];

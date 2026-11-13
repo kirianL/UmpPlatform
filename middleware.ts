@@ -144,24 +144,24 @@ export async function middleware(request: NextRequest) {
       console.log(
         `[Proxy Auth Check] Usuario autenticado intentó acceder a /login. Redirigiendo.`,
       );
-      const isGingerUser =
-        userEmail.toLowerCase().includes("ginger") ||
-        userRole === "ventas" ||
-        userRole === "comercial";
+      const isGingerUser = userEmail.toLowerCase().includes("ginger");
       const isBryanUser =
         userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
+      const isMichelleUser = userEmail.toLowerCase().includes("michelle");
       const redirectUrl =
         isGingerUser
           ? "/clientes"
           : isBryanUser
             ? "/calendario"
-            : userRole === "produccion"
-              ? "/inventario"
-              : userRole === "directorio"
-                ? "/clientes"
-                : userRole === "actores"
-                  ? "/calendario-actores"
-                  : "/";
+            : isMichelleUser
+              ? "/notas"
+              : userRole === "produccion"
+                ? "/inventario"
+                : userRole === "directorio"
+                  ? "/notas"
+                  : userRole === "actores"
+                    ? "/calendario-actores"
+                    : "/";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
     const requestHeaders = new Headers(request.headers);
@@ -237,9 +237,9 @@ export async function middleware(request: NextRequest) {
 
   if (isMichelle && pathname.startsWith("/calendario") && !pathname.startsWith("/calendario-actores")) {
     console.warn(
-      `[Proxy Auth Check] Michelle intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
+      `[Proxy Auth Check] Michelle intentó acceder a "${pathname}". Redirigiendo a /notas.`,
     );
-    return NextResponse.redirect(new URL("/clientes", request.url));
+    return NextResponse.redirect(new URL("/notas", request.url));
   }
 
   const isBryan = userEmail.toLowerCase().includes("bryan") || userRole === "bryan";
@@ -260,41 +260,43 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (userRole === "directorio") {
+  if (userRole === "directorio" || isMichelle) {
     const isAllowedPath =
-      pathname.startsWith("/clientes") ||
-      pathname.startsWith("/personal") ||
-      pathname.startsWith("/inventario") ||
-      pathname.startsWith("/calendario-actores") ||
-      pathname.startsWith("/calendario") ||
-      pathname.startsWith("/tareas") ||
+      pathname === "/" ||
       pathname.startsWith("/notas") ||
-      pathname.startsWith("/api/auth/logout");
-
-    if (!isAllowedPath) {
-      console.warn(
-        `[Proxy Auth Check] Rol "directorio" intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
-      );
-      return NextResponse.redirect(new URL("/clientes", request.url));
-    }
-  }
-
-  const isGinger =
-    userEmail.toLowerCase().includes("ginger") ||
-    userRole === "ventas" ||
-    userRole === "comercial";
-
-  if (isGinger) {
-    const isAllowedPath =
-      pathname.startsWith("/clientes") ||
+      pathname.startsWith("/tareas") ||
+      pathname.startsWith("/inventario") ||
+      pathname.startsWith("/personal") ||
       pathname.startsWith("/calendario-actores") ||
       pathname.startsWith("/calendario") ||
+      pathname.startsWith("/clientes") ||
+      pathname.startsWith("/guiones") ||
       pathname.startsWith("/noticias") ||
       pathname.startsWith("/api/auth/logout");
 
     if (!isAllowedPath) {
       console.warn(
-        `[Proxy Auth Check] Rol "ventas" (Ginger) intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
+        `[Proxy Auth Check] Rol "directorio" intentó acceder a "${pathname}". Redirigiendo a /notas.`,
+      );
+      return NextResponse.redirect(new URL("/notas", request.url));
+    }
+  }
+
+  const isGinger = userEmail.toLowerCase().includes("ginger");
+
+  if (isGinger || userRole === "ventas" || userRole === "comercial") {
+    const isAllowedPath =
+      pathname.startsWith("/clientes") ||
+      pathname.startsWith("/notas") ||
+      pathname.startsWith("/calendario-actores") ||
+      pathname.startsWith("/calendario") ||
+      pathname.startsWith("/noticias") ||
+      pathname.startsWith("/tareas") ||
+      pathname.startsWith("/api/auth/logout");
+
+    if (!isAllowedPath) {
+      console.warn(
+        `[Proxy Auth Check] Rol "ventas" intentó acceder a "${pathname}". Redirigiendo a /clientes.`,
       );
       return NextResponse.redirect(new URL("/clientes", request.url));
     }

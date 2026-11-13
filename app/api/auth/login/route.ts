@@ -104,8 +104,23 @@ export async function POST(request: Request) {
     const expiresAt = Date.now() + duration;
     const token = await signSession(username, role, expiresAt);
 
-    // Redirect produccion role to /inventario, others to /
-    const redirectUrl = role === "produccion" ? "/inventario" : "/";
+    // Redirect users to their primary section
+    const isGinger = normalizedUsername.includes("ginger");
+    const isMichelle = normalizedUsername.includes("michelle");
+    const isBryan = normalizedUsername.includes("bryan") || role === "bryan";
+    const redirectUrl = isGinger
+      ? "/clientes"
+      : isMichelle
+        ? "/notas"
+        : isBryan
+          ? "/calendario"
+          : role === "produccion"
+            ? "/inventario"
+            : role === "directorio"
+              ? "/notas"
+              : role === "actores"
+                ? "/calendario-actores"
+                : "/";
     const response = NextResponse.json({
       success: true,
       redirect: redirectUrl,

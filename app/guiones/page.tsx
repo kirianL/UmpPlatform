@@ -146,19 +146,24 @@ export default function GuionesPage() {
           fileDataUrl: dataUrl,
         }));
 
-        if (file.name.endsWith(".pdf") || file.type === "application/pdf") {
+        if (
+          file.name.endsWith(".pdf") ||
+          file.type === "application/pdf" ||
+          file.name.endsWith(".docx") ||
+          file.name.endsWith(".doc")
+        ) {
           try {
             const res = await fetch("/api/extract-pdf", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ pdfBase64: dataUrl }),
+              body: JSON.stringify({ pdfBase64: dataUrl, fileName: file.name }),
             });
             const data = await res.json();
             if (data.text && data.text.trim().length > 0) {
               setForm((f) => ({ ...f, content: data.text }));
             }
           } catch (err) {
-            console.warn("Could not extract PDF text automatically:", err);
+            console.warn("Could not extract document text automatically:", err);
           }
         }
       };
