@@ -11,6 +11,7 @@ export const list = query({
       name: u.name || u.email,
       role: u.role || "produccion",
       allowedRoutes: u.allowedRoutes,
+      personalTabs: u.personalTabs,
     }));
   },
 });
@@ -33,6 +34,7 @@ export const create = mutation({
     name: v.optional(v.string()),
     role: v.optional(v.string()),
     allowedRoutes: v.optional(v.array(v.string())),
+    personalTabs: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();
@@ -59,6 +61,7 @@ export const upsert = mutation({
     name: v.optional(v.string()),
     role: v.optional(v.string()),
     allowedRoutes: v.optional(v.array(v.string())),
+    personalTabs: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();
@@ -74,6 +77,9 @@ export const upsert = mutation({
         role: args.role ?? existing.role,
         ...(args.allowedRoutes !== undefined
           ? { allowedRoutes: args.allowedRoutes }
+          : {}),
+        ...(args.personalTabs !== undefined
+          ? { personalTabs: args.personalTabs }
           : {}),
       });
       return existing._id;
@@ -91,10 +97,14 @@ export const updatePermissions = mutation({
     userId: v.id("users"),
     allowedRoutes: v.array(v.string()),
     role: v.optional(v.string()),
+    personalTabs: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const updateData: any = { allowedRoutes: args.allowedRoutes };
     if (args.role) updateData.role = args.role;
+    if (args.personalTabs !== undefined) {
+      updateData.personalTabs = args.personalTabs;
+    }
     await ctx.db.patch(args.userId, updateData);
     return true;
   },

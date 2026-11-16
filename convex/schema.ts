@@ -265,6 +265,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     role: v.optional(v.string()),
     allowedRoutes: v.optional(v.array(v.string())),
+    personalTabs: v.optional(v.array(v.string())),
   }).index("by_email", ["email"]),
   scripts: defineTable({
     title: v.string(),

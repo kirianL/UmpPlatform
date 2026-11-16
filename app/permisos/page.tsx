@@ -20,6 +20,7 @@ import {
   SquaresFourIcon,
   TrashIcon,
   UserCheckIcon,
+  UserPlusIcon,
   UsersIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react/dist/ssr";
@@ -154,6 +155,12 @@ export default function PermisosPage() {
   const { userEmail: currentEmail } = useAuth();
   const rawUsers = useQuery(api.users.list) ?? [];
 
+  const employees = useQuery(api.employees.get) ?? [];
+  const actors = useQuery(api.actors.get) ?? [];
+  const castingLeads = useQuery(api.castingLeads.get) ?? [];
+  const potentialCollaborators = useQuery(api.potentialCollaborators.get) ?? [];
+  const potentialContacts = useQuery(api.potentialContacts.get) ?? [];
+
   const updatePermissionsMutation = useMutation(api.users.updatePermissions);
   const removeUserMutation = useMutation(api.users.remove);
 
@@ -201,6 +208,71 @@ export default function PermisosPage() {
     }
     return rawUsers[0] || null;
   }, [rawUsers, selectedUserId]);
+
+  const personalTabOptions = useMemo(
+    () => [
+      {
+        id: "staff",
+        name: "Equipo de producción",
+        description: "Miembros del equipo técnico, roles, contactos y salarios.",
+        count: employees.length,
+        Icon: UsersIcon,
+      },
+      {
+        id: "actors",
+        name: "Elenco y personajes",
+        description: "Actores del elenco, personajes asignados, tallas y redes.",
+        count: actors.length,
+        Icon: UserCheckIcon,
+      },
+      {
+        id: "leads",
+        name: "Interesados en grabar",
+        description: "Candidatos registrados en prospección y casting.",
+        count: castingLeads.length,
+        Icon: UserPlusIcon,
+      },
+      {
+        id: "collaborators",
+        name: "Colaboradores potenciales",
+        description: "Aliados externos, editores, freelancers e influencers.",
+        count: potentialCollaborators.length,
+        Icon: HandshakeIcon,
+      },
+      {
+        id: "contacts",
+        name: "Contactos potenciales",
+        description: "Contactos de la industria, marcas y agencias en seguimiento.",
+        count: potentialContacts.length,
+        Icon: AddressBookIcon,
+      },
+    ],
+    [
+      employees.length,
+      actors.length,
+      castingLeads.length,
+      potentialCollaborators.length,
+      potentialContacts.length,
+    ]
+  );
+
+  const activePersonalTabs = useMemo<string[]>(() => {
+    if (!activeUser) return [];
+    if (activeUser.personalTabs && Array.isArray(activeUser.personalTabs)) {
+      return activeUser.personalTabs;
+    }
+    if (activeUser.role === "admin" || activeUser.role === "programador") {
+      return ["staff", "actors", "leads", "collaborators", "contacts"];
+    }
+    if (
+      activeUser.role === "actores" ||
+      activeUser.role === "directorio" ||
+      activeUser.email.toLowerCase().includes("michelle")
+    ) {
+      return ["actors", "leads", "collaborators", "contacts"];
+    }
+    return ["staff", "actors", "leads", "collaborators", "contacts"];
+  }, [activeUser]);
 
   const activeRoutes = useMemo(() => {
     if (!activeUser) return [];
@@ -260,6 +332,7 @@ export default function PermisosPage() {
       await updatePermissionsMutation({
         userId: activeUser._id as Id<"users">,
         allowedRoutes: updatedRoutes,
+        personalTabs: activePersonalTabs,
       });
       setSaveStatus("Guardado");
       setTimeout(() => setSaveStatus(null), 2000);
@@ -274,6 +347,7 @@ export default function PermisosPage() {
       await updatePermissionsMutation({
         userId: activeUser._id as Id<"users">,
         allowedRoutes: AVAILABLE_ROUTES.map((r) => r.href),
+        personalTabs: activePersonalTabs,
       });
       setSaveStatus("Acceso total");
       setTimeout(() => setSaveStatus(null), 2000);
@@ -288,6 +362,7 @@ export default function PermisosPage() {
       await updatePermissionsMutation({
         userId: activeUser._id as Id<"users">,
         allowedRoutes: [],
+        personalTabs: activePersonalTabs,
       });
       setSaveStatus("Accesos removidos");
       setTimeout(() => setSaveStatus(null), 2000);
@@ -303,8 +378,65 @@ export default function PermisosPage() {
         userId: activeUser._id as Id<"users">,
         role: newRole,
         allowedRoutes: activeRoutes,
+        personalTabs: activePersonalTabs,
       });
       setSaveStatus("Rol actualizado");
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
+  }
+
+  async function handleTogglePersonalTab(tabId: string) {
+    if (!activeUser) return;
+    const isCurrentlyAllowed = activePersonalTabs.includes(tabId);
+    const updatedTabs = isCurrentlyAllowed
+      ? activePersonalTabs.filter((t) => t !== tabId)
+      : [...activePersonalTabs, tabId];
+
+    try {
+      await updatePermissionsMutation({
+        userId: activeUser._id as Id<"users">,
+        allowedRoutes: activeRoutes,
+        personalTabs: updatedTabs,
+      });
+      setSaveStatus("Guardado");
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
+  }
+
+  async function handleGrantAllPersonalTabs() {
+    if (!activeUser) return;
+    try {
+      await updatePermissionsMutation({
+        userId: activeUser._id as Id<"users">,
+        allowedRoutes: activeRoutes,
+        personalTabs: [
+          "staff",
+          "actors",
+          "leads",
+          "collaborators",
+          "contacts",
+        ],
+      });
+      setSaveStatus("Secciones habilitadas");
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
+  }
+
+  async function handleRevokeAllPersonalTabs() {
+    if (!activeUser) return;
+    try {
+      await updatePermissionsMutation({
+        userId: activeUser._id as Id<"users">,
+        allowedRoutes: activeRoutes,
+        personalTabs: [],
+      });
+      setSaveStatus("Secciones removidas");
       setTimeout(() => setSaveStatus(null), 2000);
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -722,6 +854,95 @@ export default function PermisosPage() {
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Secciones Específicas de Personal */}
+                <div className="flex flex-col gap-3 pt-3 border-t border-grayscale-3 dark:border-grayscale-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-6 items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-2 text-grayscale-11 dark:border-grayscale-3 dark:bg-grayscale-3">
+                        <UsersIcon size={14} weight="bold" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold uppercase text-grayscale-12">
+                          Secciones de Personal
+                        </span>
+                        <Badge variant={activePersonalTabs.length > 0 ? "accent" : "gray"}>
+                          {activePersonalTabs.length} de {personalTabOptions.length}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleGrantAllPersonalTabs}
+                        className="cursor-pointer text-xs font-mono font-medium text-grayscale-10 hover:text-grayscale-12 transition-colors"
+                      >
+                        Habilitar todas
+                      </button>
+                      <span className="text-grayscale-4">|</span>
+                      <button
+                        type="button"
+                        onClick={handleRevokeAllPersonalTabs}
+                        className="cursor-pointer text-xs font-mono font-medium text-red-10 hover:text-red-11 transition-colors"
+                      >
+                        Deshabilitar todas
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-grayscale-9">
+                    Selecciona qué pestañas específicas puede visualizar este usuario cuando ingresa a Personal (/personal):
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {personalTabOptions.map((tab) => {
+                      const isAllowed = activePersonalTabs.includes(tab.id);
+                      const TabIcon = tab.Icon;
+
+                      return (
+                        <div
+                          key={tab.id}
+                          onClick={() => handleTogglePersonalTab(tab.id)}
+                          className={cn(
+                            "group flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border transition-all cursor-pointer select-none active:scale-[0.99]",
+                            isAllowed
+                              ? "border-grayscale-5 bg-grayscale-2/60 dark:border-grayscale-4 dark:bg-grayscale-2/40"
+                              : "border-grayscale-3 bg-grayscale-1 hover:border-grayscale-4 hover:bg-grayscale-2/30 dark:border-grayscale-3 dark:bg-grayscale-1/40 dark:hover:bg-grayscale-2/20"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 pointer-events-none">
+                            <div
+                              className={cn(
+                                "flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors",
+                                isAllowed
+                                  ? "border-grayscale-12 bg-grayscale-12 text-grayscale-1 dark:border-grayscale-5 dark:bg-grayscale-5 dark:text-grayscale-12"
+                                  : "border-grayscale-4 bg-grayscale-2 text-grayscale-9 dark:border-grayscale-3 dark:bg-grayscale-2"
+                              )}
+                            >
+                              <TabIcon size={15} weight={isAllowed ? "bold" : "regular"} />
+                            </div>
+
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-xs font-bold text-grayscale-12 truncate">
+                                  {tab.name} ({tab.count})
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-grayscale-9 truncate">
+                                {tab.description}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 pointer-events-none">
+                            <Switch.Composed checked={isAllowed} readOnly />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ) : null}

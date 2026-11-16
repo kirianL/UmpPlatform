@@ -28,7 +28,7 @@ import {
   BuildingsIcon,
   TagIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Badge from "@/components/public/Badge";
 import Button from "@/components/public/Button";
 
@@ -328,10 +328,54 @@ const EMPTY_POTENTIAL_CONTACT = {
 };
 
 export default function PersonalPage() {
-  const { userRole, userEmail } = useAuth();
+  const { userRole, userEmail, canAccessPersonalTab } = useAuth();
   const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
-  const canViewStaff =
-    userRole !== "actores" && userRole !== "directorio" && !isMichelle;
+  const canViewStaff = canAccessPersonalTab
+    ? canAccessPersonalTab("staff")
+    : userRole !== "actores" && userRole !== "directorio" && !isMichelle;
+  const canViewActors = canAccessPersonalTab
+    ? canAccessPersonalTab("actors")
+    : true;
+  const canViewLeads = canAccessPersonalTab
+    ? canAccessPersonalTab("leads")
+    : true;
+  const canViewCollaborators = canAccessPersonalTab
+    ? canAccessPersonalTab("collaborators")
+    : true;
+  const canViewContacts = canAccessPersonalTab
+    ? canAccessPersonalTab("contacts")
+    : true;
+
+  const allowedTabs = useMemo(() => {
+    const tabs: string[] = [];
+    if (canViewStaff) tabs.push("staff");
+    if (canViewActors) tabs.push("actors");
+    if (canViewLeads) tabs.push("leads");
+    if (canViewCollaborators) tabs.push("collaborators");
+    if (canViewContacts) tabs.push("contacts");
+    return tabs;
+  }, [
+    canViewStaff,
+    canViewActors,
+    canViewLeads,
+    canViewCollaborators,
+    canViewContacts,
+  ]);
+
+  const [selectedTab, setSelectedTab] = useState<string>(() => {
+    if (canViewStaff) return "staff";
+    if (canViewActors) return "actors";
+    if (canViewLeads) return "leads";
+    if (canViewCollaborators) return "collaborators";
+    if (canViewContacts) return "contacts";
+    return "actors";
+  });
+
+  useEffect(() => {
+    if (allowedTabs.length > 0 && !allowedTabs.includes(selectedTab)) {
+      setSelectedTab(allowedTabs[0]);
+    }
+  }, [allowedTabs, selectedTab]);
 
   // Employees (Staff)
   const employees = useQuery(api.employees.get) ?? [];
@@ -967,7 +1011,7 @@ export default function PersonalPage() {
     },
   ];
 
-  // Birthdays aggregation across all groups
+  // Birthdays aggregation across all permitted groups
   const allPeopleBirthdays = [
     ...(canViewStaff
       ? employees.map((e) => ({
@@ -980,42 +1024,50 @@ export default function PersonalPage() {
           info: getBirthdayInfo(e.birthDate),
         }))
       : []),
-    ...actors.map((a) => ({
-      id: a._id,
-      name: a.name,
-      role: `Actor (${a.characterName})`,
-      category: "Elenco",
-      phone: a.phone,
-      birthDate: a.birthDate,
-      info: getBirthdayInfo(a.birthDate),
-    })),
-    ...castingLeads.map((l: any) => ({
-      id: l._id,
-      name: l.name,
-      role: "Persona interesada",
-      category: "Candidato",
-      phone: l.phone || "",
-      birthDate: l.birthDate,
-      info: getBirthdayInfo(l.birthDate),
-    })),
-    ...potentialCollaborators.map((c: any) => ({
-      id: c._id,
-      name: c.name,
-      role: c.area || "Colaborador potencial",
-      category: "Colaborador",
-      phone: c.phone || "",
-      birthDate: c.birthDate,
-      info: getBirthdayInfo(c.birthDate),
-    })),
-    ...potentialContacts.map((c: any) => ({
-      id: c._id,
-      name: c.name,
-      role: c.category || c.organization || "Contacto potencial",
-      category: "Contacto",
-      phone: c.phone || "",
-      birthDate: c.birthDate,
-      info: getBirthdayInfo(c.birthDate),
-    })),
+    ...(canViewActors
+      ? actors.map((a) => ({
+          id: a._id,
+          name: a.name,
+          role: `Actor (${a.characterName})`,
+          category: "Elenco",
+          phone: a.phone,
+          birthDate: a.birthDate,
+          info: getBirthdayInfo(a.birthDate),
+        }))
+      : []),
+    ...(canViewLeads
+      ? castingLeads.map((l: any) => ({
+          id: l._id,
+          name: l.name,
+          role: "Persona interesada",
+          category: "Candidato",
+          phone: l.phone || "",
+          birthDate: l.birthDate,
+          info: getBirthdayInfo(l.birthDate),
+        }))
+      : []),
+    ...(canViewCollaborators
+      ? potentialCollaborators.map((c: any) => ({
+          id: c._id,
+          name: c.name,
+          role: c.area || "Colaborador potencial",
+          category: "Colaborador",
+          phone: c.phone || "",
+          birthDate: c.birthDate,
+          info: getBirthdayInfo(c.birthDate),
+        }))
+      : []),
+    ...(canViewContacts
+      ? potentialContacts.map((c: any) => ({
+          id: c._id,
+          name: c.name,
+          role: c.category || c.organization || "Contacto potencial",
+          category: "Contacto",
+          phone: c.phone || "",
+          birthDate: c.birthDate,
+          info: getBirthdayInfo(c.birthDate),
+        }))
+      : []),
   ]
     .filter((p) => p.info !== null)
     .sort((a, b) => a.info!.daysRemaining - b.info!.daysRemaining);
@@ -1044,10 +1096,12 @@ export default function PersonalPage() {
 
         {/* Stat Cards */}
         <div
-          className={`grid grid-cols-1 gap-3 ${
-            !canViewStaff
-              ? "sm:grid-cols-2 lg:grid-cols-4"
-              : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+          className={`grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 ${
+            allowedTabs.length >= 5
+              ? "xl:grid-cols-5"
+              : allowedTabs.length === 4
+                ? "xl:grid-cols-4"
+                : "xl:grid-cols-3"
           }`}
         >
           {canViewStaff && (
@@ -1059,34 +1113,42 @@ export default function PersonalPage() {
               index={0}
             />
           )}
-          <StatCard
-            label="Elenco y personajes"
-            value={activeActorCount}
-            detail={`${actors.length} actores registrados`}
-            icon={<UserCheckIcon size={18} weight="fill" />}
-            index={!canViewStaff ? 0 : 1}
-          />
-          <StatCard
-            label="Interesados en grabar"
-            value={castingLeads.length}
-            detail="Candidatos en prospección"
-            icon={<UserPlusIcon size={18} weight="fill" />}
-            index={!canViewStaff ? 1 : 2}
-          />
-          <StatCard
-            label="Colaboradores potenciales"
-            value={potentialCollaborators.length}
-            detail={`${activeCollabCount} confirmados`}
-            icon={<HandshakeIcon size={18} weight="fill" />}
-            index={!canViewStaff ? 2 : 3}
-          />
-          <StatCard
-            label="Contactos potenciales"
-            value={potentialContacts.length}
-            detail={`${activeContactCount} en seguimiento`}
-            icon={<AddressBookIcon size={18} weight="fill" />}
-            index={!canViewStaff ? 3 : 4}
-          />
+          {canViewActors && (
+            <StatCard
+              label="Elenco y personajes"
+              value={activeActorCount}
+              detail={`${actors.length} actores registrados`}
+              icon={<UserCheckIcon size={18} weight="fill" />}
+              index={1}
+            />
+          )}
+          {canViewLeads && (
+            <StatCard
+              label="Interesados en grabar"
+              value={castingLeads.length}
+              detail="Candidatos en prospección"
+              icon={<UserPlusIcon size={18} weight="fill" />}
+              index={2}
+            />
+          )}
+          {canViewCollaborators && (
+            <StatCard
+              label="Colaboradores potenciales"
+              value={potentialCollaborators.length}
+              detail={`${activeCollabCount} confirmados`}
+              icon={<HandshakeIcon size={18} weight="fill" />}
+              index={3}
+            />
+          )}
+          {canViewContacts && (
+            <StatCard
+              label="Contactos potenciales"
+              value={potentialContacts.length}
+              detail={`${activeContactCount} en seguimiento`}
+              icon={<AddressBookIcon size={18} weight="fill" />}
+              index={4}
+            />
+          )}
         </div>
 
         {/* Banner de Cumpleaños del Día */}
@@ -1140,7 +1202,8 @@ export default function PersonalPage() {
 
         {/* Tabs System */}
         <Tabs.Root
-          defaultValue={canViewStaff ? "staff" : "actors"}
+          value={selectedTab}
+          onValueChange={setSelectedTab}
           className="w-full flex flex-col gap-6"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-grayscale-3 dark:border-grayscale-4 pb-2">
@@ -1153,30 +1216,38 @@ export default function PersonalPage() {
                   Equipo de producción ({employees.length})
                 </Tabs.Tab>
               )}
-              <Tabs.Tab
-                value="actors"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Elenco y personajes ({actors.length})
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="leads"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Interesados en grabar ({castingLeads.length})
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="collaborators"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Colaboradores potenciales ({potentialCollaborators.length})
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="contacts"
-                className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
-              >
-                Contactos potenciales ({potentialContacts.length})
-              </Tabs.Tab>
+              {canViewActors && (
+                <Tabs.Tab
+                  value="actors"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Elenco y personajes ({actors.length})
+                </Tabs.Tab>
+              )}
+              {canViewLeads && (
+                <Tabs.Tab
+                  value="leads"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Interesados en grabar ({castingLeads.length})
+                </Tabs.Tab>
+              )}
+              {canViewCollaborators && (
+                <Tabs.Tab
+                  value="collaborators"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Colaboradores potenciales ({potentialCollaborators.length})
+                </Tabs.Tab>
+              )}
+              {canViewContacts && (
+                <Tabs.Tab
+                  value="contacts"
+                  className="font-mono text-[10px] font-bold uppercase py-1.5 px-3"
+                >
+                  Contactos potenciales ({potentialContacts.length})
+                </Tabs.Tab>
+              )}
               <Tabs.Indicator />
             </Tabs.List>
           </div>
@@ -1246,7 +1317,8 @@ export default function PersonalPage() {
           )}
 
           {/* Tab Panel 2: Elenco y personajes */}
-          <Tabs.Panel value="actors">
+          {canViewActors && (
+            <Tabs.Panel value="actors">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative">
@@ -1460,9 +1532,11 @@ export default function PersonalPage() {
               </div>
             </div>
           </Tabs.Panel>
+          )}
 
           {/* Tab Panel 3: Interesados en grabar */}
-          <Tabs.Panel value="leads">
+          {canViewLeads && (
+            <Tabs.Panel value="leads">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative">
@@ -1677,9 +1751,11 @@ export default function PersonalPage() {
               </div>
             </div>
           </Tabs.Panel>
+          )}
 
           {/* Tab Panel 4: Colaboradores potenciales */}
-          <Tabs.Panel value="collaborators">
+          {canViewCollaborators && (
+            <Tabs.Panel value="collaborators">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
@@ -1982,9 +2058,11 @@ export default function PersonalPage() {
               </div>
             </div>
           </Tabs.Panel>
+          )}
 
           {/* Tab Panel 5: Contactos potenciales */}
-          <Tabs.Panel value="contacts">
+          {canViewContacts && (
+            <Tabs.Panel value="contacts">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
@@ -2304,6 +2382,19 @@ export default function PersonalPage() {
               </div>
             </div>
           </Tabs.Panel>
+          )}
+
+          {allowedTabs.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-grayscale-4 p-12 text-center my-6">
+              <UsersIcon size={40} className="text-grayscale-8 mb-2" />
+              <h3 className="text-sm font-mono font-bold uppercase text-grayscale-11">
+                Sin secciones autorizadas
+              </h3>
+              <p className="text-xs text-grayscale-9 mt-1 max-w-sm">
+                No tienes permisos asignados para visualizar secciones en Personal. Contacta a un administrador para solicitar acceso.
+              </p>
+            </div>
+          )}
         </Tabs.Root>
 
         {/* Modal Crear / Editar Empleado */}

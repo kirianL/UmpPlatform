@@ -8,7 +8,7 @@ const convex = new ConvexHttpClient(CONVEX_URL);
 
 export async function POST(request: Request) {
   try {
-    const { action, email, password, name, role, allowedRoutes, userId } =
+    const { action, email, password, name, role, allowedRoutes, personalTabs, userId } =
       await request.json();
 
     if (action === "create") {
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         name: name || undefined,
         role: role || "produccion",
         allowedRoutes: allowedRoutes || [],
+        personalTabs: personalTabs || undefined,
       });
       return NextResponse.json({ success: true });
     }

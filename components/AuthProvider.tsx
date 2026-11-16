@@ -10,9 +10,11 @@ interface AuthContextValue {
   userEmail: string;
   userName: string;
   allowedRoutes?: string[];
+  personalTabs?: string[];
   isAdmin: boolean;
   isLoading: boolean;
   canAccess: (route: string) => boolean;
+  canAccessPersonalTab: (tab: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextValue>({
   isAdmin: false,
   isLoading: false,
   canAccess: () => true,
+  canAccessPersonalTab: () => true,
 });
 
 function isPublicRoute(pathname: string): boolean {
@@ -96,14 +99,33 @@ export function AuthProvider({
     }
   }, [isLoading, isAdmin, pathname, allowedRoutes, userEmail, router]);
 
+  const personalTabs = userDoc?.personalTabs;
+
   const value = useMemo<AuthContextValue>(() => {
     return {
       userRole: effectiveRole,
       userEmail,
       userName: userDoc?.name || "",
       allowedRoutes,
+      personalTabs,
       isAdmin,
       isLoading,
+      canAccessPersonalTab: (tab: string) => {
+        if (isAdmin) return true;
+        if (personalTabs && Array.isArray(personalTabs)) {
+          return personalTabs.includes(tab);
+        }
+        // Fallback default rules if not explicitly customized
+        const isMichelle = (userEmail || "").toLowerCase().includes("michelle");
+        if (tab === "staff") {
+          return (
+            effectiveRole !== "actores" &&
+            effectiveRole !== "directorio" &&
+            !isMichelle
+          );
+        }
+        return true;
+      },
       canAccess: (route: string) => {
         if (isAdmin) return true;
         if (isLoading) return false;
@@ -137,7 +159,7 @@ export function AuthProvider({
         return true;
       },
     };
-  }, [effectiveRole, userEmail, userDoc?.name, allowedRoutes, isAdmin, isLoading]);
+  }, [effectiveRole, userEmail, userDoc?.name, allowedRoutes, personalTabs, isAdmin, isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
